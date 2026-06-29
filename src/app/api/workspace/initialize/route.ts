@@ -1,40 +1,14 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { getClientEnv } from "@/lib/env";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { initializeWorkspaceForUser } from "@/lib/workspace-initializer";
 
 export async function POST(request: Request) {
-  const authHeader = request.headers.get("authorization");
-  const accessToken = authHeader?.startsWith("Bearer ")
-    ? authHeader.slice("Bearer ".length)
-    : null;
-
-  if (!accessToken) {
-    return NextResponse.json(
-      { error: "Your session was not available. Please sign in again." },
-      { status: 401 },
-    );
-  }
-
-  const { NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, NEXT_PUBLIC_SUPABASE_URL } =
-    getClientEnv();
-
-  const supabase = createClient(
-    NEXT_PUBLIC_SUPABASE_URL,
-    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    },
-  );
-
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user },
     error: userError,
-  } = await supabase.auth.getUser(accessToken);
+  } = await supabase.auth.getUser();
 
   if (userError || !user?.email) {
     return NextResponse.json(

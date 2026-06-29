@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 export function WorkspaceSetupForm(props: {
   defaultFullName: string;
@@ -20,23 +19,10 @@ export function WorkspaceSetupForm(props: {
     setErrorMessage("");
 
     try {
-      const supabase = createSupabaseBrowserClient();
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session?.access_token) {
-        window.location.assign(
-          "/auth?message=Your+session+was+not+available.+Please+sign+in+again.",
-        );
-        return;
-      }
-
       const response = await fetch("/api/workspace/initialize", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           fullName,
