@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { verifyWorkspaceSetupToken } from "@/lib/workspace-setup-token";
 import { initializeWorkspaceForUser } from "@/lib/workspace-initializer";
 
@@ -13,34 +12,20 @@ export async function POST(request: Request) {
     setupToken?: string;
   };
 
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  let userId = user?.id;
-  let email = user?.email;
-
-  if (!userId || !email || userError) {
-    if (
-      !body.authUserId ||
-      !body.authEmail ||
-      !body.setupToken ||
-      !verifyWorkspaceSetupToken({
-        token: body.setupToken,
-        userId: body.authUserId,
-        email: body.authEmail,
-      })
-    ) {
-      return NextResponse.json(
-        { error: "Your session was not available. Please sign in again." },
-        { status: 401 },
-      );
-    }
-
-    userId = body.authUserId;
-    email = body.authEmail;
+  if (
+    !body.authUserId ||
+    !body.authEmail ||
+    !body.setupToken ||
+    !verifyWorkspaceSetupToken({
+      token: body.setupToken,
+      userId: body.authUserId,
+      email: body.authEmail,
+    })
+  ) {
+    return NextResponse.json(
+      { error: "Your session was not available. Please sign in again." },
+      { status: 401 },
+    );
   }
 
   if (!body.fullName?.trim()) {
@@ -59,8 +44,8 @@ export async function POST(request: Request) {
 
   try {
     const message = await initializeWorkspaceForUser({
-      userId,
-      email,
+      userId: body.authUserId,
+      email: body.authEmail,
       fullName: body.fullName.trim(),
       organizationName: body.organizationName.trim(),
     });
