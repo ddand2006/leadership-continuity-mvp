@@ -13,7 +13,14 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = await createSupabaseServerClient();
-    await supabase.auth.exchangeCodeForSession(code);
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+    if (error) {
+      const appUrl = getAppUrl();
+      return NextResponse.redirect(
+        new URL(`/auth?message=${encodeURIComponent(error.message)}`, appUrl),
+      );
+    }
   }
 
   const appUrl = getAppUrl();

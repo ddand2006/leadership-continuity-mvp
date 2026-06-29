@@ -10,7 +10,8 @@ function isRecoverableAuthError(error: unknown) {
   return (
     error.message.includes("Invalid Refresh Token") ||
     error.message.includes("Refresh Token Not Found") ||
-    error.message.includes("JWT")
+    error.message.includes("JWT") ||
+    error.message.includes("Auth session missing")
   );
 }
 
@@ -65,7 +66,7 @@ export async function updateSession(request: NextRequest) {
   );
 
   try {
-    await supabase.auth.getClaims();
+    await supabase.auth.getUser();
   } catch (error) {
     if (isRecoverableAuthError(error)) {
       clearSupabaseAuthCookies(request, response);
