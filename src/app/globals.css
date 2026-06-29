@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  --background: #edf4f2;
+  --background: #2440d8;
   --foreground: #0f172a;
 }
 
@@ -22,6 +22,33 @@ body {
   font-family: var(--font-body), sans-serif;
 }
 
+.emerald-soft-panel {
+  background-color: rgba(239, 251, 241, 0.96) !important;
+  background-image: none !important;
+  border-color: rgba(82, 140, 94, 0.2) !important;
+  color: #183822;
+  box-shadow: 0 20px 60px rgba(36, 64, 216, 0.1);
+}
+
+.emerald-soft-panel-title {
+  color: #183822;
+}
+
+.emerald-soft-panel-muted {
+  color: #486454;
+}
+
+.emerald-soft-surface {
+  background-color: rgba(255, 255, 255, 0.72) !important;
+  background-image: none !important;
+  border-color: rgba(82, 140, 94, 0.18) !important;
+  color: #183822;
+}
+
+.emerald-soft-surface-muted {
+  color: #5b7365;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -31,7 +58,16 @@ a {
   text-decoration: none;
 }
 
+.interactive-contrast,
+.interactive-contrast:link,
+.interactive-contrast:visited,
+.interactive-contrast:hover,
+.interactive-contrast:active {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff;
+}
+
 ::selection {
-  background: #99f6e4;
-  color: #0f172a;
+  background: #90a6ff;
+  color: #ffffff;
 }

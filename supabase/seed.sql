@@ -1,0 +1,2 @@
+-- Remote demo data is initialized through the in-app dashboard bootstrap flow.
+-- This file exists so local `supabase db reset` has a valid seed target.

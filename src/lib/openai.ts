@@ -1,8 +1,8 @@
 import OpenAI from "openai";
-import { getServerEnv } from "./env";
+import { getOpenAIEnv } from "./env";
 
 export function createOpenAIClient() {
-  const env = getServerEnv();
+  const env = getOpenAIEnv();
 
   return new OpenAI({
     apiKey: env.OPENAI_API_KEY,

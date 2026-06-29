@@ -26,10 +26,14 @@ Copy `.env.example` to `.env.local` and fill in:
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
+SUPABASE_SECRET_KEY=
 OPENAI_API_KEY=
 APP_URL=http://localhost:3000
 ```
+
+You can use either the current publishable/secret keys or the legacy anon/service-role keys. The app will accept both so it can connect cleanly to newer Supabase projects.
 
 ## Local Development
 
@@ -41,8 +45,25 @@ pnpm dev
 ## Database Setup
 
 1. Create a new Supabase project for this app.
-2. Apply the SQL in `supabase/migrations/202606220001_initial_schema.sql`.
-3. Generate typed database types later once the remote project exists.
+2. Add your project URL and keys to `.env.local`.
+3. Apply the SQL in `supabase/migrations/202606220001_initial_schema.sql`.
+4. Generate typed database types later once the remote project exists.
+
+## Auth Foundation Included
+
+- Next.js 16 `proxy.ts` session refresh hook for Supabase SSR
+- email/password sign-up and sign-in server actions
+- auth callback route for Supabase email confirmations
+- protected dashboard route that checks claims on the server
+
+## Useful Commands
+
+```bash
+pnpm dev
+pnpm lint
+pnpm typecheck
+pnpm db:push
+```
 
 ## Recommended Next Build Steps
 
