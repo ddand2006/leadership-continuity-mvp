@@ -6,9 +6,12 @@ export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
   const next = requestUrl.searchParams.get("next") ?? "/dashboard";
+  const appUrl = getAppUrl();
 
   if (!hasSupabaseEnv()) {
-    return NextResponse.redirect(new URL("/auth?message=Missing+Supabase+configuration", request.url));
+    return NextResponse.redirect(
+      new URL("/auth?message=Missing+Supabase+configuration", appUrl),
+    );
   }
 
   if (code) {
@@ -16,13 +19,11 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error) {
-      const appUrl = getAppUrl();
       return NextResponse.redirect(
         new URL(`/auth?message=${encodeURIComponent(error.message)}`, appUrl),
       );
     }
   }
 
-  const appUrl = getAppUrl();
   return NextResponse.redirect(new URL(next, appUrl));
 }

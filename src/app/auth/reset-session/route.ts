@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { getAppUrl } from "@/lib/env";
 
-export async function GET(request: Request) {
+export async function GET() {
   const cookieStore = await cookies();
+  const appUrl = getAppUrl();
   const redirectUrl = new URL(
     "/auth?message=Session+reset.+Please+sign+in+again.",
-    request.url,
+    appUrl,
   );
   const response = NextResponse.redirect(redirectUrl);
 
