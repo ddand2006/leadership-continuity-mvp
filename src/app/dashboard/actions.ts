@@ -36,9 +36,15 @@ function requireData<T>(data: T | null, message: string) {
 }
 
 export async function initializeWorkspaceAction(formData: FormData) {
+  console.log("initializeWorkspaceAction:start");
   const user = await requireUser();
   const fullName = getRequiredField(formData, "full_name");
   const organizationName = getRequiredField(formData, "organization_name");
+  console.log("initializeWorkspaceAction:user", {
+    userId: user.id,
+    email: user.email,
+    organizationName,
+  });
 
   if (!user.email) {
     redirectWithMessage("Your authenticated user is missing an email address.");
@@ -51,6 +57,7 @@ export async function initializeWorkspaceAction(formData: FormData) {
     .select("id, organization_id")
     .eq("auth_user_id", user.id)
     .maybeSingle();
+  console.log("initializeWorkspaceAction:profileLookup");
 
   if (existingProfileResult.error) {
     redirectWithMessage(existingProfileResult.error.message);
@@ -73,6 +80,7 @@ export async function initializeWorkspaceAction(formData: FormData) {
   let organizationId = existingOrganizationResult.data?.id;
 
   if (!organizationId) {
+    console.log("initializeWorkspaceAction:createOrganization");
     const organizationInsertResult = await admin
       .from("organizations")
       .insert({ name: organizationName })
@@ -100,6 +108,7 @@ export async function initializeWorkspaceAction(formData: FormData) {
     })
     .select("id")
     .single();
+  console.log("initializeWorkspaceAction:profileInsert");
 
   if (profileInsertResult.error) {
     redirectWithMessage(profileInsertResult.error.message);
@@ -430,5 +439,6 @@ export async function initializeWorkspaceAction(formData: FormData) {
   }
 
   revalidatePath("/dashboard");
+  console.log("initializeWorkspaceAction:complete");
   redirectWithMessage("Workspace initialized with your admin profile and demo hospital data.");
 }

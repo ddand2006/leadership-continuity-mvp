@@ -39,7 +39,8 @@ export async function requireUser() {
   const user = await getCurrentUser();
 
   if (!user) {
-    redirect("/auth");
+    console.warn("Auth guard redirected because no user session was available.");
+    redirect("/auth?message=Your+session+was+not+available.+Please+sign+in+again.");
   }
 
   return user;
