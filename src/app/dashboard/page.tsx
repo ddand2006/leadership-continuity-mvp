@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { MentorDirectoryManager } from "@/components/mentor-directory-manager";
-import { initializeWorkspaceAction } from "./actions";
+import { WorkspaceSetupForm } from "@/components/workspace-setup-form";
 
 type DashboardPageProps = {
   searchParams: Promise<{
@@ -318,38 +318,10 @@ export default async function DashboardPage({
               dashboard.
             </p>
 
-            <form action={initializeWorkspaceAction} className="mt-6 space-y-5">
-              <label className="block">
-                <span className="mb-2 block text-sm font-semibold text-slate-700">
-                  Your full name
-                </span>
-                <input
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
-                  type="text"
-                  name="full_name"
-                  defaultValue={user.user_metadata.full_name ?? ""}
-                  required
-                />
-              </label>
-              <label className="block">
-                <span className="mb-2 block text-sm font-semibold text-slate-700">
-                  Organization name
-                </span>
-                <input
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
-                  type="text"
-                  name="organization_name"
-                  defaultValue="Cycle of Business Demo Rural Hospital"
-                  required
-                />
-              </label>
-              <button
-                className="interactive-contrast rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-900"
-                type="submit"
-              >
-                Create Admin Profile and Seed Demo Data
-              </button>
-            </form>
+            <WorkspaceSetupForm
+              defaultFullName={user.user_metadata.full_name ?? ""}
+              defaultOrganizationName="Cycle of Business Demo Rural Hospital"
+            />
           </section>
         ) : (
           <>
