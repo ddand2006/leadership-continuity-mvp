@@ -1,4 +1,3 @@
-import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "./supabase/server";
 import { hasSupabaseEnv } from "./env";
@@ -15,7 +14,7 @@ function isRecoverableAuthError(error: unknown) {
   );
 }
 
-export const getCurrentUser = cache(async () => {
+export async function getCurrentUser() {
   if (!hasSupabaseEnv()) {
     return null;
   }
@@ -34,7 +33,7 @@ export const getCurrentUser = cache(async () => {
 
     throw error;
   }
-});
+}
 
 export async function requireUser() {
   const user = await getCurrentUser();
