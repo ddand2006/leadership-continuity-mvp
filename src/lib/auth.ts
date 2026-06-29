@@ -22,18 +22,11 @@ export const getCurrentUser = cache(async () => {
 
   try {
     const supabase = await createSupabaseServerClient();
-    const { data } = await supabase.auth.getClaims();
-    const claims = data?.claims;
-
-    if (!claims) {
-      return null;
-    }
-
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
-    return user;
+    return user ?? null;
   } catch (error) {
     if (isRecoverableAuthError(error)) {
       return null;
