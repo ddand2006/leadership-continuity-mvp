@@ -32,7 +32,7 @@ export async function signInAction(formData: FormData) {
     redirect(`/auth?message=${encodeURIComponent(error.message)}`);
   }
 
-  redirect("/dashboard");
+  redirect("/");
 }
 
 export async function signUpAction(formData: FormData) {
@@ -49,7 +49,7 @@ export async function signUpAction(formData: FormData) {
     email,
     password,
     options: {
-      emailRedirectTo: `${appUrl}/auth/callback`,
+      emailRedirectTo: `${appUrl}/auth/callback?next=/`,
     },
   });
 

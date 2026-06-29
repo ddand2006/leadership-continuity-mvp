@@ -108,7 +108,7 @@ export function AuthForms() {
 
       await syncSessionToServer(data.session);
 
-      window.location.assign("/dashboard");
+      window.location.assign("/");
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Unable to sign in right now.",
@@ -128,7 +128,7 @@ export function AuthForms() {
         email: payload.email,
         password: payload.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/`,
         },
       });
 
@@ -146,7 +146,7 @@ export function AuthForms() {
 
       await syncSessionToServer(data.session);
 
-      window.location.assign("/dashboard");
+      window.location.assign("/");
     } catch (error) {
       setErrorMessage(
         error instanceof Error
