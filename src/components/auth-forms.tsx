@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import type { Session } from "@supabase/supabase-js";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 function AuthCard(props: {
@@ -69,22 +70,49 @@ export function AuthForms() {
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [isSigningUp, setIsSigningUp] = useState(false);
 
+  async function syncSessionToServer(session: Session) {
+    const response = await fetch("/api/auth/session", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        accessToken: session.access_token,
+        refreshToken: session.refresh_token,
+      }),
+    });
+
+    if (!response.ok) {
+      const payload = (await response.json()) as { error?: string };
+      throw new Error(payload.error ?? "Unable to save your session.");
+    }
+  }
+
   async function handleSignIn(payload: { email: string; password: string }) {
     setErrorMessage("");
     setIsSigningIn(true);
 
     try {
       const supabase = createSupabaseBrowserClient();
-      const { error } = await supabase.auth.signInWithPassword(payload);
+      const { data, error } = await supabase.auth.signInWithPassword(payload);
 
       if (error) {
         setErrorMessage(error.message);
         return;
       }
 
+      if (!data.session) {
+        setErrorMessage("Your session could not be created. Please try again.");
+        return;
+      }
+
+      await syncSessionToServer(data.session);
+
       window.location.assign("/dashboard");
-    } catch {
-      setErrorMessage("Unable to sign in right now.");
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "Unable to sign in right now.",
+      );
     } finally {
       setIsSigningIn(false);
     }
@@ -116,9 +144,15 @@ export function AuthForms() {
         return;
       }
 
+      await syncSessionToServer(data.session);
+
       window.location.assign("/dashboard");
-    } catch {
-      setErrorMessage("Unable to create your account right now.");
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to create your account right now.",
+      );
     } finally {
       setIsSigningUp(false);
     }

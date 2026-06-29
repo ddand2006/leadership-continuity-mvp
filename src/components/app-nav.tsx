@@ -35,7 +35,7 @@ export function AppNav() {
               Sign In
             </Link>
             <Link
-              href="/auth/reset-session"
+              href="/auth/logout"
               className="rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-200"
             >
               Log Out
