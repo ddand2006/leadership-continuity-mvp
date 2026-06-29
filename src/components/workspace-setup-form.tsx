@@ -3,8 +3,11 @@
 import { useState } from "react";
 
 export function WorkspaceSetupForm(props: {
+  authEmail: string;
+  authUserId: string;
   defaultFullName: string;
   defaultOrganizationName: string;
+  setupToken: string;
 }) {
   const [fullName, setFullName] = useState(props.defaultFullName);
   const [organizationName, setOrganizationName] = useState(
@@ -25,8 +28,11 @@ export function WorkspaceSetupForm(props: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          authEmail: props.authEmail,
+          authUserId: props.authUserId,
           fullName,
           organizationName,
+          setupToken: props.setupToken,
         }),
       });
 

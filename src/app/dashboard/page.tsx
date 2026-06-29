@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { MentorDirectoryManager } from "@/components/mentor-directory-manager";
 import { WorkspaceSetupForm } from "@/components/workspace-setup-form";
+import { createWorkspaceSetupToken } from "@/lib/workspace-setup-token";
 
 type DashboardPageProps = {
   searchParams: Promise<{
@@ -293,6 +294,10 @@ export default async function DashboardPage({
 }: DashboardPageProps) {
   const user = await requireUser();
   const { message } = await searchParams;
+  const setupToken = createWorkspaceSetupToken({
+    userId: user.id,
+    email: user.email ?? "",
+  });
   const snapshot = await getDashboardSnapshot(user.id);
 
   return (
@@ -319,8 +324,11 @@ export default async function DashboardPage({
             </p>
 
             <WorkspaceSetupForm
+              authEmail={user.email ?? ""}
+              authUserId={user.id}
               defaultFullName={user.user_metadata.full_name ?? ""}
               defaultOrganizationName="Cycle of Business Demo Rural Hospital"
+              setupToken={setupToken}
             />
           </section>
         ) : (
