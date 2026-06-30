@@ -688,7 +688,7 @@ function buildDashboardIntelligence(options: {
     const key = `${assignment.candidate_id}:${assignment.role_id}`;
     const current =
       assignmentsByTrackKey.get(key) ??
-      ({ mentorIds: new Set<string>(), mentorNames: new Set<string>() } as const);
+      ({ mentorIds: new Set<string>(), mentorNames: new Set<string>() });
 
     if (assignment.mentor_profile_id) {
       current.mentorIds.add(assignment.mentor_profile_id);
@@ -1136,7 +1136,7 @@ function buildDashboardIntelligence(options: {
         improvements: [],
         reviewerScores: [],
         competencyImprovements: new Map<string, number[]>(),
-      } as const);
+      });
 
     current.count += 1;
 
@@ -1204,7 +1204,7 @@ function buildDashboardIntelligence(options: {
         currentScores: [],
         improvements: [],
         candidateIds: new Set<string>(),
-      } as const);
+      });
 
     current.baselineScores.push(competency.baseline_score);
 
@@ -1530,7 +1530,7 @@ async function getDashboardSnapshot(
 
   const mentorScopedAssignments = isMentorView
     ? rawMentorAssignments.filter(
-        (assignment) => assignment.mentor_profile_id === profileResult.data.id,
+        (assignment) => assignment.mentor_profile_id === profileResult.data?.id,
       )
     : rawMentorAssignments;
   const mentorVisibleTrackKeys = new Set(
@@ -1547,7 +1547,7 @@ async function getDashboardSnapshot(
     ? rawRoles.filter((role) => mentorVisibleRoleIds.has(role.id))
     : rawRoles;
   const mentors = isMentorView
-    ? rawMentors.filter((mentor) => mentor.id === profileResult.data.id)
+    ? rawMentors.filter((mentor) => mentor.id === profileResult.data?.id)
     : rawMentors;
   const candidatesSource = isMentorView
     ? rawCandidates.filter((candidate) => mentorVisibleCandidateIds.has(candidate.id))
@@ -1572,7 +1572,7 @@ async function getDashboardSnapshot(
     visibleCandidateIdSet.has(record.candidate_id),
   );
   developmentRecords = isMentorView
-    ? developmentRecords.filter((record) => record.mentor_id === profileResult.data.id)
+    ? developmentRecords.filter((record) => record.mentor_id === profileResult.data?.id)
     : developmentRecords;
 
   let developmentCompetencies: DevelopmentCompetencyRow[] = [];
