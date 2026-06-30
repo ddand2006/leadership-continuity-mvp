@@ -4,6 +4,7 @@ import { MentoringCrossDepartmentalProjectWorksheetManager } from "@/components/
 import { MentoringDepartmentalProjectWorksheetManager } from "@/components/mentoring-departmental-project-worksheet-manager";
 import { MentorAssignmentManager } from "@/components/mentor-assignment-manager";
 import { MentoringPreparationWorksheetManager } from "@/components/mentoring-preparation-worksheet-manager";
+import { LeadershipDevelopmentRecordManager } from "@/components/leadership-development-record-manager";
 import { MentoringWorkspaceMenu } from "@/components/mentoring-workspace-menu";
 import { isMissingCrossDepartmentalProjectWorksheetTableError } from "@/lib/mentoring-cross-departmental-project-worksheet";
 import { isMissingDepartmentalProjectWorksheetTableError } from "@/lib/mentoring-departmental-project-worksheet";
@@ -147,6 +148,7 @@ export default async function MentoringPage({
   const selectedSectionId =
     requestedSection === "mentor-assignments" ||
     requestedSection === "preparation-worksheet" ||
+    requestedSection === "leadership-development-record" ||
     requestedSection === "departmental-project" ||
     requestedSection === "cross-departmental-project" ||
     requestedSection === "readiness-review" ||
@@ -460,7 +462,7 @@ export default async function MentoringPage({
         ),
       ).length
     } role tracks with reports`,
-    "Preparation, departmental, and cross-departmental worksheets are live in this workspace",
+    "Leadership development records, preparation worksheets, departmental projects, and cross-departmental projects are all live in this workspace",
   ];
   const selectedAssignmentKey =
     requestedAssignmentKey &&
@@ -585,6 +587,9 @@ export default async function MentoringPage({
                         Complete the preparation worksheet together before deeper project work begins.
                       </li>
                       <li className="rounded-2xl border border-amber-200 bg-white/80 px-4 py-3">
+                        Open the leadership development record to define the stretch experience, target competencies, leader touchpoints, and review cycle for that mentoring track.
+                      </li>
+                      <li className="rounded-2xl border border-amber-200 bg-white/80 px-4 py-3">
                         Generate the mentor report inside that candidate-role track.
                       </li>
                       <li className="rounded-2xl border border-amber-200 bg-white/80 px-4 py-3">
@@ -699,6 +704,32 @@ export default async function MentoringPage({
                   assignments={visibleAssignmentsWithWorksheet}
                   initialSelectedAssignmentKey={selectedAssignmentKey}
                   storageReady={worksheetStorageReady}
+                />
+              ),
+            },
+            {
+              id: "leadership-development-record",
+              label: "Leadership Development Record",
+              content: (
+                <LeadershipDevelopmentRecordManager
+                  assignments={visibleAssignments.map((assignment) => ({
+                    candidateId: assignment.candidate_id,
+                    roleId: assignment.role_id,
+                    mentorProfileId: assignment.mentor_profile_id,
+                    candidateName:
+                      candidateMap.get(assignment.candidate_id)?.full_name ??
+                      "Unknown candidate",
+                    currentTitle:
+                      candidateMap.get(assignment.candidate_id)?.current_title ?? null,
+                    roleTitle: roleMap.get(assignment.role_id)?.title ?? "Unknown role",
+                    mentorName:
+                      mentorMap.get(assignment.mentor_profile_id)?.full_name ??
+                      "Unknown mentor",
+                    mentorPositionTitle:
+                      mentorMap.get(assignment.mentor_profile_id)?.position_title ?? null,
+                    startDate: assignment.start_date,
+                  }))}
+                  initialSelectedAssignmentKey={selectedAssignmentKey}
                 />
               ),
             },

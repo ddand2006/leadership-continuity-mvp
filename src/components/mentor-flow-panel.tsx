@@ -15,6 +15,7 @@ import {
 type MentorFlowSection =
   | "mentor-assignments"
   | "preparation-worksheet"
+  | "leadership-development-record"
   | "departmental-project"
   | "cross-departmental-project";
 
@@ -109,6 +110,16 @@ export function MentorFlowPanel({
       disabled: !selectedAssignment,
     },
     {
+      title: "Leadership Development Record",
+      description: selectedAssignment
+        ? "Open the living development record for this role track to assign the experience, track competencies, and collect feedback."
+        : "Choose a candidate-role track first to open the leadership development record.",
+      onClick: selectedAssignment
+        ? () => updateRoute("leadership-development-record", selectedAssignment)
+        : undefined,
+      disabled: !selectedAssignment,
+    },
+    {
       title: "Departmental Project",
       description: selectedAssignment
         ? selectedAssignment.hasDepartmentalWorksheet
@@ -155,8 +166,9 @@ export function MentorFlowPanel({
         Follow one clear mentoring workflow
       </h2>
       <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600">
-        Move from mentor assignment into worksheets and the candidate report
-        without losing the candidate-role context of the mentoring track.
+        Move from mentor assignment into the development record, supporting
+        worksheets, and the candidate report without losing the candidate-role
+        context of the mentoring track.
       </p>
 
       {assignments.length === 0 ? (

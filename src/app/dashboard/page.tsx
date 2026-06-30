@@ -4,12 +4,28 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { MentorDirectoryManager } from "@/components/mentor-directory-manager";
 import { WorkspaceSetupForm } from "@/components/workspace-setup-form";
 import { createWorkspaceSetupToken } from "@/lib/workspace-setup-token";
+import { isMissingLeadershipDevelopmentRecordTableError } from "@/lib/leadership-development-record";
 
 type DashboardPageProps = {
   searchParams: Promise<{
     message?: string;
+    timeRange?: string;
+    department?: string;
+    targetRole?: string;
+    mentorId?: string;
+    readiness?: string;
+    recommendations?: string;
   }>;
 };
+
+type TimeRange = "30d" | "90d" | "6m" | "12m" | "all";
+type ReadinessFilter =
+  | "all"
+  | "developing"
+  | "progressing"
+  | "near_role_ready"
+  | "role_ready";
+type RiskLevel = "High Risk" | "Moderate Risk" | "Low Risk";
 
 type CandidateStage =
   | "Needs target role"
@@ -20,41 +36,273 @@ type CandidateStage =
   | "Development plan assigned"
   | "On hold";
 
+type DashboardFilters = {
+  timeRange: TimeRange;
+  department: string;
+  targetRole: string;
+  mentorId: string;
+  readiness: ReadinessFilter;
+  recommendationsOpen: boolean;
+};
+
+type DashboardProfile = {
+  id: string;
+  organization_id: string;
+  full_name: string;
+  role: string;
+  organization_name: string;
+};
+
+type DashboardRole = {
+  id: string;
+  title: string;
+  department: string | null;
+  status: string;
+};
+
+type DashboardMentor = {
+  id: string;
+  full_name: string;
+  email: string;
+  position_title: string | null;
+};
+
+type DashboardCandidate = {
+  id: string;
+  full_name: string;
+  current_title: string | null;
+  role_ids: string[];
+  role_titles: string[];
+  mentor_profile_ids: string[];
+  mentor_names: string[];
+  status: string;
+  stage: CandidateStage;
+};
+
+type MentorAssignment = {
+  candidate_id: string;
+  role_id: string;
+  mentor_profile_id: string;
+  status: string | null;
+};
+
+type DevelopmentRecordRow = {
+  id: string;
+  candidate_id: string;
+  role_id: string;
+  mentor_id: string;
+  target_role: string;
+  date_assigned: string;
+  status: string;
+  growth_areas: string[] | null;
+  experience_title: string;
+  readiness_signal: string | null;
+  mentor_review_date: string | null;
+  average_feedback_score: number | null;
+  updated_at: string;
+};
+
+type DevelopmentCompetencyRow = {
+  development_record_id: string;
+  competency_name: string;
+  baseline_score: number;
+  target_score: number;
+  current_score: number | null;
+};
+
+type DevelopmentFeedbackRow = {
+  development_record_id: string;
+};
+
+type SuccessorSummary = {
+  candidateId: string;
+  name: string;
+  roleId: string;
+  roleTitle: string;
+  mentorId: string | null;
+};
+
+type RoleRiskRow = {
+  roleId: string;
+  roleTitle: string;
+  department: string | null;
+  candidateCount: number;
+  highestReadinessScore: number | null;
+  lastDevelopmentActivity: string | null;
+  riskLevel: RiskLevel;
+  candidateLinks: SuccessorSummary[];
+};
+
+type MentorEffectivenessRow = {
+  mentorId: string;
+  mentorName: string;
+  activeCandidates: number;
+  completedReviews: number;
+  averageCandidateImprovement: number | null;
+  overdueReviews: number;
+  averageReviewerScore: number | null;
+};
+
+type ExperienceImpactRow = {
+  experienceType: string;
+  assignedCount: number;
+  averageCompetencyImprovement: number | null;
+  averageReviewerScore: number | null;
+  mostImprovedCompetency: string | null;
+};
+
+type CompetencyGrowthRow = {
+  competencyName: string;
+  averageBaselineScore: number | null;
+  averageCurrentScore: number | null;
+  averageImprovement: number | null;
+  candidateCount: number;
+};
+
+type DashboardRecommendation = {
+  title: string;
+  body: string;
+  href?: string;
+};
+
+type DashboardIntelligence = {
+  filters: DashboardFilters;
+  filterOptions: {
+    departments: string[];
+    roles: { id: string; title: string }[];
+    mentors: { id: string; name: string }[];
+  };
+  visibilityNote: string | null;
+  developmentStorageReady: boolean;
+  emptyStateMessage: string | null;
+  continuityScore: {
+    score: number;
+    label: string;
+    roleCoverageScore: number;
+    candidateReadinessScore: number;
+    developmentProgressScore: number;
+    mentorEngagementScore: number;
+    reviewCompletionScore: number;
+  };
+  criticalRolesCovered: {
+    covered: number;
+    total: number;
+    percentage: number;
+    uncoveredRoles: { id: string; title: string }[];
+  };
+  readySuccessors: {
+    near: SuccessorSummary[];
+    ready: SuccessorSummary[];
+  };
+  highRiskRoles: number;
+  averageTimeToReadiness: {
+    overallMonths: number | null;
+    nearMonths: number | null;
+    roleReadyMonths: number | null;
+    byRole: { roleId: string; roleTitle: string; months: number }[];
+    byDepartment: { department: string; months: number }[];
+  };
+  riskByRole: RoleRiskRow[];
+  candidateMovement: {
+    improved: number;
+    noChange: number;
+    declined: number;
+    completedProgram: number;
+    removedFromPipeline: number;
+  };
+  mentorEffectiveness: MentorEffectivenessRow[];
+  experienceImpact: ExperienceImpactRow[];
+  competencyGrowth: CompetencyGrowthRow[];
+  recommendations: DashboardRecommendation[];
+  successionRisks: DashboardRecommendation[];
+  learnedInsights: string[];
+};
+
 type DashboardSnapshot = {
-  profile: {
-    id: string;
-    organization_id: string;
-    full_name: string;
-    role: string;
-    organization_name: string;
-  } | null;
-  roles: {
-    id: string;
-    title: string;
-    department: string | null;
-    status: string;
-  }[];
-  mentors: {
-    id: string;
-    full_name: string;
-    email: string;
-    position_title: string | null;
-  }[];
-  candidates: {
-    id: string;
-    full_name: string;
-    current_title: string | null;
-    role_titles: string[];
-    mentor_names: string[];
-    status: string;
-    stage: CandidateStage;
-  }[];
+  profile: DashboardProfile | null;
+  roles: DashboardRole[];
+  mentors: DashboardMentor[];
+  candidates: DashboardCandidate[];
   counts: {
     roles: number;
     candidates: number;
     mentors: number;
   } | null;
+  intelligence: DashboardIntelligence | null;
 };
+
+type DashboardTrack = {
+  key: string;
+  candidateId: string;
+  candidateName: string;
+  currentTitle: string | null;
+  candidateStatus: string;
+  roleId: string;
+  roleTitle: string;
+  department: string | null;
+  mentorIds: string[];
+  mentorNames: string[];
+  records: DevelopmentRecordRow[];
+};
+
+const TIME_RANGE_OPTIONS: Array<{ value: TimeRange; label: string }> = [
+  { value: "30d", label: "Last 30 days" },
+  { value: "90d", label: "Last 90 days" },
+  { value: "6m", label: "Last 6 months" },
+  { value: "12m", label: "Last 12 months" },
+  { value: "all", label: "All Time" },
+];
+
+const READINESS_OPTIONS: Array<{ value: ReadinessFilter; label: string }> = [
+  { value: "all", label: "All readiness levels" },
+  { value: "developing", label: "Developing" },
+  { value: "progressing", label: "Progressing" },
+  { value: "near_role_ready", label: "Near Role-Ready" },
+  { value: "role_ready", label: "Role-Ready" },
+];
+
+function parseTimeRange(value?: string): TimeRange {
+  switch (value) {
+    case "30d":
+    case "90d":
+    case "6m":
+    case "12m":
+    case "all":
+      return value;
+    default:
+      return "90d";
+  }
+}
+
+function parseReadinessFilter(value?: string): ReadinessFilter {
+  switch (value) {
+    case "developing":
+    case "progressing":
+    case "near_role_ready":
+    case "role_ready":
+      return value;
+    default:
+      return "all";
+  }
+}
+
+function parseDashboardFilters(params: {
+  timeRange?: string;
+  department?: string;
+  targetRole?: string;
+  mentorId?: string;
+  readiness?: string;
+  recommendations?: string;
+}): DashboardFilters {
+  return {
+    timeRange: parseTimeRange(params.timeRange),
+    department: typeof params.department === "string" ? params.department : "",
+    targetRole: typeof params.targetRole === "string" ? params.targetRole : "",
+    mentorId: typeof params.mentorId === "string" ? params.mentorId : "",
+    readiness: parseReadinessFilter(params.readiness),
+    recommendationsOpen: params.recommendations === "open",
+  };
+}
 
 function getStageClasses(stage: CandidateStage) {
   switch (stage) {
@@ -105,7 +353,1058 @@ function resolveCandidateStage(options: {
   return "Development plan assigned";
 }
 
-async function getDashboardSnapshot(authUserId: string): Promise<DashboardSnapshot> {
+function average(values: number[]) {
+  if (values.length === 0) {
+    return null;
+  }
+
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function roundToTenth(value: number | null) {
+  if (value === null) {
+    return null;
+  }
+
+  return Number(value.toFixed(1));
+}
+
+function roundToHundredth(value: number | null) {
+  if (value === null) {
+    return null;
+  }
+
+  return Number(value.toFixed(2));
+}
+
+function clampPercent(value: number | null) {
+  if (value === null) {
+    return 0;
+  }
+
+  return Math.max(0, Math.min(100, Number(value.toFixed(0))));
+}
+
+function formatPercent(value: number) {
+  return `${Math.round(value)}%`;
+}
+
+function formatScore(value: number | null) {
+  if (value === null) {
+    return "-";
+  }
+
+  return value.toFixed(1);
+}
+
+function formatDate(value: string | null) {
+  if (!value) {
+    return "No activity yet";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "No activity yet";
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(date);
+}
+
+function getTimeRangeStart(range: TimeRange) {
+  if (range === "all") {
+    return null;
+  }
+
+  const now = new Date();
+  const next = new Date(now);
+
+  if (range === "30d") {
+    next.setDate(now.getDate() - 30);
+  } else if (range === "90d") {
+    next.setDate(now.getDate() - 90);
+  } else if (range === "6m") {
+    next.setMonth(now.getMonth() - 6);
+  } else if (range === "12m") {
+    next.setMonth(now.getMonth() - 12);
+  }
+
+  return next;
+}
+
+function isOnOrAfter(value: string | null, threshold: Date | null) {
+  if (!threshold) {
+    return true;
+  }
+
+  if (!value) {
+    return false;
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return false;
+  }
+
+  return date >= threshold;
+}
+
+function isWithinLastDays(value: string | null, days: number) {
+  if (!value) {
+    return false;
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return false;
+  }
+
+  const threshold = new Date();
+  threshold.setDate(threshold.getDate() - days);
+  return date >= threshold;
+}
+
+function getContinuityLabel(score: number) {
+  if (score >= 85) {
+    return "Strong";
+  }
+
+  if (score >= 70) {
+    return "Stable";
+  }
+
+  if (score >= 50) {
+    return "Moderate Risk";
+  }
+
+  return "High Risk";
+}
+
+function getReadinessLabel(value: string | null) {
+  switch (value) {
+    case "developing":
+      return "Developing";
+    case "progressing":
+      return "Progressing";
+    case "near_role_ready":
+      return "Near Role-Ready";
+    case "role_ready":
+      return "Role-Ready";
+    default:
+      return "Not yet signaled";
+  }
+}
+
+function getReadinessScore(signal: string | null) {
+  switch (signal) {
+    case "developing":
+      return 2;
+    case "progressing":
+      return 3;
+    case "near_role_ready":
+      return 4;
+    case "role_ready":
+      return 5;
+    default:
+      return null;
+  }
+}
+
+function getRecordNumericReadiness(record: DevelopmentRecordRow | null | undefined) {
+  if (!record) {
+    return null;
+  }
+
+  if (typeof record.average_feedback_score === "number") {
+    return record.average_feedback_score;
+  }
+
+  return getReadinessScore(record.readiness_signal);
+}
+
+function inferExperienceType(title: string) {
+  const normalized = title.trim().toLowerCase();
+
+  if (normalized.includes("cross")) {
+    return "Cross-Department Project";
+  }
+
+  if (normalized.includes("department")) {
+    return "Department Project";
+  }
+
+  if (normalized.includes("shadow")) {
+    return "Executive Shadowing";
+  }
+
+  if (normalized.includes("board")) {
+    return "Board Presentation";
+  }
+
+  if (normalized.includes("finance") || normalized.includes("financial")) {
+    return "Financial Rotation";
+  }
+
+  if (normalized.includes("committee")) {
+    return "Committee Leadership";
+  }
+
+  if (normalized.includes("conflict")) {
+    return "Conflict Resolution Assignment";
+  }
+
+  if (normalized.includes("quality")) {
+    return "Quality Improvement Project";
+  }
+
+  return "Other";
+}
+
+function calculateMonthsBetween(startValue: string | null, endValue: string | null) {
+  if (!startValue || !endValue) {
+    return null;
+  }
+
+  const start = new Date(startValue);
+  const end = new Date(endValue);
+
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) {
+    return null;
+  }
+
+  return Number(((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 30.4375)).toFixed(1));
+}
+
+function buildDashboardHref(filters: DashboardFilters, overrides: Partial<DashboardFilters>) {
+  const next = { ...filters, ...overrides };
+  const params = new URLSearchParams();
+
+  params.set("timeRange", next.timeRange);
+
+  if (next.department) {
+    params.set("department", next.department);
+  }
+
+  if (next.targetRole) {
+    params.set("targetRole", next.targetRole);
+  }
+
+  if (next.mentorId) {
+    params.set("mentorId", next.mentorId);
+  }
+
+  if (next.readiness !== "all") {
+    params.set("readiness", next.readiness);
+  }
+
+  if (next.recommendationsOpen) {
+    params.set("recommendations", "open");
+  }
+
+  return `/dashboard?${params.toString()}`;
+}
+
+function getRoleHref(roleId: string) {
+  return `/roles?roleId=${roleId}`;
+}
+
+function getCandidateHref(candidateId: string) {
+  return `/candidates/${candidateId}`;
+}
+
+function getMentoringHref(candidateId: string, roleId: string, mentorId: string | null) {
+  const params = new URLSearchParams({
+    section: "leadership-development-record",
+    candidateId,
+    roleId,
+  });
+
+  if (mentorId) {
+    params.set("mentorProfileId", mentorId);
+  }
+
+  return `/mentoring?${params.toString()}`;
+}
+
+function buildDashboardIntelligence(options: {
+  profile: DashboardProfile;
+  roles: DashboardRole[];
+  mentors: DashboardMentor[];
+  candidates: DashboardCandidate[];
+  mentorAssignments: MentorAssignment[];
+  developmentRecords: DevelopmentRecordRow[];
+  developmentCompetencies: DevelopmentCompetencyRow[];
+  developmentFeedback: DevelopmentFeedbackRow[];
+  filters: DashboardFilters;
+  developmentStorageReady: boolean;
+}) : DashboardIntelligence {
+  const departmentOptions = Array.from(
+    new Set(
+      options.roles
+        .map((role) => role.department?.trim())
+        .filter((department): department is string => Boolean(department)),
+    ),
+  ).sort((left, right) => left.localeCompare(right));
+
+  const mentorOptions = options.mentors
+    .map((mentor) => ({ id: mentor.id, name: mentor.full_name }))
+    .sort((left, right) => left.name.localeCompare(right.name));
+  const roleOptions = options.roles
+    .map((role) => ({ id: role.id, title: role.title }))
+    .sort((left, right) => left.title.localeCompare(right.title));
+
+  const competenciesByRecordId = new Map<string, DevelopmentCompetencyRow[]>();
+  const feedbackCountByRecordId = new Map<string, number>();
+
+  for (const competency of options.developmentCompetencies) {
+    const current = competenciesByRecordId.get(competency.development_record_id) ?? [];
+    current.push(competency);
+    competenciesByRecordId.set(competency.development_record_id, current);
+  }
+
+  for (const feedback of options.developmentFeedback) {
+    feedbackCountByRecordId.set(
+      feedback.development_record_id,
+      (feedbackCountByRecordId.get(feedback.development_record_id) ?? 0) + 1,
+    );
+  }
+
+  const roleById = new Map(options.roles.map((role) => [role.id, role]));
+  const candidateById = new Map(options.candidates.map((candidate) => [candidate.id, candidate]));
+  const mentorById = new Map(options.mentors.map((mentor) => [mentor.id, mentor]));
+  const assignmentsByTrackKey = new Map<
+    string,
+    { mentorIds: Set<string>; mentorNames: Set<string> }
+  >();
+  const recordsByTrackKey = new Map<string, DevelopmentRecordRow[]>();
+
+  for (const assignment of options.mentorAssignments) {
+    const key = `${assignment.candidate_id}:${assignment.role_id}`;
+    const current =
+      assignmentsByTrackKey.get(key) ??
+      ({ mentorIds: new Set<string>(), mentorNames: new Set<string>() } as const);
+
+    if (assignment.mentor_profile_id) {
+      current.mentorIds.add(assignment.mentor_profile_id);
+      const mentorName = mentorById.get(assignment.mentor_profile_id)?.full_name;
+
+      if (mentorName) {
+        current.mentorNames.add(mentorName);
+      }
+    }
+
+    assignmentsByTrackKey.set(key, current);
+  }
+
+  for (const record of options.developmentRecords) {
+    const key = `${record.candidate_id}:${record.role_id}`;
+    const current = recordsByTrackKey.get(key) ?? [];
+    current.push(record);
+    recordsByTrackKey.set(key, current);
+  }
+
+  const tracks: DashboardTrack[] = [];
+
+  for (const candidate of options.candidates) {
+    for (const roleId of candidate.role_ids) {
+      const role = roleById.get(roleId);
+
+      if (!role) {
+        continue;
+      }
+
+      const key = `${candidate.id}:${roleId}`;
+      const assignmentData = assignmentsByTrackKey.get(key);
+      const records = (recordsByTrackKey.get(key) ?? []).slice().sort((left, right) =>
+        right.updated_at.localeCompare(left.updated_at),
+      );
+
+      tracks.push({
+        key,
+        candidateId: candidate.id,
+        candidateName: candidate.full_name,
+        currentTitle: candidate.current_title,
+        candidateStatus: candidate.status,
+        roleId,
+        roleTitle: role.title,
+        department: role.department,
+        mentorIds: assignmentData ? Array.from(assignmentData.mentorIds) : [],
+        mentorNames: assignmentData ? Array.from(assignmentData.mentorNames) : [],
+        records,
+      });
+    }
+  }
+
+  const timeRangeStart = getTimeRangeStart(options.filters.timeRange);
+
+  const visibleTracks = tracks.filter((track) => {
+    if (options.filters.department && track.department !== options.filters.department) {
+      return false;
+    }
+
+    if (options.filters.targetRole && track.roleId !== options.filters.targetRole) {
+      return false;
+    }
+
+    if (
+      options.filters.mentorId &&
+      !track.mentorIds.includes(options.filters.mentorId) &&
+      !track.records.some((record) => record.mentor_id === options.filters.mentorId)
+    ) {
+      return false;
+    }
+
+    if (options.filters.readiness !== "all") {
+      const latestRecord = track.records[0] ?? null;
+
+      if ((latestRecord?.readiness_signal ?? null) !== options.filters.readiness) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  const visibleRoleIds = new Set(visibleTracks.map((track) => track.roleId));
+  const visibleRoles = options.roles.filter((role) => {
+    if (options.filters.department && role.department !== options.filters.department) {
+      return false;
+    }
+
+    if (options.filters.targetRole && role.id !== options.filters.targetRole) {
+      return false;
+    }
+
+    if (options.filters.mentorId) {
+      return visibleRoleIds.has(role.id);
+    }
+
+    return true;
+  });
+
+  const activeTracks = visibleTracks.filter((track) => track.candidateStatus !== "on_hold");
+  const visibleRecords = visibleTracks.flatMap((track) => track.records);
+  const visibleRecordIds = new Set(visibleRecords.map((record) => record.id));
+  const visibleRecordsInRange = visibleRecords.filter((record) =>
+    isOnOrAfter(record.updated_at, timeRangeStart),
+  );
+  const visibleRecordIdsInRange = new Set(visibleRecordsInRange.map((record) => record.id));
+  const visibleCompetenciesInRange = options.developmentCompetencies.filter((competency) =>
+    visibleRecordIdsInRange.has(competency.development_record_id),
+  );
+
+  const roleCoverageScore = clampPercent(
+    visibleRoles.length > 0
+      ? (activeTracks.length > 0
+          ? (new Set(activeTracks.map((track) => track.roleId)).size / visibleRoles.length) * 100
+          : 0)
+      : 0,
+  );
+
+  const readinessScores = visibleTracks
+    .map((track) => getRecordNumericReadiness(track.records[0] ?? null))
+    .filter((score): score is number => score !== null);
+  const candidateReadinessScore = clampPercent(
+    readinessScores.length > 0 ? ((average(readinessScores) ?? 0) / 5) * 100 : 0,
+  );
+
+  const competencyImprovements = visibleCompetenciesInRange
+    .map((competency) => {
+      if (competency.current_score === null) {
+        return null;
+      }
+
+      return competency.current_score - competency.baseline_score;
+    })
+    .filter((value): value is number => value !== null);
+  const developmentProgressScore = clampPercent(
+    competencyImprovements.length > 0
+      ? Math.min(((average(competencyImprovements) ?? 0) / 2) * 100, 100)
+      : 0,
+  );
+
+  const activeTrackKeys = new Set(activeTracks.map((track) => track.key));
+  const tracksWithRecentMentorReview = new Set(
+    activeTracks
+      .filter((track) => isWithinLastDays(track.records[0]?.mentor_review_date ?? null, 60))
+      .map((track) => track.key),
+  );
+  const mentorEngagementScore = clampPercent(
+    activeTrackKeys.size > 0
+      ? (tracksWithRecentMentorReview.size / activeTrackKeys.size) * 100
+      : 0,
+  );
+
+  const recordsWithFeedback = visibleRecordsInRange.filter(
+    (record) => (feedbackCountByRecordId.get(record.id) ?? 0) > 0,
+  );
+  const reviewCompletionScore = clampPercent(
+    visibleRecordsInRange.length > 0
+      ? (recordsWithFeedback.length / visibleRecordsInRange.length) * 100
+      : 0,
+  );
+
+  const continuityScore = clampPercent(
+    average([
+      roleCoverageScore,
+      candidateReadinessScore,
+      developmentProgressScore,
+      mentorEngagementScore,
+      reviewCompletionScore,
+    ]),
+  );
+
+  const readySuccessors = {
+    near: [] as SuccessorSummary[],
+    ready: [] as SuccessorSummary[],
+  };
+
+  for (const track of visibleTracks) {
+    const latestRecord = track.records[0] ?? null;
+    const mentorId = track.mentorIds[0] ?? latestRecord?.mentor_id ?? null;
+    const successor = {
+      candidateId: track.candidateId,
+      name: track.candidateName,
+      roleId: track.roleId,
+      roleTitle: track.roleTitle,
+      mentorId,
+    };
+
+    if (latestRecord?.readiness_signal === "near_role_ready") {
+      readySuccessors.near.push(successor);
+    }
+
+    if (latestRecord?.readiness_signal === "role_ready") {
+      readySuccessors.ready.push(successor);
+    }
+  }
+
+  const riskByRole = visibleRoles.map((role) => {
+    const roleTracks = visibleTracks.filter((track) => track.roleId === role.id);
+    const highestReadinessScore = average(
+      roleTracks
+        .map((track) => getRecordNumericReadiness(track.records[0] ?? null))
+        .filter((value): value is number => value !== null),
+    );
+    const lastDevelopmentActivity = roleTracks
+      .flatMap((track) => track.records.map((record) => record.updated_at))
+      .sort((left, right) => right.localeCompare(left))[0] ?? null;
+    const hasNearOrReadyCandidate = roleTracks.some((track) => {
+      const signal = track.records[0]?.readiness_signal ?? null;
+      return signal === "near_role_ready" || signal === "role_ready";
+    });
+    const hasRecentActivity = isWithinLastDays(lastDevelopmentActivity, 90);
+    const hasMentorReview = roleTracks.some((track) => Boolean(track.records[0]?.mentor_review_date));
+
+    let riskLevel: RiskLevel = "Moderate Risk";
+
+    if (
+      roleTracks.length === 0 ||
+      !hasRecentActivity ||
+      (highestReadinessScore ?? 0) <= 3
+    ) {
+      riskLevel = "High Risk";
+    } else if (hasNearOrReadyCandidate && hasRecentActivity && hasMentorReview) {
+      riskLevel = "Low Risk";
+    }
+
+    return {
+      roleId: role.id,
+      roleTitle: role.title,
+      department: role.department,
+      candidateCount: roleTracks.length,
+      highestReadinessScore: roundToTenth(highestReadinessScore),
+      lastDevelopmentActivity,
+      riskLevel,
+      candidateLinks: roleTracks.map((track) => ({
+        candidateId: track.candidateId,
+        name: track.candidateName,
+        roleId: track.roleId,
+        roleTitle: track.roleTitle,
+        mentorId: track.mentorIds[0] ?? track.records[0]?.mentor_id ?? null,
+      })),
+    } satisfies RoleRiskRow;
+  });
+
+  const highRiskRoles = riskByRole.filter((row) => row.riskLevel === "High Risk");
+  const coveredRoleIds = new Set(activeTracks.map((track) => track.roleId));
+  const uncoveredRoles = visibleRoles
+    .filter((role) => !coveredRoleIds.has(role.id))
+    .map((role) => ({ id: role.id, title: role.title }));
+
+  const candidateMovement = {
+    improved: 0,
+    noChange: 0,
+    declined: 0,
+    completedProgram: 0,
+    removedFromPipeline: 0,
+  };
+
+  for (const track of visibleTracks) {
+    const inRangeRecords = track.records
+      .filter((record) => isOnOrAfter(record.updated_at, timeRangeStart))
+      .slice()
+      .sort((left, right) => left.updated_at.localeCompare(right.updated_at));
+
+    if (inRangeRecords.length === 0) {
+      continue;
+    }
+
+    const latestRecord = inRangeRecords[inRangeRecords.length - 1] ?? null;
+    const previousRecord =
+      track.records
+        .filter((record) => record.updated_at < inRangeRecords[0].updated_at)
+        .sort((left, right) => right.updated_at.localeCompare(left.updated_at))[0] ??
+      inRangeRecords[0] ??
+      null;
+
+    if (track.candidateStatus === "on_hold") {
+      candidateMovement.removedFromPipeline += 1;
+      continue;
+    }
+
+    if (latestRecord?.readiness_signal === "role_ready") {
+      candidateMovement.completedProgram += 1;
+      continue;
+    }
+
+    const previousScore = getRecordNumericReadiness(previousRecord);
+    const latestScore = getRecordNumericReadiness(latestRecord);
+
+    if (previousScore === null || latestScore === null) {
+      candidateMovement.noChange += 1;
+      continue;
+    }
+
+    if (latestScore > previousScore) {
+      candidateMovement.improved += 1;
+    } else if (latestScore < previousScore) {
+      candidateMovement.declined += 1;
+    } else {
+      candidateMovement.noChange += 1;
+    }
+  }
+
+  const nearMilestones: Array<{ roleId: string; roleTitle: string; department: string | null; months: number }> = [];
+  const readyMilestones: Array<{ roleId: string; roleTitle: string; department: string | null; months: number }> = [];
+
+  for (const track of visibleTracks) {
+    const sortedRecords = track.records.slice().sort((left, right) =>
+      left.updated_at.localeCompare(right.updated_at),
+    );
+    const startDate = sortedRecords[0]?.date_assigned ?? sortedRecords[0]?.updated_at ?? null;
+    const firstNearRecord =
+      sortedRecords.find((record) =>
+        record.readiness_signal === "near_role_ready" || record.readiness_signal === "role_ready",
+      ) ?? null;
+    const firstReadyRecord =
+      sortedRecords.find((record) => record.readiness_signal === "role_ready") ?? null;
+
+    if (firstNearRecord && isOnOrAfter(firstNearRecord.updated_at, timeRangeStart)) {
+      const months = calculateMonthsBetween(startDate, firstNearRecord.updated_at);
+
+      if (months !== null) {
+        nearMilestones.push({
+          roleId: track.roleId,
+          roleTitle: track.roleTitle,
+          department: track.department,
+          months,
+        });
+      }
+    }
+
+    if (firstReadyRecord && isOnOrAfter(firstReadyRecord.updated_at, timeRangeStart)) {
+      const months = calculateMonthsBetween(startDate, firstReadyRecord.updated_at);
+
+      if (months !== null) {
+        readyMilestones.push({
+          roleId: track.roleId,
+          roleTitle: track.roleTitle,
+          department: track.department,
+          months,
+        });
+      }
+    }
+  }
+
+  const combinedMilestones = [...nearMilestones, ...readyMilestones];
+  const monthsByRole = new Map<string, number[]>();
+  const monthsByDepartment = new Map<string, number[]>();
+
+  for (const milestone of combinedMilestones) {
+    const roleKey = `${milestone.roleId}:${milestone.roleTitle}`;
+    const roleValues = monthsByRole.get(roleKey) ?? [];
+    roleValues.push(milestone.months);
+    monthsByRole.set(roleKey, roleValues);
+
+    if (milestone.department) {
+      const departmentValues = monthsByDepartment.get(milestone.department) ?? [];
+      departmentValues.push(milestone.months);
+      monthsByDepartment.set(milestone.department, departmentValues);
+    }
+  }
+
+  const averageTimeToReadiness = {
+    overallMonths: roundToTenth(average(combinedMilestones.map((item) => item.months))),
+    nearMonths: roundToTenth(average(nearMilestones.map((item) => item.months))),
+    roleReadyMonths: roundToTenth(average(readyMilestones.map((item) => item.months))),
+    byRole: Array.from(monthsByRole.entries())
+      .map(([key, values]) => {
+        const [roleId, roleTitle] = key.split(":");
+        return {
+          roleId,
+          roleTitle,
+          months: Number((average(values) ?? 0).toFixed(1)),
+        };
+      })
+      .sort((left, right) => right.months - left.months)
+      .slice(0, 5),
+    byDepartment: Array.from(monthsByDepartment.entries())
+      .map(([department, values]) => ({
+        department,
+        months: Number((average(values) ?? 0).toFixed(1)),
+      }))
+      .sort((left, right) => right.months - left.months)
+      .slice(0, 5),
+  };
+
+  const mentorEffectiveness = mentorOptions
+    .filter((mentor) => !options.filters.mentorId || mentor.id === options.filters.mentorId)
+    .map((mentor) => {
+      const mentorTracks = visibleTracks.filter((track) => track.mentorIds.includes(mentor.id));
+      const mentorRecords = visibleRecordsInRange.filter((record) => record.mentor_id === mentor.id);
+      const mentorImprovements = mentorRecords
+        .flatMap((record) => competenciesByRecordId.get(record.id) ?? [])
+        .map((competency) =>
+          competency.current_score === null
+            ? null
+            : competency.current_score - competency.baseline_score,
+        )
+        .filter((value): value is number => value !== null);
+      const mentorScores = mentorRecords
+        .map((record) => record.average_feedback_score)
+        .filter((value): value is number => value !== null);
+      const overdueReviews = mentorTracks.filter((track) => {
+        const latestRecord = track.records[0] ?? null;
+
+        if (!latestRecord) {
+          return false;
+        }
+
+        return (
+          !latestRecord.mentor_review_date &&
+          ["assigned", "in_progress", "ready_for_review"].includes(latestRecord.status) &&
+          !isWithinLastDays(latestRecord.updated_at, 30)
+        );
+      }).length;
+
+      return {
+        mentorId: mentor.id,
+        mentorName: mentor.name,
+        activeCandidates: new Set(mentorTracks.map((track) => track.candidateId)).size,
+        completedReviews: mentorRecords.filter((record) => Boolean(record.mentor_review_date)).length,
+        averageCandidateImprovement: roundToHundredth(average(mentorImprovements)),
+        overdueReviews,
+        averageReviewerScore: roundToHundredth(average(mentorScores)),
+      } satisfies MentorEffectivenessRow;
+    })
+    .filter((row) => row.activeCandidates > 0 || row.completedReviews > 0)
+    .sort((left, right) => right.activeCandidates - left.activeCandidates);
+
+  const experienceImpactMap = new Map<
+    string,
+    {
+      count: number;
+      improvements: number[];
+      reviewerScores: number[];
+      competencyImprovements: Map<string, number[]>;
+    }
+  >();
+
+  for (const record of visibleRecordsInRange) {
+    const experienceType = inferExperienceType(record.experience_title);
+    const current =
+      experienceImpactMap.get(experienceType) ??
+      ({
+        count: 0,
+        improvements: [],
+        reviewerScores: [],
+        competencyImprovements: new Map<string, number[]>(),
+      } as const);
+
+    current.count += 1;
+
+    if (record.average_feedback_score !== null) {
+      current.reviewerScores.push(record.average_feedback_score);
+    }
+
+    for (const competency of competenciesByRecordId.get(record.id) ?? []) {
+      if (competency.current_score === null) {
+        continue;
+      }
+
+      const improvement = competency.current_score - competency.baseline_score;
+      current.improvements.push(improvement);
+      const competencyValues =
+        current.competencyImprovements.get(competency.competency_name) ?? [];
+      competencyValues.push(improvement);
+      current.competencyImprovements.set(competency.competency_name, competencyValues);
+    }
+
+    experienceImpactMap.set(experienceType, current);
+  }
+
+  const experienceImpact = Array.from(experienceImpactMap.entries())
+    .map(([experienceType, values]) => {
+      const mostImprovedCompetency = Array.from(values.competencyImprovements.entries())
+        .map(([competencyName, improvements]) => ({
+          competencyName,
+          averageImprovement: average(improvements) ?? 0,
+        }))
+        .sort((left, right) => right.averageImprovement - left.averageImprovement)[0];
+
+      return {
+        experienceType,
+        assignedCount: values.count,
+        averageCompetencyImprovement: roundToHundredth(average(values.improvements)),
+        averageReviewerScore: roundToHundredth(average(values.reviewerScores)),
+        mostImprovedCompetency: mostImprovedCompetency?.competencyName ?? null,
+      } satisfies ExperienceImpactRow;
+    })
+    .sort((left, right) => right.assignedCount - left.assignedCount);
+
+  const competencyGrowthMap = new Map<
+    string,
+    {
+      baselineScores: number[];
+      currentScores: number[];
+      improvements: number[];
+      candidateIds: Set<string>;
+    }
+  >();
+
+  for (const competency of visibleCompetenciesInRange) {
+    if (!competency.competency_name.trim()) {
+      continue;
+    }
+
+    const parentRecord = visibleRecords.find(
+      (record) => record.id === competency.development_record_id,
+    );
+    const current =
+      competencyGrowthMap.get(competency.competency_name) ??
+      ({
+        baselineScores: [],
+        currentScores: [],
+        improvements: [],
+        candidateIds: new Set<string>(),
+      } as const);
+
+    current.baselineScores.push(competency.baseline_score);
+
+    if (competency.current_score !== null) {
+      current.currentScores.push(competency.current_score);
+      current.improvements.push(competency.current_score - competency.baseline_score);
+    }
+
+    if (parentRecord) {
+      current.candidateIds.add(parentRecord.candidate_id);
+    }
+
+    competencyGrowthMap.set(competency.competency_name, current);
+  }
+
+  const competencyGrowth = Array.from(competencyGrowthMap.entries())
+    .map(([competencyName, values]) => ({
+      competencyName,
+      averageBaselineScore: roundToHundredth(average(values.baselineScores)),
+      averageCurrentScore: roundToHundredth(average(values.currentScores)),
+      averageImprovement: roundToHundredth(average(values.improvements)),
+      candidateCount: values.candidateIds.size,
+    }))
+    .sort((left, right) => (right.averageImprovement ?? -99) - (left.averageImprovement ?? -99));
+
+  const recommendations: DashboardRecommendation[] = [];
+  const successionRisks: DashboardRecommendation[] = [];
+  const learnedInsights: string[] = [];
+
+  if (highRiskRoles.length > 0) {
+    for (const role of highRiskRoles.slice(0, 3)) {
+      successionRisks.push({
+        title: `${role.roleTitle} pipeline is high risk`,
+        body:
+          role.candidateCount === 0
+            ? "There is no active successor currently attached to this role."
+            : "This role needs more readiness progress or recent development activity.",
+        href: getRoleHref(role.roleId),
+      });
+      recommendations.push({
+        title: `Protect the ${role.roleTitle} pipeline`,
+        body:
+          role.candidateCount === 0
+            ? "Add at least one candidate and begin a leadership development record for this role."
+            : "Review candidate readiness and assign a new development experience for this role track.",
+        href: getRoleHref(role.roleId),
+      });
+    }
+  }
+
+  if (uncoveredRoles.length > 0) {
+    recommendations.push({
+      title: "Close uncovered critical-role gaps",
+      body: `Uncovered roles: ${uncoveredRoles.slice(0, 3).map((role) => role.title).join(", ")}.`,
+      href: "/roles",
+    });
+  }
+
+  const stalledCompetency = competencyGrowth
+    .slice()
+    .sort((left, right) => (left.averageImprovement ?? 99) - (right.averageImprovement ?? 99))
+    .find((row) => (row.averageImprovement ?? 0) <= 0.25 && row.candidateCount >= 2);
+
+  if (stalledCompetency) {
+    successionRisks.push({
+      title: `${stalledCompetency.competencyName} is stalling`,
+      body: `${stalledCompetency.candidateCount} candidates are developing this competency with limited recent improvement.`,
+      href: "/mentoring",
+    });
+    recommendations.push({
+      title: `Reinforce ${stalledCompetency.competencyName}`,
+      body: "Assign broader stretch experiences or cross-functional projects to move this competency forward.",
+      href: "/mentoring",
+    });
+  }
+
+  const overdueReviewCount = mentorEffectiveness.reduce(
+    (sum, mentor) => sum + mentor.overdueReviews,
+    0,
+  );
+
+  if (overdueReviewCount > 0) {
+    successionRisks.push({
+      title: "Mentor reviews are overdue",
+      body: `${overdueReviewCount} role tracks need a timely mentor review to keep development moving.`,
+      href: "/mentoring",
+    });
+    recommendations.push({
+      title: "Complete overdue mentor reviews",
+      body: "Finish mentor reviews before assigning the next experience so readiness signals stay current.",
+      href: "/mentoring",
+    });
+  }
+
+  if (readySuccessors.near.length > 0) {
+    recommendations.push({
+      title: "Schedule executive review for near-ready successors",
+      body: `${readySuccessors.near.length} candidates are approaching role-readiness and should be discussed in leadership review.`,
+      href: readySuccessors.near[0]
+        ? getCandidateHref(readySuccessors.near[0].candidateId)
+        : "/candidates",
+    });
+  }
+
+  const strongestExperience = experienceImpact
+    .slice()
+    .sort(
+      (left, right) =>
+        (right.averageCompetencyImprovement ?? -99) -
+        (left.averageCompetencyImprovement ?? -99),
+    )[0];
+
+  if (strongestExperience?.averageCompetencyImprovement !== null) {
+    learnedInsights.push(
+      `${strongestExperience.experienceType} is producing the strongest current growth at ${strongestExperience.averageCompetencyImprovement.toFixed(2)} points on average.`,
+    );
+  }
+
+  if (stalledCompetency) {
+    learnedInsights.push(
+      `${stalledCompetency.competencyName} is the slowest-moving competency in the current filtered view.`,
+    );
+  }
+
+  const slowestRole = averageTimeToReadiness.byRole[0];
+
+  if (slowestRole) {
+    learnedInsights.push(
+      `${slowestRole.roleTitle} currently has the longest average climb to readiness at ${slowestRole.months.toFixed(1)} months.`,
+    );
+  }
+
+  const strongestMentor = mentorEffectiveness
+    .slice()
+    .sort(
+      (left, right) =>
+        (right.averageCandidateImprovement ?? -99) -
+        (left.averageCandidateImprovement ?? -99),
+    )[0];
+
+  if (strongestMentor?.averageCandidateImprovement !== null) {
+    learnedInsights.push(
+      `${strongestMentor.mentorName} is currently supporting the strongest measured candidate improvement at ${strongestMentor.averageCandidateImprovement.toFixed(2)} points.`,
+    );
+  }
+
+  const emptyStateMessage =
+    visibleTracks.length === 0 ||
+    (visibleRecords.length === 0 && visibleCompetenciesInRange.length === 0)
+      ? "Leadership Continuity Intelligence will become more useful as candidates move through development records, mentor reviews, and scored feedback. Begin by adding critical roles, assigning candidates, and completing the first development records."
+      : null;
+
+  const visibilityNote =
+    options.profile.role === "mentor"
+      ? "Mentor view is limited to your assigned candidates and role tracks."
+      : null;
+
+  return {
+    filters: options.filters,
+    filterOptions: {
+      departments: departmentOptions,
+      roles: roleOptions,
+      mentors: mentorOptions,
+    },
+    visibilityNote,
+    developmentStorageReady: options.developmentStorageReady,
+    emptyStateMessage,
+    continuityScore: {
+      score: continuityScore,
+      label: getContinuityLabel(continuityScore),
+      roleCoverageScore,
+      candidateReadinessScore,
+      developmentProgressScore,
+      mentorEngagementScore,
+      reviewCompletionScore,
+    },
+    criticalRolesCovered: {
+      covered: coveredRoleIds.size,
+      total: visibleRoles.length,
+      percentage: visibleRoles.length > 0 ? Math.round((coveredRoleIds.size / visibleRoles.length) * 100) : 0,
+      uncoveredRoles,
+    },
+    readySuccessors,
+    highRiskRoles: highRiskRoles.length,
+    averageTimeToReadiness,
+    riskByRole,
+    candidateMovement,
+    mentorEffectiveness,
+    experienceImpact,
+    competencyGrowth,
+    recommendations: recommendations.slice(0, 5),
+    successionRisks: successionRisks.slice(0, 5),
+    learnedInsights: learnedInsights.slice(0, 5),
+  };
+}
+
+async function getDashboardSnapshot(
+  authUserId: string,
+  filters: DashboardFilters,
+): Promise<DashboardSnapshot> {
   const admin = createSupabaseAdminClient();
   const profileResult = await admin
     .from("profiles")
@@ -124,6 +1423,7 @@ async function getDashboardSnapshot(authUserId: string): Promise<DashboardSnapsh
       mentors: [],
       candidates: [],
       counts: null,
+      intelligence: null,
     };
   }
 
@@ -139,12 +1439,9 @@ async function getDashboardSnapshot(authUserId: string): Promise<DashboardSnapsh
     strengthsResult,
     sourceDocumentsResult,
     assignmentsResult,
+    developmentRecordsResult,
   ] = await Promise.all([
-    admin
-      .from("organizations")
-      .select("name")
-      .eq("id", organizationId)
-      .single(),
+    admin.from("organizations").select("name").eq("id", organizationId).single(),
     admin
       .from("roles")
       .select("id, title, department, status")
@@ -167,16 +1464,13 @@ async function getDashboardSnapshot(authUserId: string): Promise<DashboardSnapsh
       .eq("organization_id", organizationId),
     admin
       .from("mentor_role_assignments")
-      .select("candidate_id, role_id, mentor_profile_id")
+      .select("candidate_id, role_id, mentor_profile_id, status")
       .eq("organization_id", organizationId),
     admin
       .from("mentor_reports")
       .select("candidate_id, role_id")
       .eq("organization_id", organizationId),
-    admin
-      .from("candidate_strengths")
-      .select("candidate_id")
-      .eq("organization_id", organizationId),
+    admin.from("candidate_strengths").select("candidate_id").eq("organization_id", organizationId),
     admin
       .from("candidate_source_documents")
       .select("candidate_id")
@@ -185,6 +1479,13 @@ async function getDashboardSnapshot(authUserId: string): Promise<DashboardSnapsh
       .from("candidate_project_assignments")
       .select("candidate_id")
       .eq("organization_id", organizationId),
+    admin
+      .from("development_records")
+      .select(
+        "id, candidate_id, role_id, mentor_id, target_role, date_assigned, status, growth_areas, experience_title, readiness_signal, mentor_review_date, average_feedback_score, updated_at",
+      )
+      .eq("organization_id", organizationId)
+      .order("updated_at", { ascending: false }),
   ]);
 
   for (const result of [
@@ -204,48 +1505,167 @@ async function getDashboardSnapshot(authUserId: string): Promise<DashboardSnapsh
     }
   }
 
-  const roles = rolesResult.data ?? [];
-  const mentors = mentorsResult.data ?? [];
+  let developmentStorageReady = true;
+  let developmentRecords = (developmentRecordsResult.data ?? []) as DevelopmentRecordRow[];
+
+  if (developmentRecordsResult.error) {
+    if (isMissingLeadershipDevelopmentRecordTableError(developmentRecordsResult.error)) {
+      developmentStorageReady = false;
+      developmentRecords = [];
+    } else {
+      throw new Error(developmentRecordsResult.error.message);
+    }
+  }
+
+  const isMentorView = profileResult.data.role === "mentor";
+  const rawRoles = (rolesResult.data ?? []) as DashboardRole[];
+  const rawMentors = (mentorsResult.data ?? []) as DashboardMentor[];
+  const rawCandidates = candidatesResult.data ?? [];
+  const rawConsiderations = considerationsResult.data ?? [];
+  const rawMentorAssignments = (mentorRoleAssignmentsResult.data ?? []) as MentorAssignment[];
+  const rawReports = reportsResult.data ?? [];
+  const rawStrengths = strengthsResult.data ?? [];
+  const rawSourceDocuments = sourceDocumentsResult.data ?? [];
+  const rawAssignments = assignmentsResult.data ?? [];
+
+  const mentorScopedAssignments = isMentorView
+    ? rawMentorAssignments.filter(
+        (assignment) => assignment.mentor_profile_id === profileResult.data.id,
+      )
+    : rawMentorAssignments;
+  const mentorVisibleTrackKeys = new Set(
+    mentorScopedAssignments.map((assignment) => `${assignment.candidate_id}:${assignment.role_id}`),
+  );
+  const mentorVisibleCandidateIds = new Set(
+    mentorScopedAssignments.map((assignment) => assignment.candidate_id),
+  );
+  const mentorVisibleRoleIds = new Set(
+    mentorScopedAssignments.map((assignment) => assignment.role_id),
+  );
+
+  const roles = isMentorView
+    ? rawRoles.filter((role) => mentorVisibleRoleIds.has(role.id))
+    : rawRoles;
+  const mentors = isMentorView
+    ? rawMentors.filter((mentor) => mentor.id === profileResult.data.id)
+    : rawMentors;
+  const candidatesSource = isMentorView
+    ? rawCandidates.filter((candidate) => mentorVisibleCandidateIds.has(candidate.id))
+    : rawCandidates;
+  const considerationsSource = isMentorView
+    ? rawConsiderations.filter((consideration) =>
+        mentorVisibleTrackKeys.has(`${consideration.candidate_id}:${consideration.role_id}`),
+      )
+    : rawConsiderations;
+  const mentorAssignments = isMentorView ? mentorScopedAssignments : rawMentorAssignments;
+  const reportsSource = isMentorView
+    ? rawReports.filter((report) =>
+        mentorVisibleTrackKeys.has(`${report.candidate_id}:${report.role_id}`),
+      )
+    : rawReports;
+  const visibleCandidateIdSet = new Set(candidatesSource.map((candidate) => candidate.id));
+  const strengthsSource = rawStrengths.filter((record) => visibleCandidateIdSet.has(record.candidate_id));
+  const sourceDocumentsSource = rawSourceDocuments.filter((record) =>
+    visibleCandidateIdSet.has(record.candidate_id),
+  );
+  const projectAssignmentsSource = rawAssignments.filter((record) =>
+    visibleCandidateIdSet.has(record.candidate_id),
+  );
+  developmentRecords = isMentorView
+    ? developmentRecords.filter((record) => record.mentor_id === profileResult.data.id)
+    : developmentRecords;
+
+  let developmentCompetencies: DevelopmentCompetencyRow[] = [];
+  let developmentFeedback: DevelopmentFeedbackRow[] = [];
+
+  if (developmentStorageReady && developmentRecords.length > 0) {
+    const recordIds = developmentRecords.map((record) => record.id);
+    const [competenciesResult, feedbackResult] = await Promise.all([
+      admin
+        .from("development_record_competencies")
+        .select(
+          "development_record_id, competency_name, baseline_score, target_score, current_score",
+        )
+        .in("development_record_id", recordIds),
+      admin
+        .from("development_record_feedback")
+        .select("development_record_id")
+        .in("development_record_id", recordIds),
+    ]);
+
+    if (competenciesResult.error) {
+      if (isMissingLeadershipDevelopmentRecordTableError(competenciesResult.error)) {
+        developmentStorageReady = false;
+      } else {
+        throw new Error(competenciesResult.error.message);
+      }
+    } else {
+      developmentCompetencies =
+        (competenciesResult.data ?? []) as DevelopmentCompetencyRow[];
+    }
+
+    if (feedbackResult.error) {
+      if (isMissingLeadershipDevelopmentRecordTableError(feedbackResult.error)) {
+        developmentStorageReady = false;
+      } else {
+        throw new Error(feedbackResult.error.message);
+      }
+    } else {
+      developmentFeedback = (feedbackResult.data ?? []) as DevelopmentFeedbackRow[];
+    }
+  }
+
   const roleMap = new Map(roles.map((role) => [role.id, role.title]));
   const mentorMap = new Map(mentors.map((mentor) => [mentor.id, mentor.full_name]));
   const considerationsByCandidate = new Map<string, string[]>();
+  const mentorIdsByCandidate = new Map<string, string[]>();
   const mentorNamesByCandidate = new Map<string, string[]>();
   const candidateRolePairsWithReports = new Set(
-    (reportsResult.data ?? []).map((record) => `${record.candidate_id}:${record.role_id}`),
+    reportsSource.map((record) => `${record.candidate_id}:${record.role_id}`),
   );
   const candidateIdsWithStrengths = new Set(
-    (strengthsResult.data ?? []).map((record) => record.candidate_id),
+    strengthsSource.map((record) => record.candidate_id),
   );
   const candidateIdsWithSourceDocuments = new Set(
-    (sourceDocumentsResult.data ?? []).map((record) => record.candidate_id),
+    sourceDocumentsSource.map((record) => record.candidate_id),
   );
   const candidateIdsWithAssignments = new Set(
-    (assignmentsResult.data ?? []).map((record) => record.candidate_id),
+    projectAssignmentsSource.map((record) => record.candidate_id),
   );
 
-  for (const consideration of considerationsResult.data ?? []) {
+  for (const consideration of considerationsSource) {
     const current = considerationsByCandidate.get(consideration.candidate_id) ?? [];
     current.push(consideration.role_id);
     considerationsByCandidate.set(consideration.candidate_id, current);
   }
 
-  for (const assignment of mentorRoleAssignmentsResult.data ?? []) {
-    const current = mentorNamesByCandidate.get(assignment.candidate_id) ?? [];
+  for (const assignment of mentorAssignments) {
+    const currentIds = mentorIdsByCandidate.get(assignment.candidate_id) ?? [];
+    currentIds.push(assignment.mentor_profile_id);
+    mentorIdsByCandidate.set(assignment.candidate_id, currentIds);
+
     const mentorName = mentorMap.get(assignment.mentor_profile_id);
 
     if (mentorName) {
-      current.push(mentorName);
-      mentorNamesByCandidate.set(assignment.candidate_id, current);
+      const currentNames = mentorNamesByCandidate.get(assignment.candidate_id) ?? [];
+      currentNames.push(mentorName);
+      mentorNamesByCandidate.set(assignment.candidate_id, currentNames);
     }
   }
 
-  const candidates = (candidatesResult.data ?? []).map((candidate) => {
+  const candidates = candidatesSource.map((candidate) => {
     const hasStrengths =
       candidateIdsWithStrengths.has(candidate.id) ||
       candidateIdsWithSourceDocuments.has(candidate.id);
-    const roleIds =
-      considerationsByCandidate.get(candidate.id) ??
-      (candidate.target_role_id ? [candidate.target_role_id] : []);
+    const considerationRoleIds = considerationsByCandidate.get(candidate.id) ?? [];
+    const fallbackRoleIds =
+      candidate.target_role_id && roleMap.has(candidate.target_role_id)
+        ? [candidate.target_role_id]
+        : [];
+    const roleIds = Array.from(new Set([...considerationRoleIds, ...fallbackRoleIds]));
+    const mentorIds = Array.from(
+      new Set(mentorIdsByCandidate.get(candidate.id) ?? []),
+    );
     const mentorNames = Array.from(
       new Set(mentorNamesByCandidate.get(candidate.id) ?? []),
     );
@@ -257,9 +1677,11 @@ async function getDashboardSnapshot(authUserId: string): Promise<DashboardSnapsh
       id: candidate.id,
       full_name: candidate.full_name,
       current_title: candidate.current_title,
+      role_ids: roleIds,
       role_titles: roleIds
         .map((roleId) => roleMap.get(roleId))
         .filter((title): title is string => Boolean(title)),
+      mentor_profile_ids: mentorIds,
       mentor_names: mentorNames,
       status: candidate.status,
       stage: resolveCandidateStage({
@@ -270,14 +1692,16 @@ async function getDashboardSnapshot(authUserId: string): Promise<DashboardSnapsh
         hasMentor: mentorNames.length > 0,
         hasDevelopmentPlan: candidateIdsWithAssignments.has(candidate.id),
       }),
-    };
+    } satisfies DashboardCandidate;
   });
 
+  const profile: DashboardProfile = {
+    ...profileResult.data,
+    organization_name: organizationResult.data?.name ?? "Unknown organization",
+  };
+
   return {
-    profile: {
-      ...profileResult.data,
-      organization_name: organizationResult.data?.name ?? "Unknown organization",
-    },
+    profile,
     roles,
     mentors,
     candidates,
@@ -286,6 +1710,18 @@ async function getDashboardSnapshot(authUserId: string): Promise<DashboardSnapsh
       candidates: candidates.length,
       mentors: mentors.length,
     },
+    intelligence: buildDashboardIntelligence({
+      profile,
+      roles,
+      mentors,
+      candidates,
+      mentorAssignments,
+      developmentRecords,
+      developmentCompetencies,
+      developmentFeedback,
+      filters,
+      developmentStorageReady,
+    }),
   };
 }
 
@@ -293,19 +1729,21 @@ export default async function DashboardPage({
   searchParams,
 }: DashboardPageProps) {
   const user = await requireUser();
-  const { message } = await searchParams;
+  const resolvedSearchParams = await searchParams;
+  const filters = parseDashboardFilters(resolvedSearchParams);
   const setupToken = createWorkspaceSetupToken({
     userId: user.id,
     email: user.email ?? "",
   });
-  const snapshot = await getDashboardSnapshot(user.id);
+  const snapshot = await getDashboardSnapshot(user.id, filters);
+  const intelligence = snapshot.intelligence;
 
   return (
     <main className="flex-1 bg-[var(--background)]">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-12 sm:px-10 lg:px-12">
-        {message ? (
+        {resolvedSearchParams.message ? (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-medium text-amber-900">
-            {message}
+            {resolvedSearchParams.message}
           </div>
         ) : null}
 
@@ -349,6 +1787,578 @@ export default async function DashboardPage({
                 <span className="font-semibold">{user.email}</span>.
               </p>
             </section>
+
+            {intelligence ? (
+              <section className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
+                <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">
+                      Leadership Continuity Intelligence
+                    </p>
+                    <h2 className="mt-3 font-display text-4xl leading-tight text-slate-900 sm:text-5xl">
+                      See whether your bench is getting stronger
+                    </h2>
+                    <p className="mt-4 max-w-4xl text-sm leading-7 text-slate-600">
+                      This section learns from candidate movement, development
+                      records, mentor engagement, and competency growth so the
+                      leadership team can see where succession risk is rising and
+                      where leadership strength is improving.
+                    </p>
+                  </div>
+                  <Link
+                    href={buildDashboardHref(intelligence.filters, {
+                      recommendationsOpen: !intelligence.filters.recommendationsOpen,
+                    })}
+                    className="interactive-contrast rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-900"
+                  >
+                    Generate Continuity Recommendations
+                  </Link>
+                </div>
+
+                {intelligence.visibilityNote ? (
+                  <div className="mt-6 rounded-2xl border border-sky-200 bg-sky-50 px-5 py-4 text-sm leading-7 text-sky-900">
+                    {intelligence.visibilityNote}
+                  </div>
+                ) : null}
+
+                {!intelligence.developmentStorageReady ? (
+                  <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm leading-7 text-amber-900">
+                    Leadership development record storage is not active yet. The
+                    intelligence dashboard is showing only the data already
+                    available in the current workspace.
+                  </div>
+                ) : null}
+
+                <form className="mt-8 grid gap-4 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5 lg:grid-cols-[repeat(5,minmax(0,1fr))_auto_auto]" method="get">
+                  <label className="block text-sm font-semibold text-slate-700">
+                    Time window
+                    <select
+                      name="timeRange"
+                      defaultValue={intelligence.filters.timeRange}
+                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-normal text-slate-900 outline-none transition focus:border-teal-500"
+                    >
+                      {TIME_RANGE_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block text-sm font-semibold text-slate-700">
+                    Department
+                    <select
+                      name="department"
+                      defaultValue={intelligence.filters.department}
+                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-normal text-slate-900 outline-none transition focus:border-teal-500"
+                    >
+                      <option value="">All departments</option>
+                      {intelligence.filterOptions.departments.map((department) => (
+                        <option key={department} value={department}>
+                          {department}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block text-sm font-semibold text-slate-700">
+                    Target role
+                    <select
+                      name="targetRole"
+                      defaultValue={intelligence.filters.targetRole}
+                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-normal text-slate-900 outline-none transition focus:border-teal-500"
+                    >
+                      <option value="">All target roles</option>
+                      {intelligence.filterOptions.roles.map((role) => (
+                        <option key={role.id} value={role.id}>
+                          {role.title}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block text-sm font-semibold text-slate-700">
+                    Mentor
+                    <select
+                      name="mentorId"
+                      defaultValue={intelligence.filters.mentorId}
+                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-normal text-slate-900 outline-none transition focus:border-teal-500"
+                    >
+                      <option value="">All mentors</option>
+                      {intelligence.filterOptions.mentors.map((mentor) => (
+                        <option key={mentor.id} value={mentor.id}>
+                          {mentor.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block text-sm font-semibold text-slate-700">
+                    Readiness status
+                    <select
+                      name="readiness"
+                      defaultValue={intelligence.filters.readiness}
+                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-normal text-slate-900 outline-none transition focus:border-teal-500"
+                    >
+                      {READINESS_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <input
+                    type="hidden"
+                    name="recommendations"
+                    value={intelligence.filters.recommendationsOpen ? "open" : ""}
+                  />
+                  <button
+                    type="submit"
+                    className="rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-900 lg:self-end"
+                  >
+                    Apply Filters
+                  </button>
+                  <Link
+                    href="/dashboard"
+                    className="rounded-full border border-slate-200 bg-white px-5 py-3 text-center text-sm font-semibold text-slate-700 transition hover:bg-slate-100 lg:self-end"
+                  >
+                    Reset
+                  </Link>
+                </form>
+
+                {intelligence.emptyStateMessage ? (
+                  <div className="mt-8 rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50 px-6 py-6 text-sm leading-7 text-slate-600">
+                    {intelligence.emptyStateMessage}
+                  </div>
+                ) : null}
+
+                <div className="mt-8 grid gap-5 xl:grid-cols-5">
+                  <article className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+                    <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                      Leadership Continuity Score
+                    </p>
+                    <p className="mt-3 text-4xl font-semibold text-slate-900">
+                      {intelligence.continuityScore.score}
+                    </p>
+                    <p className="mt-2 text-sm font-semibold text-teal-800">
+                      {intelligence.continuityScore.label}
+                    </p>
+                    <div className="mt-4 grid gap-2 text-xs text-slate-600">
+                      <p>Coverage {formatPercent(intelligence.continuityScore.roleCoverageScore)}</p>
+                      <p>Readiness {formatPercent(intelligence.continuityScore.candidateReadinessScore)}</p>
+                      <p>Progress {formatPercent(intelligence.continuityScore.developmentProgressScore)}</p>
+                    </div>
+                  </article>
+                  <article className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+                    <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                      Critical Roles Covered
+                    </p>
+                    <p className="mt-3 text-4xl font-semibold text-slate-900">
+                      {intelligence.criticalRolesCovered.covered}/{intelligence.criticalRolesCovered.total}
+                    </p>
+                    <p className="mt-2 text-sm text-slate-600">
+                      {formatPercent(intelligence.criticalRolesCovered.percentage)} covered
+                    </p>
+                    <p className="mt-4 text-xs leading-6 text-slate-500">
+                      {intelligence.criticalRolesCovered.uncoveredRoles.length > 0
+                        ? `Uncovered: ${intelligence.criticalRolesCovered.uncoveredRoles
+                            .slice(0, 3)
+                            .map((role) => role.title)
+                            .join(", ")}`
+                        : "All visible roles currently have at least one active candidate."}
+                    </p>
+                  </article>
+                  <article className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+                    <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                      Ready Successors
+                    </p>
+                    <p className="mt-3 text-4xl font-semibold text-slate-900">
+                      {intelligence.readySuccessors.near.length + intelligence.readySuccessors.ready.length}
+                    </p>
+                    <p className="mt-2 text-sm text-slate-600">
+                      {intelligence.readySuccessors.near.length} near-ready • {intelligence.readySuccessors.ready.length} role-ready
+                    </p>
+                    <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-600">
+                      {[...intelligence.readySuccessors.ready, ...intelligence.readySuccessors.near]
+                        .slice(0, 3)
+                        .map((candidate) => (
+                          <Link
+                            key={`${candidate.candidateId}:${candidate.roleId}`}
+                            href={getCandidateHref(candidate.candidateId)}
+                            className="rounded-full border border-slate-200 bg-white px-3 py-1 font-semibold text-slate-700 transition hover:border-teal-300 hover:text-teal-900"
+                          >
+                            {candidate.name}
+                          </Link>
+                        ))}
+                    </div>
+                  </article>
+                  <article className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+                    <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                      High-Risk Roles
+                    </p>
+                    <p className="mt-3 text-4xl font-semibold text-slate-900">
+                      {intelligence.highRiskRoles}
+                    </p>
+                    <p className="mt-2 text-sm text-slate-600">
+                      Roles needing immediate continuity attention
+                    </p>
+                    <p className="mt-4 text-xs leading-6 text-slate-500">
+                      {intelligence.riskByRole
+                        .filter((role) => role.riskLevel === "High Risk")
+                        .slice(0, 2)
+                        .map((role) => role.roleTitle)
+                        .join(", ") || "No high-risk roles in the current filtered view."}
+                    </p>
+                  </article>
+                  <article className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+                    <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                      Average Time to Readiness
+                    </p>
+                    <p className="mt-3 text-4xl font-semibold text-slate-900">
+                      {intelligence.averageTimeToReadiness.overallMonths !== null
+                        ? `${intelligence.averageTimeToReadiness.overallMonths.toFixed(1)} mo`
+                        : "-"}
+                    </p>
+                    <p className="mt-2 text-sm text-slate-600">
+                      Near-ready {intelligence.averageTimeToReadiness.nearMonths !== null ? `${intelligence.averageTimeToReadiness.nearMonths.toFixed(1)} mo` : "-"} • Role-ready {intelligence.averageTimeToReadiness.roleReadyMonths !== null ? `${intelligence.averageTimeToReadiness.roleReadyMonths.toFixed(1)} mo` : "-"}
+                    </p>
+                  </article>
+                </div>
+
+                <div className="mt-8 grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+                  <section className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-sm font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                          Leadership Risk by Role
+                        </p>
+                        <h3 className="mt-2 font-display text-3xl text-slate-900">
+                          Succession risk by role pipeline
+                        </h3>
+                      </div>
+                      <Link
+                        href="/roles"
+                        className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                      >
+                        Open Roles
+                      </Link>
+                    </div>
+                    <div className="mt-5 overflow-x-auto">
+                      <table className="min-w-full divide-y divide-slate-200 text-sm text-slate-700">
+                        <thead>
+                          <tr className="text-left text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                            <th className="pb-3 pr-4">Role</th>
+                            <th className="pb-3 pr-4">Candidates</th>
+                            <th className="pb-3 pr-4">Highest Readiness</th>
+                            <th className="pb-3 pr-4">Last Activity</th>
+                            <th className="pb-3">Risk</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200">
+                          {intelligence.riskByRole.length > 0 ? (
+                            intelligence.riskByRole.map((row) => (
+                              <tr key={row.roleId}>
+                                <td className="py-4 pr-4 align-top">
+                                  <Link
+                                    href={getRoleHref(row.roleId)}
+                                    className="font-semibold text-slate-900 transition hover:text-teal-900"
+                                  >
+                                    {row.roleTitle}
+                                  </Link>
+                                  <p className="mt-1 text-xs text-slate-500">
+                                    {row.department || "Department not entered"}
+                                  </p>
+                                </td>
+                                <td className="py-4 pr-4 align-top">
+                                  <p className="font-semibold text-slate-900">{row.candidateCount}</p>
+                                  <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                                    {row.candidateLinks.slice(0, 3).map((candidate) => (
+                                      <Link
+                                        key={`${candidate.candidateId}:${candidate.roleId}`}
+                                        href={getCandidateHref(candidate.candidateId)}
+                                        className="rounded-full border border-slate-200 bg-white px-3 py-1 font-semibold text-slate-700 transition hover:border-teal-300 hover:text-teal-900"
+                                      >
+                                        {candidate.name}
+                                      </Link>
+                                    ))}
+                                  </div>
+                                </td>
+                                <td className="py-4 pr-4 align-top font-semibold text-slate-900">
+                                  {formatScore(row.highestReadinessScore)}
+                                </td>
+                                <td className="py-4 pr-4 align-top text-slate-600">
+                                  {formatDate(row.lastDevelopmentActivity)}
+                                </td>
+                                <td className="py-4 align-top">
+                                  <span
+                                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                                      row.riskLevel === "Low Risk"
+                                        ? "bg-teal-100 text-teal-900"
+                                        : row.riskLevel === "Moderate Risk"
+                                          ? "bg-amber-100 text-amber-900"
+                                          : "bg-rose-100 text-rose-900"
+                                    }`}
+                                  >
+                                    {row.riskLevel}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td colSpan={5} className="py-6 text-sm text-slate-500">
+                                No roles match the current filter set.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+
+                  <section id="recommendations" className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+                    <p className="text-sm font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                      Recommended Next Actions
+                    </p>
+                    <h3 className="mt-2 font-display text-3xl text-slate-900">
+                      What the system is telling you next
+                    </h3>
+                    {intelligence.filters.recommendationsOpen ? (
+                      <>
+                        {intelligence.recommendations.length > 0 ? (
+                          <div className="mt-5 grid gap-3">
+                            {intelligence.recommendations.map((recommendation) => (
+                              <article
+                                key={recommendation.title}
+                                className="rounded-2xl border border-slate-200 bg-white p-4"
+                              >
+                                <p className="font-semibold text-slate-900">
+                                  {recommendation.title}
+                                </p>
+                                <p className="mt-2 text-sm leading-6 text-slate-600">
+                                  {recommendation.body}
+                                </p>
+                                {recommendation.href ? (
+                                  <Link
+                                    href={recommendation.href}
+                                    className="mt-3 inline-flex text-sm font-semibold text-teal-900 transition hover:text-teal-700"
+                                  >
+                                    Open related workspace
+                                  </Link>
+                                ) : null}
+                              </article>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="mt-5 text-sm leading-7 text-slate-600">
+                            More organization-specific development history is needed before reliable trend recommendations can be generated.
+                          </p>
+                        )}
+
+                        {intelligence.successionRisks.length > 0 ? (
+                          <div className="mt-6">
+                            <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                              Top succession risks
+                            </p>
+                            <div className="mt-3 grid gap-3">
+                              {intelligence.successionRisks.map((risk) => (
+                                <article
+                                  key={risk.title}
+                                  className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm"
+                                >
+                                  <p className="font-semibold text-rose-900">{risk.title}</p>
+                                  <p className="mt-2 leading-6 text-rose-900/80">{risk.body}</p>
+                                </article>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+
+                        {intelligence.learnedInsights.length > 0 ? (
+                          <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4">
+                            <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                              Learned signals from this organization
+                            </p>
+                            <div className="mt-3 grid gap-2 text-sm leading-6 text-slate-600">
+                              {intelligence.learnedInsights.map((insight) => (
+                                <p key={insight}>{insight}</p>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+                      </>
+                    ) : (
+                      <p className="mt-5 text-sm leading-7 text-slate-600">
+                        Generate a focused recommendation set grounded in your
+                        current role coverage, readiness trends, development
+                        activity, mentor reviews, and competency growth history.
+                      </p>
+                    )}
+                  </section>
+                </div>
+
+                <div className="mt-8 grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+                  <section className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+                    <p className="text-sm font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                      Candidate Movement
+                    </p>
+                    <h3 className="mt-2 font-display text-3xl text-slate-900">
+                      Movement during the selected period
+                    </h3>
+                    <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+                      {[
+                        ["Improved", intelligence.candidateMovement.improved],
+                        ["No Change", intelligence.candidateMovement.noChange],
+                        ["Declined", intelligence.candidateMovement.declined],
+                        ["Completed Program", intelligence.candidateMovement.completedProgram],
+                        ["Removed from Pipeline", intelligence.candidateMovement.removedFromPipeline],
+                      ].map(([label, value]) => (
+                        <article key={label} className="rounded-2xl border border-slate-200 bg-white p-4 text-sm">
+                          <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                            {label}
+                          </p>
+                          <p className="mt-3 text-3xl font-semibold text-slate-900">{value}</p>
+                        </article>
+                      ))}
+                    </div>
+                  </section>
+
+                  <section className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+                    <p className="text-sm font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                      Competency Growth Trends
+                    </p>
+                    <h3 className="mt-2 font-display text-3xl text-slate-900">
+                      Which competencies are moving
+                    </h3>
+                    <div className="mt-5 overflow-x-auto">
+                      <table className="min-w-full divide-y divide-slate-200 text-sm text-slate-700">
+                        <thead>
+                          <tr className="text-left text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                            <th className="pb-3 pr-4">Competency</th>
+                            <th className="pb-3 pr-4">Baseline</th>
+                            <th className="pb-3 pr-4">Current</th>
+                            <th className="pb-3 pr-4">Improvement</th>
+                            <th className="pb-3">Candidates</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200">
+                          {intelligence.competencyGrowth.length > 0 ? (
+                            intelligence.competencyGrowth.slice(0, 8).map((row) => (
+                              <tr key={row.competencyName}>
+                                <td className="py-4 pr-4 font-semibold text-slate-900">
+                                  {row.competencyName}
+                                </td>
+                                <td className="py-4 pr-4">{formatScore(row.averageBaselineScore)}</td>
+                                <td className="py-4 pr-4">{formatScore(row.averageCurrentScore)}</td>
+                                <td className="py-4 pr-4 font-semibold text-slate-900">
+                                  {formatScore(row.averageImprovement)}
+                                </td>
+                                <td className="py-4">{row.candidateCount}</td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td colSpan={5} className="py-6 text-sm text-slate-500">
+                                Not enough scored competency history is available for the current filter set.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+                </div>
+
+                <div className="mt-8 grid gap-6 xl:grid-cols-2">
+                  <section className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+                    <p className="text-sm font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                      Mentor Effectiveness
+                    </p>
+                    <h3 className="mt-2 font-display text-3xl text-slate-900">
+                      Support and coaching momentum
+                    </h3>
+                    <p className="mt-3 text-sm leading-7 text-slate-600">
+                      Use this as a coaching-support metric, not a punitive score.
+                    </p>
+                    <div className="mt-5 overflow-x-auto">
+                      <table className="min-w-full divide-y divide-slate-200 text-sm text-slate-700">
+                        <thead>
+                          <tr className="text-left text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                            <th className="pb-3 pr-4">Mentor</th>
+                            <th className="pb-3 pr-4">Active Candidates</th>
+                            <th className="pb-3 pr-4">Completed Reviews</th>
+                            <th className="pb-3 pr-4">Avg Improvement</th>
+                            <th className="pb-3 pr-4">Overdue</th>
+                            <th className="pb-3">Avg Reviewer Score</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200">
+                          {intelligence.mentorEffectiveness.length > 0 ? (
+                            intelligence.mentorEffectiveness.map((mentor) => (
+                              <tr key={mentor.mentorId}>
+                                <td className="py-4 pr-4 font-semibold text-slate-900">
+                                  {mentor.mentorName}
+                                </td>
+                                <td className="py-4 pr-4">{mentor.activeCandidates}</td>
+                                <td className="py-4 pr-4">{mentor.completedReviews}</td>
+                                <td className="py-4 pr-4">{formatScore(mentor.averageCandidateImprovement)}</td>
+                                <td className="py-4 pr-4">{mentor.overdueReviews}</td>
+                                <td className="py-4">{formatScore(mentor.averageReviewerScore)}</td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td colSpan={6} className="py-6 text-sm text-slate-500">
+                                No mentor activity matches the current filters yet.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+
+                  <section className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+                    <p className="text-sm font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                      Development Experience Impact
+                    </p>
+                    <h3 className="mt-2 font-display text-3xl text-slate-900">
+                      Which experiences are producing growth
+                    </h3>
+                    <div className="mt-5 overflow-x-auto">
+                      <table className="min-w-full divide-y divide-slate-200 text-sm text-slate-700">
+                        <thead>
+                          <tr className="text-left text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                            <th className="pb-3 pr-4">Experience Type</th>
+                            <th className="pb-3 pr-4">Assigned</th>
+                            <th className="pb-3 pr-4">Avg Improvement</th>
+                            <th className="pb-3 pr-4">Avg Reviewer Score</th>
+                            <th className="pb-3">Most Improved Competency</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200">
+                          {intelligence.experienceImpact.length > 0 ? (
+                            intelligence.experienceImpact.map((row) => (
+                              <tr key={row.experienceType}>
+                                <td className="py-4 pr-4 font-semibold text-slate-900">
+                                  {row.experienceType}
+                                </td>
+                                <td className="py-4 pr-4">{row.assignedCount}</td>
+                                <td className="py-4 pr-4">{formatScore(row.averageCompetencyImprovement)}</td>
+                                <td className="py-4 pr-4">{formatScore(row.averageReviewerScore)}</td>
+                                <td className="py-4">{row.mostImprovedCompetency || "-"}</td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td colSpan={5} className="py-6 text-sm text-slate-500">
+                                Development experience impact will appear once completed records begin collecting scored competencies and feedback.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+                </div>
+              </section>
+            ) : null}
 
             <section className="grid gap-6 md:grid-cols-3">
               <article className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
@@ -445,9 +2455,12 @@ export default async function DashboardPage({
                       >
                         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                           <div>
-                            <p className="font-semibold text-slate-900">
+                            <Link
+                              href={getCandidateHref(candidate.id)}
+                              className="font-semibold text-slate-900 transition hover:text-teal-900"
+                            >
                               {candidate.full_name}
-                            </p>
+                            </Link>
                             <p className="mt-1 text-slate-600">
                               {candidate.current_title || "Current title not entered"}
                             </p>
@@ -483,7 +2496,9 @@ export default async function DashboardPage({
               </div>
             </section>
 
-            <MentorDirectoryManager mentors={snapshot.mentors} />
+            {snapshot.profile.role !== "mentor" ? (
+              <MentorDirectoryManager mentors={snapshot.mentors} />
+            ) : null}
           </>
         )}
       </div>
