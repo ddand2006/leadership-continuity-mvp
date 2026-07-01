@@ -1349,7 +1349,7 @@ function buildDashboardIntelligence(options: {
         (left.averageCandidateImprovement ?? -99),
     )[0];
 
-  if (strongestMentor?.averageCandidateImprovement !== null) {
+  if (strongestMentor?.averageCandidateImprovement != null) {
     learnedInsights.push(
       `${strongestMentor.mentorName} is currently supporting the strongest measured candidate improvement at ${strongestMentor.averageCandidateImprovement.toFixed(2)} points.`,
     );
