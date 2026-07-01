@@ -1129,14 +1129,19 @@ function buildDashboardIntelligence(options: {
 
   for (const record of visibleRecordsInRange) {
     const experienceType = inferExperienceType(record.experience_title);
-    const current =
-      experienceImpactMap.get(experienceType) ??
-      ({
-        count: 0,
-        improvements: [],
-        reviewerScores: [],
-        competencyImprovements: new Map<string, number[]>(),
-      });
+        const current: {
+        count: number;
+        improvements: number[];
+        reviewerScores: number[];
+        competencyImprovements: Map<string, number[]>;
+      } =
+        experienceImpactMap.get(experienceType) ??
+        {
+          count: 0,
+          improvements: [],
+          reviewerScores: [],
+          competencyImprovements: new Map<string, number[]>(),
+        };
 
     current.count += 1;
 
@@ -1205,7 +1210,6 @@ function buildDashboardIntelligence(options: {
         improvements: [],
         candidateIds: new Set<string>(),
       });
-
     current.baselineScores.push(competency.baseline_score);
 
     if (competency.current_score !== null) {
@@ -1317,7 +1321,7 @@ function buildDashboardIntelligence(options: {
         (left.averageCompetencyImprovement ?? -99),
     )[0];
 
-  if (strongestExperience?.averageCompetencyImprovement !== null) {
+  if (strongestExperience?.averageCompetencyImprovement != null) {
     learnedInsights.push(
       `${strongestExperience.experienceType} is producing the strongest current growth at ${strongestExperience.averageCompetencyImprovement.toFixed(2)} points on average.`,
     );
@@ -1493,22 +1497,15 @@ async function getDashboardSnapshot(
     rolesResult,
     mentorsResult,
     candidatesResult,
+    considerationsResult,
+    mentorRoleAssignmentsResult,
+    reportsResult,
+    strengthsResult,
+    sourceDocumentsResult,
+    assignmentsResult,
   ]) {
     if (result.error) {
       throw new Error(result.error.message);
-    }
-  }
-
-  for (const [error, tableNames] of [
-    [considerationsResult.error, ["candidate_role_considerations"]],
-    [mentorRoleAssignmentsResult.error, ["mentor_role_assignments"]],
-    [reportsResult.error, ["mentor_reports"]],
-    [strengthsResult.error, ["candidate_strengths"]],
-    [sourceDocumentsResult.error, ["candidate_source_documents"]],
-    [assignmentsResult.error, ["candidate_project_assignments"]],
-  ] as const) {
-    if (error && !isMissingOptionalDashboardTableError(error, [...tableNames])) {
-      throw new Error(error.message);
     }
   }
 
@@ -1535,12 +1532,12 @@ async function getDashboardSnapshot(
   const rawSourceDocuments = sourceDocumentsResult.data ?? [];
   const rawAssignments = assignmentsResult.data ?? [];
 
-  const mentorScopedAssignments = isMentorView
-    ? rawMentorAssignments.filter(
-        (assignment) => assignment.mentor_profile_id === profileResult.data?.id,
-      )
-    : rawMentorAssignments;
-  const mentorVisibleTrackKeys = new Set(
+const mentorScopedAssignments = isMentorView
+  ? rawMentorAssignments.filter(
+          (assignment) => assignment.mentor_profile_id === profileResult.data?.id,
+              )
+                : rawMentorAssignments;
+    const mentorVisibleTrackKeys = new Set(
     mentorScopedAssignments.map((assignment) => `${assignment.candidate_id}:${assignment.role_id}`),
   );
   const mentorVisibleCandidateIds = new Set(
@@ -1730,22 +1727,6 @@ async function getDashboardSnapshot(
       developmentStorageReady,
     }),
   };
-}
-
-function isMissingOptionalDashboardTableError(
-  error: { message: string } | null | undefined,
-  tableNames: string[],
-) {
-  if (!error) {
-    return false;
-  }
-
-  const mentionsTable = tableNames.some((tableName) => error.message.includes(tableName));
-
-  return Boolean(
-    mentionsTable &&
-      (error.message.includes("schema cache") || error.message.includes("does not exist")),
-  );
 }
 
 export default async function DashboardPage({
@@ -1951,18 +1932,18 @@ export default async function DashboardPage({
                   </div>
                 ) : null}
 
-                <div className="mt-8 grid gap-5 xl:grid-cols-5">
+                <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   <article className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       Leadership Continuity Score
                     </p>
-                    <p className="mt-3 text-4xl font-semibold text-slate-900">
+                    <p className="mt-2 text-3xl font-semibold text-slate-900 lg:text-[2rem]">
                       {intelligence.continuityScore.score}
                     </p>
                     <p className="mt-2 text-sm font-semibold text-teal-800">
                       {intelligence.continuityScore.label}
                     </p>
-                    <div className="mt-4 grid gap-2 text-xs text-slate-600">
+                    <div className="mt-3 grid gap-1.5 text-[11px] text-slate-600">
                       <p>Coverage {formatPercent(intelligence.continuityScore.roleCoverageScore)}</p>
                       <p>Readiness {formatPercent(intelligence.continuityScore.candidateReadinessScore)}</p>
                       <p>Progress {formatPercent(intelligence.continuityScore.developmentProgressScore)}</p>
@@ -1972,7 +1953,7 @@ export default async function DashboardPage({
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       Critical Roles Covered
                     </p>
-                    <p className="mt-3 text-4xl font-semibold text-slate-900">
+                    <p className="mt-2 text-3xl font-semibold text-slate-900 lg:text-[2rem]">
                       {intelligence.criticalRolesCovered.covered}/{intelligence.criticalRolesCovered.total}
                     </p>
                     <p className="mt-2 text-sm text-slate-600">
@@ -1991,7 +1972,7 @@ export default async function DashboardPage({
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       Ready Successors
                     </p>
-                    <p className="mt-3 text-4xl font-semibold text-slate-900">
+                    <p className="mt-2 text-3xl font-semibold text-slate-900 lg:text-[2rem]">
                       {intelligence.readySuccessors.near.length + intelligence.readySuccessors.ready.length}
                     </p>
                     <p className="mt-2 text-sm text-slate-600">
@@ -2015,7 +1996,7 @@ export default async function DashboardPage({
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       High-Risk Roles
                     </p>
-                    <p className="mt-3 text-4xl font-semibold text-slate-900">
+                    <p className="mt-2 text-3xl font-semibold text-slate-900 lg:text-[2rem]">
                       {intelligence.highRiskRoles}
                     </p>
                     <p className="mt-2 text-sm text-slate-600">
@@ -2033,7 +2014,7 @@ export default async function DashboardPage({
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       Average Time to Readiness
                     </p>
-                    <p className="mt-3 text-4xl font-semibold text-slate-900">
+                    <p className="mt-2 text-3xl font-semibold text-slate-900 lg:text-[2rem]">
                       {intelligence.averageTimeToReadiness.overallMonths !== null
                         ? `${intelligence.averageTimeToReadiness.overallMonths.toFixed(1)} mo`
                         : "-"}
@@ -2388,7 +2369,7 @@ export default async function DashboardPage({
                 <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                   Current Roles
                 </p>
-                <p className="mt-3 text-4xl font-semibold text-slate-900">
+                <p className="mt-2 text-3xl font-semibold text-slate-900 lg:text-[2rem]">
                   {snapshot.counts?.roles ?? 0}
                 </p>
               </article>
@@ -2396,7 +2377,7 @@ export default async function DashboardPage({
                 <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                   Current Candidates
                 </p>
-                <p className="mt-3 text-4xl font-semibold text-slate-900">
+                <p className="mt-2 text-3xl font-semibold text-slate-900 lg:text-[2rem]">
                   {snapshot.counts?.candidates ?? 0}
                 </p>
               </article>
@@ -2404,7 +2385,7 @@ export default async function DashboardPage({
                 <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                   Current Mentors
                 </p>
-                <p className="mt-3 text-4xl font-semibold text-slate-900">
+                <p className="mt-2 text-3xl font-semibold text-slate-900 lg:text-[2rem]">
                   {snapshot.counts?.mentors ?? 0}
                 </p>
               </article>
