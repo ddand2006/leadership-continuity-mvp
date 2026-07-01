@@ -1493,15 +1493,22 @@ async function getDashboardSnapshot(
     rolesResult,
     mentorsResult,
     candidatesResult,
-    considerationsResult,
-    mentorRoleAssignmentsResult,
-    reportsResult,
-    strengthsResult,
-    sourceDocumentsResult,
-    assignmentsResult,
   ]) {
     if (result.error) {
       throw new Error(result.error.message);
+    }
+  }
+
+  for (const [error, tableNames] of [
+    [considerationsResult.error, ["candidate_role_considerations"]],
+    [mentorRoleAssignmentsResult.error, ["mentor_role_assignments"]],
+    [reportsResult.error, ["mentor_reports"]],
+    [strengthsResult.error, ["candidate_strengths"]],
+    [sourceDocumentsResult.error, ["candidate_source_documents"]],
+    [assignmentsResult.error, ["candidate_project_assignments"]],
+  ] as const) {
+    if (error && !isMissingOptionalDashboardTableError(error, [...tableNames])) {
+      throw new Error(error.message);
     }
   }
 
@@ -1723,6 +1730,22 @@ async function getDashboardSnapshot(
       developmentStorageReady,
     }),
   };
+}
+
+function isMissingOptionalDashboardTableError(
+  error: { message: string } | null | undefined,
+  tableNames: string[],
+) {
+  if (!error) {
+    return false;
+  }
+
+  const mentionsTable = tableNames.some((tableName) => error.message.includes(tableName));
+
+  return Boolean(
+    mentionsTable &&
+      (error.message.includes("schema cache") || error.message.includes("does not exist")),
+  );
 }
 
 export default async function DashboardPage({
