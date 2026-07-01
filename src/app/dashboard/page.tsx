@@ -1114,7 +1114,7 @@ function buildDashboardIntelligence(options: {
         averageReviewerScore: roundToHundredth(average(mentorScores)),
       } satisfies MentorEffectivenessRow;
     })
-    .filter((row) => row.activeCandidates > 0 || row.completedReviews > 0)
+    .filter((row): row is MentorEffectivenessRow => Boolean(row?.mentorId && row?.mentorName) && (row.activeCandidates > 0 || row.completedReviews > 0))
     .sort((left, right) => right.activeCandidates - left.activeCandidates);
 
   const experienceImpactMap = new Map<
@@ -2293,8 +2293,8 @@ export default async function DashboardPage({
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200">
-                          {intelligence.mentorEffectiveness.length > 0 ? (
-                            intelligence.mentorEffectiveness.map((mentor) => (
+                          {intelligence.mentorEffectiveness.filter((mentor) => Boolean(mentor?.mentorId && mentor?.mentorName)).length > 0 ? (
+                            intelligence.mentorEffectiveness.filter((mentor) => Boolean(mentor?.mentorId && mentor?.mentorName)).map((mentor) => (
                               <tr key={mentor.mentorId}>
                                 <td className="py-4 pr-4 font-semibold text-slate-900">
                                   {mentor.mentorName}
