@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { hasSupabaseEnv } from "@/lib/env";
 
 const processStages = [
   {
@@ -84,8 +83,6 @@ const operatingSignals = [
 ] as const;
 
 export default async function Home() {
-  const isConfigured = hasSupabaseEnv();
-
   return (
     <main className="relative flex-1 overflow-hidden bg-[radial-gradient(circle_at_top,#fff6d8_0%,#f4fbf8_42%,#edf4f2_100%)] text-slate-950">
       <div className="absolute inset-x-0 top-0 h-72 bg-[linear-gradient(115deg,rgba(19,78,74,0.12),rgba(59,130,246,0.08),transparent)] blur-3xl" />
@@ -98,11 +95,6 @@ export default async function Home() {
               <span className="rounded-full border border-teal-200 bg-teal-50 px-4 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-teal-800">
                 About The System
               </span>
-              {isConfigured ? (
-                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
-                  Supabase env detected
-                </span>
-              ) : null}
             </div>
 
             <div className="mt-6 max-w-4xl space-y-6">
@@ -123,7 +115,7 @@ export default async function Home() {
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
                 href="/dashboard"
-                className="inline-flex items-center justify-center rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-teal-900"
+                className="inline-flex items-center justify-center rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-slate-50 transition hover:bg-teal-900"
               >
                 Open Dashboard
               </Link>
