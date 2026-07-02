@@ -1,8 +1,13 @@
 @import "tailwindcss";
 
 :root {
-  --background: #2440d8;
+  --background: #edf4f2;
   --foreground: #0f172a;
+  --page-surface: rgba(255, 255, 255, 0.82);
+  --page-surface-strong: rgba(255, 255, 255, 0.88);
+  --page-border: rgba(255, 255, 255, 0.75);
+  --page-shadow: 0 30px 90px rgba(15, 23, 42, 0.08);
+  --page-shadow-soft: 0 20px 60px rgba(15, 23, 42, 0.06);
 }
 
 @theme inline {
@@ -13,13 +18,42 @@
 }
 
 html {
-  background: var(--background);
+  background:
+    radial-gradient(circle at top, #fff6d8 0%, #f4fbf8 42%, #edf4f2 100%);
 }
 
 body {
-  background: var(--background);
+  position: relative;
+  background:
+    radial-gradient(circle at top, #fff6d8 0%, #f4fbf8 42%, #edf4f2 100%);
   color: var(--foreground);
   font-family: var(--font-body), sans-serif;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background:
+    linear-gradient(115deg, rgba(19, 78, 74, 0.12), rgba(59, 130, 246, 0.08), transparent 58%);
+  filter: blur(64px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  left: 50%;
+  top: 5rem;
+  height: 18rem;
+  width: 18rem;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.58);
+  filter: blur(64px);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .emerald-soft-panel {
@@ -27,7 +61,7 @@ body {
   background-image: none !important;
   border-color: rgba(82, 140, 94, 0.2) !important;
   color: #183822;
-  box-shadow: 0 20px 60px rgba(36, 64, 216, 0.1);
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.08);
 }
 
 .emerald-soft-panel-title {
@@ -65,6 +99,32 @@ a {
 .interactive-contrast:active {
   color: #ffffff !important;
   -webkit-text-fill-color: #ffffff;
+}
+
+.app-page {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  background: transparent;
+}
+
+.app-page > * {
+  position: relative;
+  z-index: 1;
+}
+
+.theme-panel {
+  border: 1px solid var(--page-border);
+  background: var(--page-surface);
+  box-shadow: var(--page-shadow-soft);
+  backdrop-filter: blur(18px);
+}
+
+.theme-panel-strong {
+  border: 1px solid var(--page-border);
+  background: var(--page-surface-strong);
+  box-shadow: var(--page-shadow);
+  backdrop-filter: blur(18px);
 }
 
 ::selection {

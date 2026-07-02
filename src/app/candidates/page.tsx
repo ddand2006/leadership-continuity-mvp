@@ -223,7 +223,7 @@ export default async function CandidatesPage({
   const canCreateCandidates = isAdminAppRole(profile.role);
 
   return (
-    <main className="flex-1 bg-[var(--background)]">
+    <main className="app-page">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-12 sm:px-10 lg:px-12">
         <section className="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-start">
           <CandidateFocusSelector

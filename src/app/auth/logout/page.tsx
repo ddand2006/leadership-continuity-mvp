@@ -37,7 +37,7 @@ export default function LogoutPage() {
   }, []);
 
   return (
-    <main className="flex-1 bg-[var(--background)]">
+    <main className="app-page">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-6 py-16 sm:px-10 lg:px-12">
         <h1 className="font-display text-4xl text-slate-900">Signing you out</h1>
         <p className="text-sm leading-7 text-slate-600">

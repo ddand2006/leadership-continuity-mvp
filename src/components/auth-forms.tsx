@@ -15,7 +15,7 @@ function AuthCard(props: {
   const [password, setPassword] = useState("");
 
   return (
-    <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
+    <section className="theme-panel-strong rounded-[1.75rem] p-8">
       <h2 className="font-display text-3xl text-slate-900">{props.title}</h2>
       <p className="mt-3 text-sm leading-6 text-slate-600">{props.description}</p>
       <form

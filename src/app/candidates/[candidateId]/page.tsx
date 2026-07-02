@@ -410,7 +410,7 @@ export default async function CandidateDetailPage({
   ];
 
   return (
-    <main className="flex-1 bg-[var(--background)]">
+    <main className="app-page">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-12 sm:px-10 lg:px-12">
         <CandidateDetailSectionMenu
           initialSectionId={requestedSection}

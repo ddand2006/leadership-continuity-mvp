@@ -29,9 +29,9 @@ export default async function DevelopmentPlansPage() {
   }
 
   return (
-    <main className="flex-1 bg-[var(--background)]">
+    <main className="app-page">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-12 sm:px-10 lg:px-12">
-        <section className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
+        <section className="theme-panel-strong rounded-[2rem] p-8">
           <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">
             Development Plan Library
           </p>

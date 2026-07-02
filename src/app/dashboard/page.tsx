@@ -1743,8 +1743,8 @@ export default async function DashboardPage({
   const intelligence = snapshot.intelligence;
 
   return (
-    <main className="flex-1 bg-[var(--background)]">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-12 sm:px-10 lg:px-12">
+    <main className="app-page">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:gap-8 sm:px-6 sm:py-10 lg:px-10 lg:py-12">
         {resolvedSearchParams.message ? (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-medium text-amber-900">
             {resolvedSearchParams.message}
@@ -1752,7 +1752,7 @@ export default async function DashboardPage({
         ) : null}
 
         {!snapshot.profile ? (
-          <section className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
+          <section className="theme-panel-strong rounded-[2rem] p-5 sm:p-8">
             <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">
               First-Time Setup
             </p>
@@ -1775,11 +1775,11 @@ export default async function DashboardPage({
           </section>
         ) : (
           <>
-            <section className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
+            <section className="theme-panel-strong rounded-[2rem] p-5 sm:p-8">
               <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">
                 Company Dashboard
               </p>
-              <h1 className="mt-3 font-display text-6xl leading-none text-slate-900 sm:text-7xl">
+              <h1 className="mt-3 font-display text-4xl leading-tight text-slate-900 sm:text-5xl lg:text-6xl">
                 {snapshot.profile.organization_name}
               </h1>
               <p className="mt-5 max-w-3xl text-base leading-7 text-slate-600">
@@ -1793,7 +1793,7 @@ export default async function DashboardPage({
             </section>
 
             {intelligence ? (
-              <section className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
+              <section className="theme-panel-strong rounded-[2rem] p-5 sm:p-8">
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
                   <div>
                     <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">
@@ -1813,7 +1813,7 @@ export default async function DashboardPage({
                     href={buildDashboardHref(intelligence.filters, {
                       recommendationsOpen: !intelligence.filters.recommendationsOpen,
                     })}
-                    className="interactive-contrast rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-900"
+                    className="interactive-contrast w-full rounded-full bg-slate-950 px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-teal-900 sm:w-auto"
                   >
                     Generate Continuity Recommendations
                   </Link>
@@ -1833,7 +1833,7 @@ export default async function DashboardPage({
                   </div>
                 ) : null}
 
-                <form className="mt-8 grid gap-4 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5 lg:grid-cols-[repeat(5,minmax(0,1fr))_auto_auto]" method="get">
+                <form className="mt-6 grid gap-3 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5 lg:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-[repeat(5,minmax(0,1fr))_auto_auto]" method="get">
                   <label className="block text-sm font-semibold text-slate-700">
                     Time window
                     <select
@@ -1914,26 +1914,26 @@ export default async function DashboardPage({
                   />
                   <button
                     type="submit"
-                    className="rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-900 lg:self-end"
+                    className="w-full rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-900 sm:w-auto 2xl:self-end"
                   >
                     Apply Filters
                   </button>
                   <Link
                     href="/dashboard"
-                    className="rounded-full border border-slate-200 bg-white px-5 py-3 text-center text-sm font-semibold text-slate-700 transition hover:bg-slate-100 lg:self-end"
+                    className="w-full rounded-full border border-slate-200 bg-white px-5 py-3 text-center text-sm font-semibold text-slate-700 transition hover:bg-slate-100 sm:w-auto 2xl:self-end"
                   >
                     Reset
                   </Link>
                 </form>
 
                 {intelligence.emptyStateMessage ? (
-                  <div className="mt-8 rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50 px-6 py-6 text-sm leading-7 text-slate-600">
+                  <div className="mt-6 rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50 px-5 py-5 text-sm leading-7 text-slate-600">
                     {intelligence.emptyStateMessage}
                   </div>
                 ) : null}
 
-                <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  <article className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+                <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                  <article className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       Leadership Continuity Score
                     </p>
@@ -1949,7 +1949,7 @@ export default async function DashboardPage({
                       <p>Progress {formatPercent(intelligence.continuityScore.developmentProgressScore)}</p>
                     </div>
                   </article>
-                  <article className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+                  <article className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       Critical Roles Covered
                     </p>
@@ -1968,7 +1968,7 @@ export default async function DashboardPage({
                         : "All visible roles currently have at least one active candidate."}
                     </p>
                   </article>
-                  <article className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+                  <article className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       Ready Successors
                     </p>
@@ -1992,7 +1992,7 @@ export default async function DashboardPage({
                         ))}
                     </div>
                   </article>
-                  <article className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+                  <article className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       High-Risk Roles
                     </p>
@@ -2010,7 +2010,7 @@ export default async function DashboardPage({
                         .join(", ") || "No high-risk roles in the current filtered view."}
                     </p>
                   </article>
-                  <article className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+                  <article className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       Average Time to Readiness
                     </p>
@@ -2026,8 +2026,8 @@ export default async function DashboardPage({
                 </div>
 
                 <div className="mt-8 grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-                  <section className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
-                    <div className="flex items-center justify-between gap-4">
+                  <section className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                       <div>
                         <p className="text-sm font-semibold tracking-[0.14em] text-slate-500 uppercase">
                           Leadership Risk by Role
@@ -2038,7 +2038,7 @@ export default async function DashboardPage({
                       </div>
                       <Link
                         href="/roles"
-                        className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                        className="w-full rounded-full border border-slate-200 bg-white px-4 py-2 text-center text-sm font-semibold text-slate-700 transition hover:bg-slate-100 sm:w-auto"
                       >
                         Open Roles
                       </Link>
@@ -2116,7 +2116,7 @@ export default async function DashboardPage({
                     </div>
                   </section>
 
-                  <section id="recommendations" className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+                  <section id="recommendations" className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
                     <p className="text-sm font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       Recommended Next Actions
                     </p>
@@ -2198,7 +2198,7 @@ export default async function DashboardPage({
                 </div>
 
                 <div className="mt-8 grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-                  <section className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+                  <section className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
                     <p className="text-sm font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       Candidate Movement
                     </p>
@@ -2223,7 +2223,7 @@ export default async function DashboardPage({
                     </div>
                   </section>
 
-                  <section className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+                  <section className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
                     <p className="text-sm font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       Competency Growth Trends
                     </p>
@@ -2270,7 +2270,7 @@ export default async function DashboardPage({
                 </div>
 
                 <div className="mt-8 grid gap-6 xl:grid-cols-2">
-                  <section className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+                  <section className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
                     <p className="text-sm font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       Mentor Effectiveness
                     </p>
@@ -2318,7 +2318,7 @@ export default async function DashboardPage({
                     </div>
                   </section>
 
-                  <section className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+                  <section className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
                     <p className="text-sm font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       Development Experience Impact
                     </p>
@@ -2364,8 +2364,8 @@ export default async function DashboardPage({
               </section>
             ) : null}
 
-            <section className="grid gap-6 md:grid-cols-3">
-              <article className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+            <section className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+              <article className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-6">
                 <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                   Current Roles
                 </p>
@@ -2373,7 +2373,7 @@ export default async function DashboardPage({
                   {snapshot.counts?.roles ?? 0}
                 </p>
               </article>
-              <article className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+              <article className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-6">
                 <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                   Current Candidates
                 </p>
@@ -2381,7 +2381,7 @@ export default async function DashboardPage({
                   {snapshot.counts?.candidates ?? 0}
                 </p>
               </article>
-              <article className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+              <article className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-6">
                 <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                   Current Mentors
                 </p>
@@ -2392,8 +2392,8 @@ export default async function DashboardPage({
             </section>
 
             <section className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-              <div className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
-                <div className="flex items-center justify-between gap-4">
+              <div className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-8">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
                       Roles in the System
@@ -2404,7 +2404,7 @@ export default async function DashboardPage({
                   </div>
                   <Link
                     href="/roles"
-                    className="interactive-contrast rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-900"
+                    className="interactive-contrast w-full rounded-full bg-slate-950 px-4 py-2 text-center text-sm font-semibold text-white transition hover:bg-teal-900 sm:w-auto"
                   >
                     Open Roles
                   </Link>
@@ -2432,8 +2432,8 @@ export default async function DashboardPage({
                 </div>
               </div>
 
-              <div className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
-                <div className="flex items-center justify-between gap-4">
+              <div className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-8">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
                       Candidates in the System
@@ -2444,7 +2444,7 @@ export default async function DashboardPage({
                   </div>
                   <Link
                     href="/candidates"
-                    className="interactive-contrast rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-900"
+                    className="interactive-contrast w-full rounded-full bg-slate-950 px-4 py-2 text-center text-sm font-semibold text-white transition hover:bg-teal-900 sm:w-auto"
                   >
                     Open Candidates
                   </Link>

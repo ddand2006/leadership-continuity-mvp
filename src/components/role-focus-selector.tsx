@@ -39,7 +39,7 @@ export function RoleFocusSelector({
   }
 
   return (
-    <aside className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] lg:sticky lg:top-8">
+    <aside className="theme-panel rounded-[1.75rem] p-6 lg:sticky lg:top-8">
       <div className="flex flex-col gap-5">
         <div>
           <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
@@ -61,7 +61,7 @@ export function RoleFocusSelector({
             className={`w-full rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition ${
               selectedMode === "flow"
                 ? "border-teal-800 bg-teal-800 text-white"
-                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                : "border-slate-200/80 bg-white/85 text-slate-700 hover:bg-white"
             }`}
           >
             Roles Flow
@@ -72,7 +72,7 @@ export function RoleFocusSelector({
             className={`w-full rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition ${
               selectedMode === "create"
                 ? "border-slate-950 bg-slate-950 text-white"
-                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                : "border-slate-200/80 bg-white/85 text-slate-700 hover:bg-white"
             }`}
           >
             Create a Role
@@ -107,7 +107,7 @@ export function RoleFocusSelector({
             className={`w-full rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition ${
               selectedMode === "import"
                 ? "border-teal-700 bg-teal-700 text-white"
-                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                : "border-slate-200/80 bg-white/85 text-slate-700 hover:bg-white"
             }`}
           >
             Competencies
@@ -118,7 +118,7 @@ export function RoleFocusSelector({
             className={`w-full rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition ${
               selectedMode === "composite"
                 ? "border-teal-800 bg-teal-800 text-white"
-                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                : "border-slate-200/80 bg-white/85 text-slate-700 hover:bg-white"
             }`}
           >
             Role Composite
@@ -129,7 +129,7 @@ export function RoleFocusSelector({
             className={`w-full rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition ${
               selectedMode === "view"
                 ? "border-teal-800 bg-teal-800 text-white"
-                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                : "border-slate-200/80 bg-white/85 text-slate-700 hover:bg-white"
             }`}
           >
             View a Role
@@ -140,7 +140,7 @@ export function RoleFocusSelector({
             className={`w-full rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition ${
               selectedMode === "resources"
                 ? "border-teal-900 bg-teal-900 text-white"
-                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                : "border-slate-200/80 bg-white/85 text-slate-700 hover:bg-white"
             }`}
           >
             Resources

@@ -38,7 +38,7 @@ export function CandidateFocusSelector({
   }
 
   return (
-    <aside className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] lg:sticky lg:top-8">
+    <aside className="theme-panel rounded-[1.75rem] p-6 lg:sticky lg:top-8">
       <div className="flex flex-col gap-5">
         <div>
           <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
@@ -60,7 +60,7 @@ export function CandidateFocusSelector({
             className={`w-full rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition ${
               selectedMode === "flow"
                 ? "border-teal-800 bg-teal-800 text-white"
-                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                : "border-slate-200/80 bg-white/85 text-slate-700 hover:bg-white"
             }`}
           >
             Candidates Flow
@@ -72,7 +72,7 @@ export function CandidateFocusSelector({
               className={`w-full rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition ${
                 selectedMode === "create"
                   ? "border-slate-950 bg-slate-950 text-white"
-                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                  : "border-slate-200/80 bg-white/85 text-slate-700 hover:bg-white"
               }`}
             >
               Add Candidate

@@ -1,244 +1,290 @@
 import Link from "next/link";
-import { getCurrentUser } from "@/lib/auth";
 import { hasSupabaseEnv } from "@/lib/env";
 
+const processStages = [
+  {
+    badge: "Step 1",
+    name: "Roles",
+    accent: "from-amber-100 via-white to-orange-50",
+    border: "border-amber-200/80",
+    icon: "01",
+    summary:
+      "Define the leadership role, the competencies that matter most, and the composite of what success looks like before urgency takes over.",
+    steps: [
+      "Create role",
+      "Select role",
+      "Input competencies",
+      "Create composite",
+      "View role narrative",
+    ],
+  },
+  {
+    badge: "Step 2",
+    name: "Candidates",
+    accent: "from-sky-100 via-white to-cyan-50",
+    border: "border-sky-200/80",
+    icon: "02",
+    summary:
+      "Evaluate internal talent against the role using consistent evidence, strengths, readiness signals, and development gaps.",
+    steps: [
+      "Add candidate",
+      "Select candidate",
+      "Input interview scores",
+      "View role fit and strengths",
+      "Generate mentor report",
+    ],
+  },
+  {
+    badge: "Step 3",
+    name: "Mentoring",
+    accent: "from-emerald-100 via-white to-teal-50",
+    border: "border-emerald-200/80",
+    icon: "03",
+    summary:
+      "Turn assessment into guided development with mentor conversations, preparation work, and stretch assignments anchored in real leadership demands.",
+    steps: [
+      "Assign mentor",
+      "Select track",
+      "Preparation worksheet",
+      "Departmental project",
+      "Cross-departmental project",
+    ],
+  },
+] as const;
+
+const narrativePoints = [
+  "Protect culture by making leadership expectations explicit instead of keeping them trapped in the experience of a few long-tenured leaders.",
+  "Protect institutional knowledge by moving emerging leaders through deliberate coaching before a transition happens.",
+  "Build a visible development pipeline so succession becomes an operating discipline rather than a last-minute replacement exercise.",
+] as const;
+
+const outcomes = [
+  "Shared language for what great leadership looks like in each role",
+  "Clearer evidence about who is ready now and who needs development",
+  "Mentoring work tied directly to real hospital leadership demands",
+  "A stronger internal bench that keeps knowledge inside the organization",
+] as const;
+
+const operatingSignals = [
+  {
+    label: "Role Clarity",
+    value: "Defined before a vacancy",
+    detail: "Turn implicit expectations into a visible leadership standard.",
+  },
+  {
+    label: "Talent Evidence",
+    value: "Compared consistently",
+    detail: "See strengths, readiness, and developmental gaps in one flow.",
+  },
+  {
+    label: "Mentoring Motion",
+    value: "Linked to the role",
+    detail: "Guide development through practical, role-based work.",
+  },
+] as const;
+
 export default async function Home() {
-  const processStages = [
-    {
-      name: "Roles",
-      badge: "Step 1",
-      tone:
-        "border-amber-200 bg-[linear-gradient(135deg,rgba(255,247,237,0.95),rgba(255,255,255,0.98))] text-amber-950",
-      accent: "bg-[#cf641f]",
-      summary:
-        "Start by defining the leadership role, the competencies that matter most, and the composite of what success looks like.",
-      steps: [
-        "Create role",
-        "Select role",
-        "Input competencies",
-        "Create composite",
-        "View role narrative",
-      ],
-    },
-    {
-      name: "Candidates",
-      badge: "Step 2",
-      tone:
-        "border-sky-200 bg-[linear-gradient(135deg,rgba(239,246,255,0.96),rgba(255,255,255,0.98))] text-sky-950",
-      accent: "bg-[#245b9b]",
-      summary:
-        "Once the role is clear, evaluate internal talent against it through interview evidence, strengths, and readiness signals.",
-      steps: [
-        "Add candidate",
-        "Select candidate",
-        "Input interview scores",
-        "View role fit and strengths",
-        "Generate mentor report",
-      ],
-    },
-    {
-      name: "Mentoring",
-      badge: "Step 3",
-      tone:
-        "border-emerald-200 bg-[linear-gradient(135deg,rgba(236,253,245,0.96),rgba(255,255,255,0.98))] text-emerald-950",
-      accent: "bg-[#446533]",
-      summary:
-        "Move from assessment into guided development with role-based mentoring, preparation conversations, and stretch assignments.",
-      steps: [
-        "Assign mentor",
-        "Select track",
-        "Preparation worksheet",
-        "Departmental project",
-        "Cross-departmental project",
-      ],
-    },
-  ];
-
-  const narrativePoints = [
-    "It protects culture by making leadership expectations explicit instead of leaving them trapped in the heads of a few long-tenured people.",
-    "It protects institutional knowledge by moving emerging leaders through deliberate coaching, role-specific reflection, and practical stretch work before a transition happens.",
-    "It raises the next generation of leaders by turning succession into a visible development pipeline rather than a last-minute replacement exercise.",
-  ];
-
-  const outcomes = [
-    "Shared language for what great leadership looks like in each role",
-    "Clearer evidence about who is ready now and who needs development",
-    "Mentoring work tied directly to real hospital leadership demands",
-    "A stronger internal bench that keeps knowledge in the organization",
-  ];
-
   const isConfigured = hasSupabaseEnv();
-  const user = await getCurrentUser();
 
   return (
-    <main className="relative flex-1 overflow-hidden bg-[radial-gradient(circle_at_top,#fef3c7_0%,#f7fbfa_40%,#edf4f2_100%)]">
-      <div className="absolute inset-x-0 top-0 h-80 bg-[linear-gradient(120deg,rgba(65,105,225,0.22),rgba(96,165,250,0.14),transparent)] blur-3xl" />
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-14 px-6 py-12 sm:px-10 lg:px-12">
-        <section className="grid gap-8 rounded-[2rem] border border-white/70 bg-white/80 p-8 shadow-[0_30px_80px_rgba(15,23,42,0.08)] backdrop-blur md:grid-cols-[1.35fr_0.9fr] md:p-12">
-          <div className="space-y-6">
-            <p className="w-fit rounded-full border border-teal-200 bg-teal-50 px-4 py-1 text-sm font-semibold tracking-[0.16em] text-teal-800 uppercase">
-              About The System
-            </p>
-            <div className="space-y-4">
-              <h1 className="max-w-3xl font-display text-5xl leading-[1.05] tracking-tight text-slate-900 sm:text-6xl">
+    <main className="relative flex-1 overflow-hidden bg-[radial-gradient(circle_at_top,#fff6d8_0%,#f4fbf8_42%,#edf4f2_100%)] text-slate-950">
+      <div className="absolute inset-x-0 top-0 h-72 bg-[linear-gradient(115deg,rgba(19,78,74,0.12),rgba(59,130,246,0.08),transparent)] blur-3xl" />
+      <div className="absolute left-1/2 top-20 h-64 w-64 -translate-x-1/2 rounded-full bg-[rgba(255,255,255,0.6)] blur-3xl" />
+
+      <div className="relative mx-auto flex w-full max-w-[1380px] flex-col gap-12 px-5 py-6 sm:px-8 lg:px-10 lg:py-8">
+        <section className="grid gap-6 lg:grid-cols-[1.25fr_0.78fr]">
+          <div className="overflow-hidden rounded-[2rem] border border-white/75 bg-white/84 p-6 shadow-[0_30px_90px_rgba(15,23,42,0.08)] backdrop-blur sm:p-8 lg:p-10">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="rounded-full border border-teal-200 bg-teal-50 px-4 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-teal-800">
+                About The System
+              </span>
+              {isConfigured ? (
+                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
+                  Supabase env detected
+                </span>
+              ) : null}
+            </div>
+
+            <div className="mt-6 max-w-4xl space-y-6">
+              <h1 className="max-w-3xl text-4xl font-semibold tracking-[-0.05em] text-slate-950 sm:text-5xl lg:text-6xl xl:text-[4.75rem] xl:leading-[0.95]">
                 A development process built to raise the next generation of leaders.
               </h1>
-              <p className="max-w-2xl text-lg leading-8 text-slate-600">
-                Leadership Continuity helps a hospital define what leadership
-                success looks like, identify internal talent against that
-                standard, and move promising people into structured mentoring
-                that grows readiness while preserving culture and institutional
-                knowledge.
+              <p className="max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">
+                Leadership Continuity helps a hospital define what leadership success looks like, identify internal talent against that standard, and move promising people into structured mentoring that grows readiness while preserving culture and institutional knowledge.
               </p>
             </div>
-            <div className="flex flex-wrap gap-3 text-sm font-semibold text-slate-700">
-              <span className="rounded-full bg-amber-100 px-4 py-2">
-                Roles First
-              </span>
-              <span className="rounded-full bg-teal-100 px-4 py-2">
-                Candidate Evidence
-              </span>
-              <span className="rounded-full bg-sky-100 px-4 py-2">
-                Mentoring Development
-              </span>
+
+            <div className="mt-8 flex flex-wrap gap-3 text-sm font-medium text-slate-700">
+              <span className="rounded-full bg-[#fff1c7] px-4 py-2">Roles First</span>
+              <span className="rounded-full bg-[#d8f8f1] px-4 py-2">Candidate Evidence</span>
+              <span className="rounded-full bg-[#e5eef8] px-4 py-2">Mentoring Development</span>
             </div>
-            <div className="flex flex-wrap gap-3">
+
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
-                href={user ? "/dashboard" : "/auth"}
-                className="interactive-contrast rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-900"
+                href="/dashboard"
+                className="inline-flex items-center justify-center rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-teal-900"
               >
-                {user ? "Open Dashboard" : "Sign In"}
+                Open Dashboard
               </Link>
               <Link
                 href="/roles"
-                className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
               >
                 Start With Roles
               </Link>
-              <span className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700">
-                {isConfigured ? "Supabase env detected" : "Supabase env pending"}
-              </span>
+            </div>
+
+            <div className="mt-10 grid gap-4 rounded-[1.5rem] border border-slate-200/80 bg-slate-50/85 p-4 sm:grid-cols-3 sm:p-5">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+                  Leadership Standard
+                </p>
+                <p className="mt-2 text-sm leading-7 text-slate-700">
+                  Clarify what success means before a vacancy creates pressure.
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+                  Evidence Review
+                </p>
+                <p className="mt-2 text-sm leading-7 text-slate-700">
+                  Compare internal talent with consistent role-based evidence.
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+                  Mentoring Action
+                </p>
+                <p className="mt-2 text-sm leading-7 text-slate-700">
+                  Turn readiness insight into deliberate developmental motion.
+                </p>
+              </div>
             </div>
           </div>
 
-          <div className="rounded-[1.75rem] border border-slate-200 bg-slate-950 p-6 text-slate-100 shadow-[0_20px_50px_rgba(15,23,42,0.35)]">
-            <p className="text-sm font-semibold tracking-[0.16em] text-amber-300 uppercase">
-              Why It Matters
-            </p>
-            <ul className="mt-5 space-y-4 text-sm leading-7 text-slate-300">
-              {narrativePoints.map((point) => (
-                <li
-                  key={point}
-                  className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3"
-                >
-                  {point}
-                </li>
-              ))}
-            </ul>
-          </div>
+          <aside className="grid gap-4">
+            <div className="rounded-[2rem] bg-[#04111f] p-6 text-white shadow-[0_30px_90px_rgba(2,6,23,0.28)] sm:p-7">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-amber-200">
+                Why It Matters
+              </p>
+              <div className="mt-5 space-y-4">
+                {narrativePoints.map((point) => (
+                  <div
+                    key={point}
+                    className="rounded-[1.35rem] border border-white/10 bg-white/5 p-4 text-sm leading-7 text-slate-200"
+                  >
+                    {point}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-[2rem] border border-white/75 bg-white/82 p-6 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur sm:p-7">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
+                Continuity Lens
+              </p>
+              <div className="mt-5 space-y-4">
+                {operatingSignals.map((signal) => (
+                  <article
+                    key={signal.label}
+                    className="rounded-[1.35rem] border border-slate-200/80 bg-slate-50/85 p-4"
+                  >
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                      {signal.label}
+                    </p>
+                    <p className="mt-2 text-lg font-semibold text-slate-950">
+                      {signal.value}
+                    </p>
+                    <p className="mt-2 text-sm leading-7 text-slate-600">
+                      {signal.detail}
+                    </p>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </aside>
         </section>
 
-        <section className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.08)] md:p-10">
-          <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
-            Three-Step Flow
-          </p>
-          <h2 className="mt-3 font-display text-4xl text-slate-900">
-            Roles lead to candidates, and candidates lead to mentoring
-          </h2>
-          <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600">
-            The system is designed as a sequence. We first define the role,
-            then evaluate people against that role, then guide development
-            through mentoring that is anchored in real leadership demands.
-          </p>
+        <section className="rounded-[2rem] border border-white/75 bg-white/82 p-6 shadow-[0_30px_90px_rgba(15,23,42,0.07)] backdrop-blur sm:p-8 lg:p-10">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-3xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
+                Three-Step Flow
+              </p>
+              <h2 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-slate-950 sm:text-4xl">
+                Roles lead to candidates, and candidates lead to mentoring.
+              </h2>
+            </div>
+            <p className="max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
+              The system is designed as a sequence. We first define the role, then evaluate people against that role, then guide development through mentoring anchored in real leadership demands.
+            </p>
+          </div>
 
-          <div className="mt-8 grid gap-6">
-            {processStages.map((stage, index) => (
-              <div key={stage.name} className="grid gap-4">
-                <article
-                  className={`rounded-[1.75rem] border p-6 shadow-[0_20px_50px_rgba(15,23,42,0.06)] ${stage.tone}`}
-                >
-                  <div className="flex flex-wrap items-center gap-3">
-                    <span className="rounded-full bg-white/80 px-3 py-1 text-xs font-semibold tracking-[0.14em] uppercase">
+          <div className="mt-8 grid gap-5 xl:grid-cols-3">
+            {processStages.map((stage) => (
+              <article
+                key={stage.name}
+                className={`rounded-[1.75rem] border ${stage.border} bg-gradient-to-br ${stage.accent} p-6 shadow-[0_16px_45px_rgba(15,23,42,0.05)]`}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
                       {stage.badge}
+                    </p>
+                    <h3 className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-slate-950">
+                      {stage.name}
+                    </h3>
+                  </div>
+                  <span className="rounded-full border border-slate-200/70 bg-white/75 px-3 py-1 text-xs font-semibold text-slate-700">
+                    {stage.icon}
+                  </span>
+                </div>
+                <p className="mt-4 text-sm leading-7 text-slate-700">
+                  {stage.summary}
+                </p>
+                <div className="mt-6 flex flex-wrap gap-2">
+                  {stage.steps.map((step) => (
+                    <span
+                      key={step}
+                      className="rounded-full border border-slate-200/80 bg-white/80 px-3 py-2 text-xs font-semibold text-slate-700"
+                    >
+                      {step}
                     </span>
-                    <h3 className="font-display text-3xl">{stage.name}</h3>
-                  </div>
-                  <p className="mt-4 max-w-3xl text-sm leading-7 opacity-90">
-                    {stage.summary}
-                  </p>
-
-                  <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
-                    {stage.steps.map((step, stepIndex) => (
-                      <div
-                        key={step}
-                        className="flex items-center gap-3"
-                      >
-                        <div className="rounded-2xl border border-black/10 bg-white/80 px-4 py-3 text-sm font-semibold shadow-[0_10px_25px_rgba(15,23,42,0.05)]">
-                          {step}
-                        </div>
-                        {stepIndex < stage.steps.length - 1 ? (
-                          <span className="hidden text-lg font-semibold opacity-70 lg:inline">
-                            →
-                          </span>
-                        ) : null}
-                      </div>
-                    ))}
-                  </div>
-                </article>
-
-                {index < processStages.length - 1 ? (
-                  <div className="flex items-center justify-center">
-                    <div className="flex flex-col items-center gap-2 text-slate-500">
-                      <div className={`h-10 w-1 rounded-full ${stage.accent}`} />
-                      <span className="text-xs font-semibold tracking-[0.14em] uppercase">
-                        Feeds The Next Stage
-                      </span>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
+                  ))}
+                </div>
+              </article>
             ))}
           </div>
         </section>
 
-        <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
-            <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
+        <section className="grid gap-6 lg:grid-cols-[1fr_0.9fr]">
+          <div className="rounded-[2rem] border border-white/75 bg-white/82 p-6 shadow-[0_30px_90px_rgba(15,23,42,0.07)] backdrop-blur sm:p-8">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
               The Development Narrative
             </p>
-            <div className="mt-6 space-y-5 text-sm leading-8 text-slate-600">
+            <div className="mt-5 space-y-4 text-base leading-8 text-slate-600">
               <p>
-                This process starts by clarifying leadership expectations before
-                a vacancy creates pressure. That alone strengthens the
-                organization, because people stop guessing what success looks
-                like in important roles.
+                This process starts by clarifying leadership expectations before a vacancy creates pressure. That alone strengthens the organization because people stop guessing what success looks like in important roles.
               </p>
               <p>
-                From there, the candidate workflow creates a more thoughtful
-                picture of internal talent. Instead of choosing future leaders
-                based on familiarity or urgency, the hospital can compare
-                evidence, strengths, readiness, and developmental gaps in a
-                consistent way.
+                From there, the candidate workflow creates a more thoughtful picture of internal talent. Instead of choosing future leaders based on familiarity or urgency, the hospital can compare evidence, strengths, readiness, and developmental gaps in a consistent way.
               </p>
               <p>
-                The mentoring stage turns that insight into action. Emerging
-                leaders are developed in context, with real assignments, mentor
-                conversations, and exposure to cross-functional leadership work.
-                That is how culture, judgment, and practical know-how stay in
-                the organization instead of walking out the door.
+                The mentoring stage turns that insight into action. Emerging leaders are developed in context, with real assignments, mentor conversations, and exposure to cross-functional leadership work.
               </p>
             </div>
           </div>
 
-          <div className="rounded-[1.75rem] border border-[rgba(82,140,94,0.2)] bg-[rgba(239,251,241,0.96)] p-8 text-[#183822] shadow-[0_20px_60px_rgba(36,64,216,0.1)]">
-            <p className="text-sm font-semibold tracking-[0.16em] text-[#24512f] uppercase">
+          <div className="rounded-[2rem] bg-slate-950 p-6 text-white shadow-[0_30px_90px_rgba(2,6,23,0.28)] sm:p-8">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">
               What This Builds
             </p>
-            <div className="mt-6 grid gap-3 text-sm leading-7 text-[#24512f]">
+            <div className="mt-6 grid gap-3 text-sm leading-7 text-slate-200">
               {outcomes.map((outcome) => (
                 <article
                   key={outcome}
-                  className="rounded-2xl border border-[rgba(82,140,94,0.18)] bg-white/75 px-4 py-4"
+                  className="rounded-[1.35rem] border border-white/10 bg-white/5 px-4 py-4"
                 >
                   {outcome}
                 </article>
