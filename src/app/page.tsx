@@ -115,7 +115,7 @@ export default async function Home() {
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
                 href="/dashboard"
-                className="inline-flex items-center justify-center rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-slate-50 transition hover:bg-teal-900"
+                className="interactive-contrast inline-flex items-center justify-center rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-teal-900"
               >
                 Open Dashboard
               </Link>
