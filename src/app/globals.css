@@ -30,32 +30,6 @@ body {
   font-family: var(--font-body), sans-serif;
 }
 
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background:
-    linear-gradient(115deg, rgba(19, 78, 74, 0.12), rgba(59, 130, 246, 0.08), transparent 58%);
-  filter: blur(64px);
-  pointer-events: none;
-  z-index: 0;
-}
-
-body::after {
-  content: "";
-  position: fixed;
-  left: 50%;
-  top: 5rem;
-  height: 18rem;
-  width: 18rem;
-  transform: translateX(-50%);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.58);
-  filter: blur(64px);
-  pointer-events: none;
-  z-index: 0;
-}
-
 .emerald-soft-panel {
   background-color: rgba(239, 251, 241, 0.96) !important;
   background-image: none !important;
@@ -125,6 +99,29 @@ a {
   background: var(--page-surface-strong);
   box-shadow: var(--page-shadow);
   backdrop-filter: blur(18px);
+}
+
+.cycle-step-card {
+  transform: translateY(0) scale(1);
+}
+
+@media (min-width: 1024px) {
+  .cycle-step-card {
+    transform: translate(-50%, -50%) scale(1);
+    transition:
+      transform 300ms ease-out,
+      box-shadow 300ms ease-out;
+  }
+
+  .cycle-step-card:hover,
+  .cycle-step-card:focus-visible {
+    transform:
+      translate(
+        calc(-50% + var(--cycle-hover-x, 0px)),
+        calc(-50% + var(--cycle-hover-y, 0px))
+      )
+      scale(1.04);
+  }
 }
 
 ::selection {

@@ -18,7 +18,7 @@ const bodyFont = Manrope({
 export const metadata: Metadata = {
   title: "Leadership Continuity System MVP",
   description:
-    "Hospital succession planning MVP with role composites, strengths analysis, fit scoring, and mentor-ready development reports.",
+    "Organization succession planning MVP with role composites, strengths analysis, fit scoring, and mentor-ready development reports.",
 };
 
 export default async function RootLayout({
@@ -38,7 +38,7 @@ export default async function RootLayout({
           Leadership Continuity
         </p>
         <p className="text-sm text-slate-600">
-          Hospital succession planning MVP
+          Organization succession planning MVP
         </p>
       </div>
     </Link>
@@ -63,7 +63,7 @@ export default async function RootLayout({
     );
   } else {
     try {
-      navigation = AppNav({ pathname });
+      navigation = await AppNav({ pathname });
     } catch {
       console.warn("Navigation auth fallback activated.");
       navigation = (

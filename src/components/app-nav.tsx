@@ -1,11 +1,27 @@
 import Link from "next/link";
 
 const navItems = [
-  { href: "/", label: "About" },
+  { href: "/", label: "Home" },
   { href: "/roles", label: "Roles" },
   { href: "/candidates", label: "Candidates" },
   { href: "/mentoring", label: "Mentoring" },
   { href: "/dashboard", label: "Dashboard" },
+];
+
+const resourceNavItems = [
+  { href: "/about", label: "The System" },
+  {
+    href: "/mentoring?section=preparation-worksheet",
+    label: "Preparation Worksheet",
+  },
+  {
+    href: "/mentoring?section=departmental-project",
+    label: "Departmental Project",
+  },
+  {
+    href: "/mentoring?section=cross-departmental-project",
+    label: "Cross-Departmental Project",
+  },
 ];
 
 function isActivePath(pathname: string, href: string) {
@@ -31,7 +47,7 @@ export function AppNav({ pathname }: { pathname: string }) {
                   Leadership Continuity
                 </p>
                 <p className="text-sm text-slate-600">
-                  Hospital succession planning MVP
+                  Organization succession planning MVP
                 </p>
               </div>
             </Link>
@@ -70,6 +86,32 @@ export function AppNav({ pathname }: { pathname: string }) {
                 </Link>
               );
             })}
+
+            <details className="group relative">
+              <summary className="flex cursor-pointer list-none items-center gap-2 rounded-full border border-slate-200/80 bg-white/85 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-teal-200 hover:text-teal-900">
+                <span>Resources</span>
+                <span
+                  aria-hidden="true"
+                  className="text-slate-400 transition group-open:rotate-180"
+                >
+                  ▾
+                </span>
+              </summary>
+
+              <div className="absolute left-0 top-[calc(100%+0.75rem)] z-20 hidden min-w-72 overflow-hidden rounded-[1.5rem] border border-white/80 bg-white/95 shadow-[0_30px_90px_rgba(15,23,42,0.16)] backdrop-blur group-open:block">
+                <div className="grid gap-2 p-3">
+                  {resourceNavItems.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className="rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </details>
           </nav>
         </div>
       </div>
