@@ -1,4 +1,3 @@
-import { RoleFocusSelector } from "@/components/role-focus-selector";
 import { RoleFlowPanel } from "@/components/role-flow-panel";
 import { RoleManagementPanel } from "@/components/role-management-panel";
 import { RoleMentorDialog } from "@/components/role-mentor-dialog";
@@ -250,16 +249,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
           </p>
         </section>
 
-        <section className="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-start">
-          <RoleFocusSelector
-            roles={roles.map((role) => ({
-              id: role.id,
-              title: role.title,
-            }))}
-            selectedRoleId={selectedRoleId}
-            selectedMode={selectedMode}
-          />
-
+        <section className="grid gap-6">
           <div className="grid gap-6">
             {selectedMode === "flow" ? (
               <RoleFlowPanel
@@ -272,6 +262,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                     (characteristicsByRole.get(role.id) ?? []).length > 0,
                 }))}
                 selectedRoleId={selectedRoleId}
+                selectedMode={selectedMode}
               />
             ) : selectedMode === "create" ||
               selectedMode === "import" ||

@@ -21,7 +21,10 @@ type RoleFlowPanelProps = {
     hasCompetencies: boolean;
   }[];
   selectedRoleId: string | null;
+  selectedMode: "flow" | "create" | "import" | "composite" | "view" | "resources";
 };
+
+const CREATE_NEW_ROLE_VALUE = "__create_new_role__";
 
 type FlowAction = {
   title: string;
@@ -34,6 +37,7 @@ type FlowAction = {
 export function RoleFlowPanel({
   roles,
   selectedRoleId,
+  selectedMode,
 }: RoleFlowPanelProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -149,13 +153,27 @@ export function RoleFlowPanel({
                 <p className="text-center text-lg font-semibold">Select Role</p>
                 <select
                   className={FLOWCHART_SELECT_INPUT_CLASS}
-                  value={selectedRoleId ?? ""}
-                  onChange={(event) =>
-                    updateRoute("flow", event.currentTarget.value || null)
+                  value={
+                    selectedMode === "create" && !selectedRoleId
+                      ? CREATE_NEW_ROLE_VALUE
+                      : (selectedRoleId ?? "")
                   }
+                  onChange={(event) => {
+                    const nextRoleId = event.currentTarget.value;
+
+                    if (nextRoleId === CREATE_NEW_ROLE_VALUE) {
+                      updateRoute("create", null);
+                      return;
+                    }
+
+                    updateRoute("flow", nextRoleId || null);
+                  }}
                 >
                   <option value="" className="text-slate-900">
                     Select role
+                  </option>
+                  <option value={CREATE_NEW_ROLE_VALUE} className="text-slate-900">
+                    Create a Role
                   </option>
                   {roles.map((role) => (
                     <option
@@ -233,13 +251,27 @@ export function RoleFlowPanel({
               </p>
               <select
                 className={FLOWCHART_SELECT_INPUT_CLASS}
-                value={selectedRoleId ?? ""}
-                onChange={(event) =>
-                  updateRoute("flow", event.currentTarget.value || null)
+                value={
+                  selectedMode === "create" && !selectedRoleId
+                    ? CREATE_NEW_ROLE_VALUE
+                    : (selectedRoleId ?? "")
                 }
+                onChange={(event) => {
+                  const nextRoleId = event.currentTarget.value;
+
+                  if (nextRoleId === CREATE_NEW_ROLE_VALUE) {
+                    updateRoute("create", null);
+                    return;
+                  }
+
+                  updateRoute("flow", nextRoleId || null);
+                }}
               >
                 <option value="" className="text-slate-900">
                   Select role
+                </option>
+                <option value={CREATE_NEW_ROLE_VALUE} className="text-slate-900">
+                  Create a Role
                 </option>
                 {roles.map((role) => (
                   <option key={role.id} value={role.id} className="text-slate-900">
