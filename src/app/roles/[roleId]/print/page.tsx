@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { PrintCompositeActions } from "@/components/print-composite-actions";
 import { PrintCompositePageClient } from "@/components/print-composite-page-client";
 import { groupCharacteristicsByCategory } from "@/lib/role-characteristics";
-import { requireWorkspaceProfile } from "@/lib/workspace";
+import { requirePaidWorkspaceProfile } from "@/lib/workspace";
 
 type PrintRoleCompositePageProps = {
   params: Promise<{
@@ -15,7 +15,7 @@ export default async function PrintRoleCompositePage({
   params,
 }: PrintRoleCompositePageProps) {
   const { roleId } = await params;
-  const { profile, supabase } = await requireWorkspaceProfile();
+  const { profile, supabase } = await requirePaidWorkspaceProfile();
 
   const [
     roleResult,

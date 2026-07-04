@@ -58,7 +58,7 @@ export async function extractRoleCompositeFromText(options: {
       {
         role: "system",
         content:
-          "You extract hospital leadership role composites into structured data. Return only supported information from the document. If the document does not explicitly give weights or target scores, infer practical values for a hospital leadership role. Prefer 4 to 7 competencies. Keep target scores between 1.0 and 5.0. Keep weights positive and relative, usually between 0.5 and 5.0.",
+          "You extract organizational leadership role composites into structured data. Return only supported information from the document. If the document does not explicitly give weights or target scores, infer practical values for an organizational leadership role. Prefer 4 to 7 competencies. Keep target scores between 1.0 and 5.0. Keep weights positive and relative, usually between 0.5 and 5.0.",
       },
       {
         role: "user",
@@ -107,7 +107,7 @@ export async function generateRoleCompositeFromIdealCompetencies(options: {
       {
         role: "system",
         content:
-          "You are an expert hospital leadership architect. Generate a practical role composite from the supplied role description and ideal candidate competencies. Create 4 to 7 role competencies. Each competency must include a strong definition, a positive weight, a target_score between 1 and 5, 3 to 6 behavioral indicators, and 3 to 6 red flags. Use the supplied ideal talents, skills, and behaviors as evidence for what success should look like.",
+          "You are an expert organizational leadership architect. Generate a practical role composite from the supplied role description and ideal candidate competencies. Create 4 to 7 role competencies. Each competency must include a strong definition, a positive weight, a target_score between 1 and 5, 3 to 6 behavioral indicators, and 3 to 6 red flags. Use the supplied ideal talents, skills, and behaviors as evidence for what success should look like.",
       },
       {
         role: "user",

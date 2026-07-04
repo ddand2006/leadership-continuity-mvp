@@ -34,6 +34,8 @@ type CandidateFlowAction = {
   disabled?: boolean;
 };
 
+const CREATE_CANDIDATE_VALUE = "__create_candidate__";
+
 export function CandidateFlowPanel({
   candidates,
   selectedCandidateId,
@@ -121,7 +123,7 @@ export function CandidateFlowPanel({
       <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600">
         Use this flow to move from candidate setup into interview scoring,
         strengths files, role fit, and mentor reporting without hunting through
-        the system.
+        the Leadership Continuity System.
       </p>
 
       {candidates.length === 0 ? (
@@ -137,7 +139,7 @@ export function CandidateFlowPanel({
             <div className="flex justify-center">
               <button
                 type="button"
-                onClick={() => updateRoute("create", selectedCandidateId)}
+                onClick={() => updateRoute("create", null)}
                 disabled={!canCreateCandidates}
                 className={`group relative flex h-36 w-36 items-center justify-center ${FLOWCHART_START_BUTTON_CLASS} ${
                   !canCreateCandidates ? FLOWCHART_START_BUTTON_DISABLED_CLASS : ""
@@ -162,13 +164,25 @@ export function CandidateFlowPanel({
                 <select
                   className={FLOWCHART_SELECT_INPUT_CLASS}
                   value={selectedCandidateId ?? ""}
-                  onChange={(event) =>
-                    updateRoute("flow", event.currentTarget.value || null)
-                  }
+                  onChange={(event) => {
+                    const nextCandidateId = event.currentTarget.value;
+
+                    if (nextCandidateId === CREATE_CANDIDATE_VALUE) {
+                      updateRoute("create", null);
+                      return;
+                    }
+
+                    updateRoute("flow", nextCandidateId || null);
+                  }}
                 >
                   <option value="" className="text-slate-900">
                     Select candidate
                   </option>
+                  {canCreateCandidates ? (
+                    <option value={CREATE_CANDIDATE_VALUE} className="text-slate-900">
+                      Add candidate
+                    </option>
+                  ) : null}
                   {candidates.map((candidate) => (
                     <option
                       key={candidate.id}
@@ -199,7 +213,7 @@ export function CandidateFlowPanel({
                         href={action.href}
                         className={FLOWCHART_ACTION_ENABLED_CLASS}
                       >
-                        <p className="text-center text-2xl font-semibold leading-tight">
+                        <p className="text-center text-2xl font-semibold leading-tight text-white">
                           {action.title}
                         </p>
                         <p className="mt-3 text-center text-sm leading-6 text-white/80">
@@ -231,7 +245,7 @@ export function CandidateFlowPanel({
             {canCreateCandidates ? (
               <button
                 type="button"
-                onClick={() => updateRoute("create", selectedCandidateId)}
+                onClick={() => updateRoute("create", null)}
                 className={FLOWCHART_START_BUTTON_CLASS}
               >
                 <p className="text-sm font-semibold tracking-[0.14em] uppercase">
@@ -248,13 +262,25 @@ export function CandidateFlowPanel({
               <select
                 className={FLOWCHART_SELECT_INPUT_CLASS}
                 value={selectedCandidateId ?? ""}
-                onChange={(event) =>
-                  updateRoute("flow", event.currentTarget.value || null)
-                }
+                onChange={(event) => {
+                  const nextCandidateId = event.currentTarget.value;
+
+                  if (nextCandidateId === CREATE_CANDIDATE_VALUE) {
+                    updateRoute("create", null);
+                    return;
+                  }
+
+                  updateRoute("flow", nextCandidateId || null);
+                }}
               >
                 <option value="" className="text-slate-900">
                   Select candidate
                 </option>
+                {canCreateCandidates ? (
+                  <option value={CREATE_CANDIDATE_VALUE} className="text-slate-900">
+                    Add candidate
+                  </option>
+                ) : null}
                 {candidates.map((candidate) => (
                   <option key={candidate.id} value={candidate.id} className="text-slate-900">
                     {candidate.fullName}

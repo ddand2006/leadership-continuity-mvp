@@ -78,7 +78,7 @@ export function MentorDirectoryManager({
           </h2>
           <p className="mt-4 max-w-2xl text-sm leading-7 text-[#24512f]">
             Each mentor gets a unique login using their email address. When you
-            create a mentor here, the system creates both the mentor profile and
+            create a mentor here, the Leadership Continuity System creates both the mentor profile and
             a temporary password for first sign-in.
           </p>
         </div>
@@ -127,7 +127,7 @@ export function MentorDirectoryManager({
             className="w-full rounded-2xl border border-[#57c95f] bg-white/35 px-4 py-3 text-sm text-[#14361d] outline-none transition focus:border-[#2d7c38] focus:bg-white/55"
             type="email"
             name="email"
-            placeholder="mentor@hospital.org"
+            placeholder="mentor@organization.org"
             required
           />
         </label>

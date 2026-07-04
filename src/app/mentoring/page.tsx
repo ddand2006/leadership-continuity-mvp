@@ -10,7 +10,7 @@ import { isMissingCrossDepartmentalProjectWorksheetTableError } from "@/lib/ment
 import { isMissingDepartmentalProjectWorksheetTableError } from "@/lib/mentoring-departmental-project-worksheet";
 import { isAdminAppRole } from "@/lib/mentor-access";
 import { isMissingPreparationWorksheetTableError } from "@/lib/mentoring-preparation-worksheet";
-import { requireWorkspaceProfile } from "@/lib/workspace";
+import { requirePaidWorkspaceProfile } from "@/lib/workspace";
 
 type MentoringPageProps = {
   searchParams: Promise<{
@@ -38,7 +38,7 @@ export default async function MentoringPage({
     roleId: requestedRoleId,
     section: requestedSection,
   } = await searchParams;
-  const { profile, supabase } = await requireWorkspaceProfile();
+  const { profile, supabase } = await requirePaidWorkspaceProfile();
   const [
     candidatesResult,
     reportsResult,
@@ -471,23 +471,277 @@ export default async function MentoringPage({
     )
       ? requestedAssignmentKey
       : null;
+  const isResourceSection =
+    selectedSectionId === "preparation-worksheet" ||
+    selectedSectionId === "departmental-project" ||
+    selectedSectionId === "cross-departmental-project";
+  const mentoringSections = [
+    {
+      id: "overview",
+      label: "Overview",
+      content: (
+        <>
+          <section className="grid gap-6 md:grid-cols-3">
+            <article className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+              <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                Candidates in Mentoring
+              </p>
+              <p className="mt-3 text-4xl font-semibold text-slate-900">
+                {
+                  new Set(
+                    visibleAssignments.map((assignment) => assignment.candidate_id),
+                  ).size
+                }
+              </p>
+            </article>
+            <article className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+              <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                Active Mentor Assignments
+              </p>
+              <p className="mt-3 text-4xl font-semibold text-slate-900">
+                {visibleAssignments.length}
+              </p>
+            </article>
+            <article className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+              <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                Role Tracks with Reports
+              </p>
+              <p className="mt-3 text-4xl font-semibold text-slate-900">
+                {
+                  visibleAssignments.filter((assignment) =>
+                    candidateRolePairsWithReports.has(
+                      `${assignment.candidate_id}:${assignment.role_id}`,
+                    ),
+                  ).length
+                }
+              </p>
+            </article>
+          </section>
+
+          <section className="rounded-[1.75rem] border border-amber-200 bg-amber-50 p-8 shadow-[0_20px_60px_rgba(217,119,6,0.12)]">
+            <p className="text-sm font-semibold tracking-[0.16em] text-amber-800 uppercase">
+              Mentoring Process
+            </p>
+            <ol className="mt-6 grid gap-3 text-sm leading-7 text-amber-950">
+              <li className="rounded-2xl border border-amber-200 bg-white/80 px-4 py-3">
+                Attach the mentor to the candidate through the specific role.
+              </li>
+              <li className="rounded-2xl border border-amber-200 bg-white/80 px-4 py-3">
+                Complete the preparation worksheet together before deeper project work begins.
+              </li>
+              <li className="rounded-2xl border border-amber-200 bg-white/80 px-4 py-3">
+                Open the leadership development record to define the stretch experience, target competencies, leader touchpoints, and review cycle for that mentoring track.
+              </li>
+              <li className="rounded-2xl border border-amber-200 bg-white/80 px-4 py-3">
+                Generate the mentor report inside that candidate-role track.
+              </li>
+              <li className="rounded-2xl border border-amber-200 bg-white/80 px-4 py-3">
+                Review strengths, fit gaps, development plans, and check-ins in context of that role.
+              </li>
+              <li className="rounded-2xl border border-amber-200 bg-white/80 px-4 py-3">
+                If the candidate is being considered for another role, add a second role track and assign another mentor there.
+              </li>
+            </ol>
+          </section>
+        </>
+      ),
+    },
+    {
+      id: "mentor-assignments",
+      label: "Mentor Assignments",
+      content: (
+        <>
+          {(isAdminAppRole(profile.role) || visibleRoleOptions.length > 0) ? (
+            <MentorAssignmentManager
+              candidates={(candidatesResult.data ?? []).map((candidate) => ({
+                id: candidate.id,
+                full_name: candidate.full_name,
+              }))}
+              roles={visibleRoleOptions.map((role) => ({
+                id: role.id,
+                title: role.title,
+              }))}
+              mentors={visibleMentorOptions.map((mentor) => ({
+                id: mentor.id,
+                full_name: mentor.full_name,
+                position_title: mentor.position_title,
+              }))}
+              canChooseMentor={isAdminAppRole(profile.role)}
+            />
+          ) : null}
+
+          <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
+                  Mentor Assignments
+                </p>
+                <h2 className="mt-3 font-display text-3xl text-slate-900">
+                  Current candidate-role assignments
+                </h2>
+              </div>
+              <Link
+                href="/candidates"
+                className="interactive-contrast rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-900"
+              >
+                Open Candidates
+              </Link>
+            </div>
+
+            <div className="mt-6 grid gap-3">
+              {visibleAssignments.length > 0 ? (
+                visibleAssignments.map((assignment) => {
+                  const candidate = candidateMap.get(assignment.candidate_id);
+                  const role = roleMap.get(assignment.role_id);
+                  const mentor = mentorMap.get(assignment.mentor_profile_id);
+                  const hasReport = candidateRolePairsWithReports.has(
+                    `${assignment.candidate_id}:${assignment.role_id}`,
+                  );
+
+                  return (
+                    <Link
+                      key={`${assignment.candidate_id}-${assignment.role_id}-${assignment.mentor_profile_id}`}
+                      href={`/candidates/${assignment.candidate_id}?roleId=${assignment.role_id}`}
+                      className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700 transition hover:-translate-y-0.5 hover:shadow-[0_20px_60px_rgba(15,23,42,0.06)]"
+                    >
+                      <p className="font-semibold text-slate-900">
+                        {candidate?.full_name ?? "Unknown candidate"}
+                      </p>
+                      <p className="mt-1 text-slate-600">
+                        Role: {role?.title ?? "Unknown role"}
+                      </p>
+                      <p className="mt-1 text-slate-600">
+                        Mentor: {mentor?.full_name ?? "Unknown mentor"}
+                      </p>
+                      <p className="mt-1 text-slate-600">
+                        Start date: {assignment.start_date || "Not set"}
+                      </p>
+                      <p className="mt-1 text-slate-600">
+                        Report status:{" "}
+                        {hasReport ? "Report generated" : "Needs mentor report"}
+                      </p>
+                    </Link>
+                  );
+                })
+              ) : (
+                <article className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm leading-7 text-slate-600">
+                  {isAdminAppRole(profile.role)
+                    ? "No mentor assignments exist yet. Create the first candidate-role assignment above."
+                    : "No candidate-role assignments are attached to your mentor account yet."}
+                </article>
+              )}
+            </div>
+          </section>
+        </>
+      ),
+    },
+    {
+      id: "preparation-worksheet",
+      label: "Preparation Worksheet",
+      content: (
+        <MentoringPreparationWorksheetManager
+          key={selectedAssignmentKey ?? "no-assignment"}
+          assignments={visibleAssignmentsWithWorksheet}
+          initialSelectedAssignmentKey={selectedAssignmentKey}
+          storageReady={worksheetStorageReady}
+        />
+      ),
+    },
+    {
+      id: "leadership-development-record",
+      label: "Leadership Development Record",
+      content: (
+        <LeadershipDevelopmentRecordManager
+          assignments={visibleAssignments.map((assignment) => ({
+            candidateId: assignment.candidate_id,
+            roleId: assignment.role_id,
+            mentorProfileId: assignment.mentor_profile_id,
+            candidateName:
+              candidateMap.get(assignment.candidate_id)?.full_name ??
+              "Unknown candidate",
+            currentTitle:
+              candidateMap.get(assignment.candidate_id)?.current_title ?? null,
+            roleTitle: roleMap.get(assignment.role_id)?.title ?? "Unknown role",
+            mentorName:
+              mentorMap.get(assignment.mentor_profile_id)?.full_name ??
+              "Unknown mentor",
+            mentorPositionTitle:
+              mentorMap.get(assignment.mentor_profile_id)?.position_title ?? null,
+            startDate: assignment.start_date,
+          }))}
+          initialSelectedAssignmentKey={selectedAssignmentKey}
+        />
+      ),
+    },
+    {
+      id: "departmental-project",
+      label: "Departmental Project",
+      content: (
+        <MentoringDepartmentalProjectWorksheetManager
+          key={selectedAssignmentKey ?? "no-assignment"}
+          assignments={visibleAssignmentsWithDepartmentalWorksheet}
+          initialSelectedAssignmentKey={selectedAssignmentKey}
+          storageReady={departmentalProjectStorageReady}
+        />
+      ),
+    },
+    {
+      id: "cross-departmental-project",
+      label: "Cross-Departmental Project",
+      content: (
+        <MentoringCrossDepartmentalProjectWorksheetManager
+          key={selectedAssignmentKey ?? "no-assignment"}
+          assignments={visibleAssignmentsWithCrossDepartmentalWorksheet}
+          initialSelectedAssignmentKey={selectedAssignmentKey}
+          storageReady={crossDepartmentalProjectStorageReady}
+        />
+      ),
+    },
+    {
+      id: "readiness-review",
+      label: "Readiness Review",
+      content: (
+        <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+          <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
+            Future Worksheet
+          </p>
+          <h2 className="mt-3 font-display text-3xl text-slate-900">
+            Readiness review worksheet
+          </h2>
+          <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600">
+            This section can later hold readiness review notes and scoring
+            conversations that pull from the completed mentoring worksheets.
+          </p>
+        </section>
+      ),
+    },
+  ] satisfies Array<{
+    id: string;
+    label: string;
+    content: React.ReactNode;
+  }>;
+  const selectedMentoringSection =
+    mentoringSections.find((section) => section.id === selectedSectionId) ??
+    mentoringSections[0];
 
   return (
     <main className="app-page">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-12 sm:px-10 lg:px-12">
-        <section className="theme-panel-strong rounded-[2rem] p-8">
-          <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">
-            Mentoring Workflow
-          </p>
-          <h1 className="mt-3 font-display text-5xl leading-tight text-slate-900">
-            Manage mentoring by candidate and role
-          </h1>
-          <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">
-            Mentors are now attached to the candidate through a specific role.
-            That means one candidate can sit in more than one role track, with a
-            different mentor assigned to each track when needed.
-          </p>
-        </section>
+      <div className="mx-auto flex w-full max-w-[1380px] flex-col gap-8 px-6 py-12 sm:px-10 lg:px-12">
+        {!isResourceSection ? (
+          <section className="theme-panel-strong rounded-[2rem] p-8">
+            <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">
+              Mentoring Workflow
+            </p>
+            <h1 className="mt-3 font-display text-5xl leading-tight text-slate-900">
+              Manage mentoring by candidate and role
+            </h1>
+            <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">
+              Mentors are now attached to the candidate through a specific role.
+              That means one candidate can sit in more than one role track, with a
+              different mentor assigned to each track when needed.
+            </p>
+          </section>
+        ) : null}
 
         {selectedSectionId === "overview" ? (
           <MentorFlowPanel
@@ -526,257 +780,16 @@ export default async function MentoringPage({
           />
         ) : null}
 
-        <MentoringWorkspaceMenu
-          key={selectedSectionId}
-          detailItems={mentoringWorkspaceDetailItems}
-          initialSectionId={selectedSectionId}
-          sections={[
-            {
-              id: "overview",
-              label: "Overview",
-              content: (
-                <>
-                  <section className="grid gap-6 md:grid-cols-3">
-                    <article className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
-                      <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
-                        Candidates in Mentoring
-                      </p>
-                      <p className="mt-3 text-4xl font-semibold text-slate-900">
-                        {
-                          new Set(
-                            visibleAssignments.map(
-                              (assignment) => assignment.candidate_id,
-                            ),
-                          ).size
-                        }
-                      </p>
-                    </article>
-                    <article className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
-                      <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
-                        Active Mentor Assignments
-                      </p>
-                      <p className="mt-3 text-4xl font-semibold text-slate-900">
-                        {visibleAssignments.length}
-                      </p>
-                    </article>
-                    <article className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
-                      <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
-                        Role Tracks with Reports
-                      </p>
-                      <p className="mt-3 text-4xl font-semibold text-slate-900">
-                        {
-                          visibleAssignments.filter((assignment) =>
-                            candidateRolePairsWithReports.has(
-                              `${assignment.candidate_id}:${assignment.role_id}`,
-                            ),
-                          ).length
-                        }
-                      </p>
-                    </article>
-                  </section>
-
-                  <section className="rounded-[1.75rem] border border-amber-200 bg-amber-50 p-8 shadow-[0_20px_60px_rgba(217,119,6,0.12)]">
-                    <p className="text-sm font-semibold tracking-[0.16em] text-amber-800 uppercase">
-                      Mentoring Process
-                    </p>
-                    <ol className="mt-6 grid gap-3 text-sm leading-7 text-amber-950">
-                      <li className="rounded-2xl border border-amber-200 bg-white/80 px-4 py-3">
-                        Attach the mentor to the candidate through the specific role.
-                      </li>
-                      <li className="rounded-2xl border border-amber-200 bg-white/80 px-4 py-3">
-                        Complete the preparation worksheet together before deeper project work begins.
-                      </li>
-                      <li className="rounded-2xl border border-amber-200 bg-white/80 px-4 py-3">
-                        Open the leadership development record to define the stretch experience, target competencies, leader touchpoints, and review cycle for that mentoring track.
-                      </li>
-                      <li className="rounded-2xl border border-amber-200 bg-white/80 px-4 py-3">
-                        Generate the mentor report inside that candidate-role track.
-                      </li>
-                      <li className="rounded-2xl border border-amber-200 bg-white/80 px-4 py-3">
-                        Review strengths, fit gaps, development plans, and check-ins in context of that role.
-                      </li>
-                      <li className="rounded-2xl border border-amber-200 bg-white/80 px-4 py-3">
-                        If the candidate is being considered for another role, add a second role track and assign another mentor there.
-                      </li>
-                    </ol>
-                  </section>
-                </>
-              ),
-            },
-            {
-              id: "mentor-assignments",
-              label: "Mentor Assignments",
-              content: (
-                <>
-                  {(isAdminAppRole(profile.role) || visibleRoleOptions.length > 0) ? (
-                    <MentorAssignmentManager
-                      candidates={(candidatesResult.data ?? []).map((candidate) => ({
-                        id: candidate.id,
-                        full_name: candidate.full_name,
-                      }))}
-                      roles={visibleRoleOptions.map((role) => ({
-                        id: role.id,
-                        title: role.title,
-                      }))}
-                      mentors={visibleMentorOptions.map((mentor) => ({
-                        id: mentor.id,
-                        full_name: mentor.full_name,
-                        position_title: mentor.position_title,
-                      }))}
-                      canChooseMentor={isAdminAppRole(profile.role)}
-                    />
-                  ) : null}
-
-                  <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
-                    <div className="flex items-center justify-between gap-4">
-                      <div>
-                        <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
-                          Mentor Assignments
-                        </p>
-                        <h2 className="mt-3 font-display text-3xl text-slate-900">
-                          Current candidate-role assignments
-                        </h2>
-                      </div>
-                      <Link
-                        href="/candidates"
-                        className="interactive-contrast rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-900"
-                      >
-                        Open Candidates
-                      </Link>
-                    </div>
-
-                    <div className="mt-6 grid gap-3">
-                      {visibleAssignments.length > 0 ? (
-                        visibleAssignments.map((assignment) => {
-                          const candidate = candidateMap.get(assignment.candidate_id);
-                          const role = roleMap.get(assignment.role_id);
-                          const mentor =
-                            mentorMap.get(assignment.mentor_profile_id);
-                          const hasReport = candidateRolePairsWithReports.has(
-                            `${assignment.candidate_id}:${assignment.role_id}`,
-                          );
-
-                          return (
-                            <Link
-                              key={`${assignment.candidate_id}-${assignment.role_id}-${assignment.mentor_profile_id}`}
-                              href={`/candidates/${assignment.candidate_id}?roleId=${assignment.role_id}`}
-                              className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700 transition hover:-translate-y-0.5 hover:shadow-[0_20px_60px_rgba(15,23,42,0.06)]"
-                            >
-                              <p className="font-semibold text-slate-900">
-                                {candidate?.full_name ?? "Unknown candidate"}
-                              </p>
-                              <p className="mt-1 text-slate-600">
-                                Role: {role?.title ?? "Unknown role"}
-                              </p>
-                              <p className="mt-1 text-slate-600">
-                                Mentor: {mentor?.full_name ?? "Unknown mentor"}
-                              </p>
-                              <p className="mt-1 text-slate-600">
-                                Start date: {assignment.start_date || "Not set"}
-                              </p>
-                              <p className="mt-1 text-slate-600">
-                                Report status:{" "}
-                                {hasReport
-                                  ? "Report generated"
-                                  : "Needs mentor report"}
-                              </p>
-                            </Link>
-                          );
-                        })
-                      ) : (
-                        <article className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm leading-7 text-slate-600">
-                          {isAdminAppRole(profile.role)
-                            ? "No mentor assignments exist yet. Create the first candidate-role assignment above."
-                            : "No candidate-role assignments are attached to your mentor account yet."}
-                        </article>
-                      )}
-                    </div>
-                  </section>
-                </>
-              ),
-            },
-            {
-              id: "preparation-worksheet",
-              label: "Preparation Worksheet",
-              content: (
-                <MentoringPreparationWorksheetManager
-                  key={selectedAssignmentKey ?? "no-assignment"}
-                  assignments={visibleAssignmentsWithWorksheet}
-                  initialSelectedAssignmentKey={selectedAssignmentKey}
-                  storageReady={worksheetStorageReady}
-                />
-              ),
-            },
-            {
-              id: "leadership-development-record",
-              label: "Leadership Development Record",
-              content: (
-                <LeadershipDevelopmentRecordManager
-                  assignments={visibleAssignments.map((assignment) => ({
-                    candidateId: assignment.candidate_id,
-                    roleId: assignment.role_id,
-                    mentorProfileId: assignment.mentor_profile_id,
-                    candidateName:
-                      candidateMap.get(assignment.candidate_id)?.full_name ??
-                      "Unknown candidate",
-                    currentTitle:
-                      candidateMap.get(assignment.candidate_id)?.current_title ?? null,
-                    roleTitle: roleMap.get(assignment.role_id)?.title ?? "Unknown role",
-                    mentorName:
-                      mentorMap.get(assignment.mentor_profile_id)?.full_name ??
-                      "Unknown mentor",
-                    mentorPositionTitle:
-                      mentorMap.get(assignment.mentor_profile_id)?.position_title ?? null,
-                    startDate: assignment.start_date,
-                  }))}
-                  initialSelectedAssignmentKey={selectedAssignmentKey}
-                />
-              ),
-            },
-            {
-              id: "departmental-project",
-              label: "Departmental Project",
-              content: (
-                <MentoringDepartmentalProjectWorksheetManager
-                  key={selectedAssignmentKey ?? "no-assignment"}
-                  assignments={visibleAssignmentsWithDepartmentalWorksheet}
-                  initialSelectedAssignmentKey={selectedAssignmentKey}
-                  storageReady={departmentalProjectStorageReady}
-                />
-              ),
-            },
-            {
-              id: "cross-departmental-project",
-              label: "Cross-Departmental Project",
-              content: (
-                <MentoringCrossDepartmentalProjectWorksheetManager
-                  key={selectedAssignmentKey ?? "no-assignment"}
-                  assignments={visibleAssignmentsWithCrossDepartmentalWorksheet}
-                  initialSelectedAssignmentKey={selectedAssignmentKey}
-                  storageReady={crossDepartmentalProjectStorageReady}
-                />
-              ),
-            },
-            {
-              id: "readiness-review",
-              label: "Readiness Review",
-              content: (
-                <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
-                  <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
-                    Future Worksheet
-                  </p>
-                  <h2 className="mt-3 font-display text-3xl text-slate-900">
-                    Readiness review worksheet
-                  </h2>
-                  <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600">
-                    This section can later hold readiness review notes and scoring
-                    conversations that pull from the completed mentoring worksheets.
-                  </p>
-                </section>
-              ),
-            },
-          ]}
-        />
+        {isResourceSection ? (
+          selectedMentoringSection.content
+        ) : (
+          <MentoringWorkspaceMenu
+            key={selectedSectionId}
+            detailItems={mentoringWorkspaceDetailItems}
+            initialSectionId={selectedSectionId}
+            sections={mentoringSections}
+          />
+        )}
       </div>
     </main>
   );

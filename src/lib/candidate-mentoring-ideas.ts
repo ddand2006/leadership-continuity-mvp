@@ -77,7 +77,7 @@ export async function generateCandidateMentoringIdeas(options: {
       {
         role: "system",
         content:
-          "You are an expert rural hospital leadership mentor. Generate candidate-specific mentoring assignments for one competency gap. Make the ideas concrete, role-relevant, and shaped by the candidate's strengths. Do not simply repeat the reference library ideas. Use them only as inspiration. Each idea should feel personal to this candidate's readiness profile, current role, and strengths pattern. Structure every idea like a mentoring working document inspired by leadership development worksheets, not a short summary.",
+          "You are an expert organizational leadership mentor. Generate candidate-specific mentoring assignments for one competency gap. Make the ideas concrete, role-relevant, and shaped by the candidate's strengths. Do not simply repeat the reference library ideas. Use them only as inspiration. Each idea should feel personal to this candidate's readiness profile, current role, and strengths pattern. Structure every idea like a mentoring working document inspired by leadership development worksheets, not a short summary.",
       },
       {
         role: "user",

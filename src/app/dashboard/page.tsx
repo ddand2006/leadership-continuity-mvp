@@ -1,10 +1,17 @@
 import Link from "next/link";
+import { SubscriptionPaywallPanel } from "@/components/subscription-paywall-panel";
 import { requireUser } from "@/lib/auth";
+import {
+  loadOrganizationSubscription,
+  type OrganizationSubscriptionClient,
+  type OrganizationSubscriptionState,
+} from "@/lib/subscription";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { MentorDirectoryManager } from "@/components/mentor-directory-manager";
 import { WorkspaceSetupForm } from "@/components/workspace-setup-form";
 import { createWorkspaceSetupToken } from "@/lib/workspace-setup-token";
 import { isMissingLeadershipDevelopmentRecordTableError } from "@/lib/leadership-development-record";
+import { isMissingOrganizationIndustryColumnError } from "@/lib/organization-industry";
 
 type DashboardPageProps = {
   searchParams: Promise<{
@@ -51,6 +58,7 @@ type DashboardProfile = {
   full_name: string;
   role: string;
   organization_name: string;
+  organization_industry: string | null;
 };
 
 type DashboardRole = {
@@ -220,6 +228,7 @@ type DashboardIntelligence = {
 
 type DashboardSnapshot = {
   profile: DashboardProfile | null;
+  subscription: OrganizationSubscriptionState | null;
   roles: DashboardRole[];
   mentors: DashboardMentor[];
   candidates: DashboardCandidate[];
@@ -244,6 +253,29 @@ type DashboardTrack = {
   mentorNames: string[];
   records: DevelopmentRecordRow[];
 };
+
+function getSetupDefaultFullName(user: Awaited<ReturnType<typeof requireUser>>) {
+  const metadataName =
+    typeof user.user_metadata.full_name === "string"
+      ? user.user_metadata.full_name.trim()
+      : "";
+
+  if (metadataName) {
+    return metadataName;
+  }
+
+  const emailPrefix = user.email?.split("@")[0]?.trim() ?? "";
+
+  if (!emailPrefix) {
+    return "";
+  }
+
+  return emailPrefix
+    .split(/[._-]+/)
+    .filter(Boolean)
+    .map((part) => part[0]?.toUpperCase() + part.slice(1))
+    .join(" ");
+}
 
 const TIME_RANGE_OPTIONS: Array<{ value: TimeRange; label: string }> = [
   { value: "30d", label: "Last 30 days" },
@@ -1423,6 +1455,7 @@ async function getDashboardSnapshot(
   if (!profileResult.data) {
     return {
       profile: null,
+      subscription: null,
       roles: [],
       mentors: [],
       candidates: [],
@@ -1432,8 +1465,67 @@ async function getDashboardSnapshot(
   }
 
   const organizationId = profileResult.data.organization_id;
+  const organizationResultPromise = (async () => {
+    const organizationResult = await admin
+      .from("organizations")
+      .select("name, industry")
+      .eq("id", organizationId)
+      .single();
+
+    if (isMissingOrganizationIndustryColumnError(organizationResult.error)) {
+      const fallbackResult = await admin
+        .from("organizations")
+        .select("name")
+        .eq("id", organizationId)
+        .single();
+
+      if (fallbackResult.error) {
+        return fallbackResult;
+      }
+
+      return {
+        data: {
+          ...fallbackResult.data,
+          industry: null,
+        },
+        error: null,
+      };
+    }
+
+    return organizationResult;
+  })();
+
+  const [organizationResult, subscription] = await Promise.all([
+    organizationResultPromise,
+    loadOrganizationSubscription(
+      admin as unknown as OrganizationSubscriptionClient,
+      organizationId,
+    ),
+  ]);
+
+  if (organizationResult.error) {
+    throw new Error(organizationResult.error.message);
+  }
+
+  const profile: DashboardProfile = {
+    ...profileResult.data,
+    organization_name: organizationResult.data?.name ?? "Unknown organization",
+    organization_industry: organizationResult.data?.industry ?? null,
+  };
+
+  if (!subscription.hasAccess) {
+    return {
+      profile,
+      subscription,
+      roles: [],
+      mentors: [],
+      candidates: [],
+      counts: null,
+      intelligence: null,
+    };
+  }
+
   const [
-    organizationResult,
     rolesResult,
     mentorsResult,
     candidatesResult,
@@ -1445,7 +1537,6 @@ async function getDashboardSnapshot(
     assignmentsResult,
     developmentRecordsResult,
   ] = await Promise.all([
-    admin.from("organizations").select("name").eq("id", organizationId).single(),
     admin
       .from("roles")
       .select("id, title, department, status")
@@ -1474,7 +1565,10 @@ async function getDashboardSnapshot(
       .from("mentor_reports")
       .select("candidate_id, role_id")
       .eq("organization_id", organizationId),
-    admin.from("candidate_strengths").select("candidate_id").eq("organization_id", organizationId),
+    admin
+      .from("candidate_strengths")
+      .select("candidate_id")
+      .eq("organization_id", organizationId),
     admin
       .from("candidate_source_documents")
       .select("candidate_id")
@@ -1493,7 +1587,6 @@ async function getDashboardSnapshot(
   ]);
 
   for (const result of [
-    organizationResult,
     rolesResult,
     mentorsResult,
     candidatesResult,
@@ -1532,12 +1625,12 @@ async function getDashboardSnapshot(
   const rawSourceDocuments = sourceDocumentsResult.data ?? [];
   const rawAssignments = assignmentsResult.data ?? [];
 
-const mentorScopedAssignments = isMentorView
-  ? rawMentorAssignments.filter(
-          (assignment) => assignment.mentor_profile_id === profileResult.data?.id,
-              )
-                : rawMentorAssignments;
-    const mentorVisibleTrackKeys = new Set(
+  const mentorScopedAssignments = isMentorView
+    ? rawMentorAssignments.filter(
+        (assignment) => assignment.mentor_profile_id === profileResult.data?.id,
+      )
+    : rawMentorAssignments;
+  const mentorVisibleTrackKeys = new Set(
     mentorScopedAssignments.map((assignment) => `${assignment.candidate_id}:${assignment.role_id}`),
   );
   const mentorVisibleCandidateIds = new Set(
@@ -1699,13 +1792,9 @@ const mentorScopedAssignments = isMentorView
     } satisfies DashboardCandidate;
   });
 
-  const profile: DashboardProfile = {
-    ...profileResult.data,
-    organization_name: organizationResult.data?.name ?? "Unknown organization",
-  };
-
   return {
     profile,
+    subscription,
     roles,
     mentors,
     candidates,
@@ -1744,7 +1833,7 @@ export default async function DashboardPage({
 
   return (
     <main className="app-page">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:gap-8 sm:px-6 sm:py-10 lg:px-10 lg:py-12">
+      <div className="mx-auto flex w-full max-w-[1380px] flex-col gap-6 px-4 py-8 sm:gap-8 sm:px-6 sm:py-10 lg:px-10 lg:py-12">
         {resolvedSearchParams.message ? (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-medium text-amber-900">
             {resolvedSearchParams.message}
@@ -1757,31 +1846,44 @@ export default async function DashboardPage({
               First-Time Setup
             </p>
             <h1 className="mt-3 font-display text-5xl leading-tight text-slate-900">
-              Create the company workspace first
+              Create the organization workspace first
             </h1>
             <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">
               Signed in as <span className="font-semibold">{user.email}</span>.
-              Create the admin profile and organization before using the company
+              Create the admin profile and organization before using the
+              {" "}
+              organization
               dashboard.
             </p>
 
             <WorkspaceSetupForm
               authEmail={user.email ?? ""}
               authUserId={user.id}
-              defaultFullName={user.user_metadata.full_name ?? ""}
-              defaultOrganizationName="Cycle of Business Demo Rural Hospital"
+              defaultFullName={getSetupDefaultFullName(user)}
+              defaultOrganizationName="Leadership Continuity Demo Organization"
+              defaultIndustryName="Healthcare"
               setupToken={setupToken}
             />
           </section>
+        ) : snapshot.subscription && !snapshot.subscription.hasAccess ? (
+          <SubscriptionPaywallPanel
+            organizationName={snapshot.profile.organization_name}
+            subscription={snapshot.subscription}
+          />
         ) : (
           <>
             <section className="theme-panel-strong rounded-[2rem] p-5 sm:p-8">
               <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">
-                Company Dashboard
+                Organization Dashboard
               </p>
               <h1 className="mt-3 font-display text-4xl leading-tight text-slate-900 sm:text-5xl lg:text-6xl">
                 {snapshot.profile.organization_name}
               </h1>
+              {snapshot.profile.organization_industry ? (
+                <p className="mt-3 text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">
+                  {snapshot.profile.organization_industry}
+                </p>
+              ) : null}
               <p className="mt-5 max-w-3xl text-base leading-7 text-slate-600">
                 Welcome to the Leadership Continuity System. This is where your
                 organization can define critical roles, identify high-potential
@@ -2121,7 +2223,7 @@ export default async function DashboardPage({
                       Recommended Next Actions
                     </p>
                     <h3 className="mt-2 font-display text-3xl text-slate-900">
-                      What the system is telling you next
+                      What the Leadership Continuity System is telling you next
                     </h3>
                     {intelligence.filters.recommendationsOpen ? (
                       <>
@@ -2426,7 +2528,7 @@ export default async function DashboardPage({
                     ))
                   ) : (
                     <article className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm leading-7 text-slate-600">
-                      No roles are in the system yet.
+                      No roles are in the Leadership Continuity System yet.
                     </article>
                   )}
                 </div>
@@ -2493,7 +2595,7 @@ export default async function DashboardPage({
                     ))
                   ) : (
                     <article className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm leading-7 text-slate-600">
-                      No candidates are in the system yet.
+                      No candidates are in the Leadership Continuity System yet.
                     </article>
                   )}
                 </div>

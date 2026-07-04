@@ -1,6 +1,10 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { requireUser } from "./auth";
+import {
+  loadOrganizationSubscription,
+  type OrganizationSubscriptionClient,
+} from "./subscription";
 import { createSupabaseServerClient } from "./supabase/server";
 
 export type WorkspaceProfile = {
@@ -40,5 +44,23 @@ export async function requireWorkspaceProfile() {
   return {
     ...context,
     profile: context.profile,
+  };
+}
+
+export async function requirePaidWorkspaceProfile() {
+  const context = await requireWorkspaceProfile();
+  const subscription = await loadOrganizationSubscription(
+    context.supabase as unknown as OrganizationSubscriptionClient,
+    context.profile.organization_id,
+  );
+
+  if (!subscription.hasAccess) {
+    redirect("/subscribe");
+  }
+
+  return {
+    ...context,
+    profile: context.profile,
+    subscription,
   };
 }

@@ -42,6 +42,8 @@ type FlowAction = {
   disabled?: boolean;
 };
 
+const CREATE_MENTOR_TRACK_VALUE = "__mentor_assignments__";
+
 function getAssignmentKey(assignment: {
   candidateId: string;
   roleId: string;
@@ -62,6 +64,7 @@ export function MentorFlowPanel({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const currentSection = searchParams.get("section");
   const selectedAssignment =
     assignments.find(
       (assignment) => getAssignmentKey(assignment) === selectedAssignmentKey,
@@ -98,48 +101,12 @@ export function MentorFlowPanel({
 
   const actions: FlowAction[] = [
     {
-      title: "Preparation Worksheet",
-      description: selectedAssignment
-        ? selectedAssignment.hasPreparationWorksheet
-          ? "Resume or review the shared preparation worksheet for this role track."
-          : "Open the first mentor-mentee preparation worksheet for this role track."
-        : "Choose a candidate-role track first to open the preparation worksheet.",
-      onClick: selectedAssignment
-        ? () => updateRoute("preparation-worksheet", selectedAssignment)
-        : undefined,
-      disabled: !selectedAssignment,
-    },
-    {
       title: "Leadership Development Record",
       description: selectedAssignment
         ? "Open the living development record for this role track to assign the experience, track competencies, and collect feedback."
         : "Choose a candidate-role track first to open the leadership development record.",
       onClick: selectedAssignment
         ? () => updateRoute("leadership-development-record", selectedAssignment)
-        : undefined,
-      disabled: !selectedAssignment,
-    },
-    {
-      title: "Departmental Project",
-      description: selectedAssignment
-        ? selectedAssignment.hasDepartmentalWorksheet
-          ? "Continue the in-department stretch project for this candidate."
-          : "Define the first departmental leadership project for this role track."
-        : "Choose a candidate-role track first to build the departmental project.",
-      onClick: selectedAssignment
-        ? () => updateRoute("departmental-project", selectedAssignment)
-        : undefined,
-      disabled: !selectedAssignment,
-    },
-    {
-      title: "Cross-Departmental Project",
-      description: selectedAssignment
-        ? selectedAssignment.hasCrossDepartmentalWorksheet
-          ? "Continue the cross-functional assignment and reflection notes."
-          : "Open the cross-departmental worksheet for broader leadership exposure."
-        : "Choose a candidate-role track first to build the cross-departmental project.",
-      onClick: selectedAssignment
-        ? () => updateRoute("cross-departmental-project", selectedAssignment)
         : undefined,
       disabled: !selectedAssignment,
     },
@@ -184,9 +151,7 @@ export function MentorFlowPanel({
       <div className="mt-8 overflow-x-auto">
         <div className="hidden min-w-[980px] grid-cols-[12rem_16rem_1fr] items-center gap-10 lg:grid">
           <div className="flex justify-center">
-            <button
-              type="button"
-              onClick={() => updateRoute("mentor-assignments", selectedAssignment)}
+            <div
               className={`group relative flex h-36 w-36 items-center justify-center ${FLOWCHART_START_BUTTON_CLASS}`}
               style={{ transform: "rotate(45deg)" }}
             >
@@ -198,7 +163,7 @@ export function MentorFlowPanel({
                 <br />
                 {canChooseMentor ? "MENTOR" : "CANDIDATE"}
               </span>
-            </button>
+            </div>
           </div>
 
           <div className="relative">
@@ -207,8 +172,17 @@ export function MentorFlowPanel({
               <p className="text-center text-lg font-semibold">Select Track</p>
               <select
                 className={FLOWCHART_SELECT_INPUT_CLASS}
-                value={selectedAssignment ? getAssignmentKey(selectedAssignment) : ""}
+                value={
+                  currentSection === "mentor-assignments" && !selectedAssignment
+                    ? CREATE_MENTOR_TRACK_VALUE
+                    : (selectedAssignment ? getAssignmentKey(selectedAssignment) : "")
+                }
                 onChange={(event) => {
+                  if (event.currentTarget.value === CREATE_MENTOR_TRACK_VALUE) {
+                    updateRoute("mentor-assignments", null);
+                    return;
+                  }
+
                   const nextAssignment =
                     assignments.find(
                       (assignment) =>
@@ -220,6 +194,9 @@ export function MentorFlowPanel({
               >
                 <option value="" className="text-slate-900">
                   Select mentoring track
+                </option>
+                <option value={CREATE_MENTOR_TRACK_VALUE} className="text-slate-900">
+                  {canChooseMentor ? "Assign mentor" : "Attach candidate"}
                 </option>
                 {assignments.map((assignment) => (
                   <option
@@ -281,18 +258,14 @@ export function MentorFlowPanel({
         </div>
 
         <div className="grid gap-5 lg:hidden">
-          <button
-            type="button"
-            onClick={() => updateRoute("mentor-assignments", selectedAssignment)}
-            className={FLOWCHART_START_BUTTON_CLASS}
-          >
+          <div className={FLOWCHART_START_BUTTON_CLASS}>
             <p className="text-sm font-semibold tracking-[0.14em] uppercase">
               Start
             </p>
             <p className="mt-2 text-2xl font-semibold">
               {canChooseMentor ? "Assign Mentor" : "Attach Candidate"}
             </p>
-          </button>
+          </div>
 
           <div className={FLOWCHART_SELECT_PANEL_CLASS}>
             <p className="text-sm font-semibold tracking-[0.14em] uppercase">
@@ -300,8 +273,17 @@ export function MentorFlowPanel({
             </p>
             <select
               className={FLOWCHART_SELECT_INPUT_CLASS}
-              value={selectedAssignment ? getAssignmentKey(selectedAssignment) : ""}
+              value={
+                currentSection === "mentor-assignments" && !selectedAssignment
+                  ? CREATE_MENTOR_TRACK_VALUE
+                  : (selectedAssignment ? getAssignmentKey(selectedAssignment) : "")
+              }
               onChange={(event) => {
+                if (event.currentTarget.value === CREATE_MENTOR_TRACK_VALUE) {
+                  updateRoute("mentor-assignments", null);
+                  return;
+                }
+
                 const nextAssignment =
                   assignments.find(
                     (assignment) =>
@@ -313,6 +295,9 @@ export function MentorFlowPanel({
             >
               <option value="" className="text-slate-900">
                 Select mentoring track
+              </option>
+              <option value={CREATE_MENTOR_TRACK_VALUE} className="text-slate-900">
+                {canChooseMentor ? "Assign mentor" : "Attach candidate"}
               </option>
               {assignments.map((assignment) => (
                 <option

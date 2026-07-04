@@ -114,7 +114,7 @@ export const strengthsLibrary: StrengthsLibrarySeed[] = [
     domain: "Strategic Thinking",
     leadership_advantages: "Learns from history and patterns to improve present decisions.",
     possible_blind_spots: "Can spend too long looking backward before committing forward.",
-    development_uses: "Use Context to understand why a hospital issue persists before redesigning it.",
+    development_uses: "Use Context to understand why an organizational issue persists before redesigning it.",
     coaching_questions: ["What does history teach here?", "When do you have enough context to move?"],
   },
   {
@@ -526,14 +526,14 @@ export const developmentProjects: DevelopmentProjectSeed[] = [
   },
   {
     title: "Community Partnership Initiative",
-    description: "Lead one hospital-community partnership initiative and coordinate internal and external stakeholders to execution.",
+    description: "Lead one organization-community partnership initiative and coordinate internal and external stakeholders to execution.",
     difficulty: "advanced",
     duration_days: 90,
     applicable_roles: ["Operations Director", "VP Patient Care Services / CNO", "HR Director"],
     competencies_developed: ["Executive Presence", "Relational Leader First", "Strategic Thinking"],
     strengths_leveraged: ["Woo", "Communication", "Connectedness"],
     expected_outcomes: ["Partnership plan", "External alignment", "Visible mission impact"],
-    mentor_questions: ["What matters most to the community partner?", "How are you representing the hospital’s mission externally?"],
+    mentor_questions: ["What matters most to the community partner?", "How are you representing the organization’s mission externally?"],
     evidence_of_success: ["Partnership launched", "Stakeholders engaged", "Mutual outcomes documented"],
   },
   {
@@ -602,7 +602,7 @@ export const demoRole = {
   title: "VP Patient Care Services / CNO",
   department: "Nursing Administration",
   description:
-    "Senior nursing and patient care leader responsible for hospital-wide care quality, leader development, workforce readiness, and executive collaboration.",
+    "Senior nursing and patient care leader responsible for organization-wide care quality, leader development, workforce readiness, and executive collaboration.",
   competencies: [
     {
       name: "Relational Leader First",

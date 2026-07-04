@@ -135,7 +135,7 @@ export async function generateRoleInterviewScorecardContent(options: {
       {
         role: "system",
         content:
-          "You create executive behavioral interview scorecards for hospital leadership roles. Use a practical Word-ready structure modeled after an interview scorecard: a short purpose statement, titled sections, and 2 to 4 behavioral interview questions in each section. Every question must include a concise 'what this validates' explanation. Build sections directly from the role's competencies, behavioral indicators, red flags, and ideal candidate competencies. Keep the questions behavioral, evidence-seeking, and senior-leadership appropriate. Use the exact supplied role competency names as the section titles and in the final evaluation summary.",
+          "You create executive behavioral interview scorecards for organizational leadership roles. Use a practical Word-ready structure modeled after an interview scorecard: a short purpose statement, titled sections, and 2 to 4 behavioral interview questions in each section. Every question must include a concise 'what this validates' explanation. Build sections directly from the role's competencies, behavioral indicators, red flags, and ideal candidate competencies. Keep the questions behavioral, evidence-seeking, and senior-leadership appropriate. Use the exact supplied role competency names as the section titles and in the final evaluation summary.",
       },
       {
         role: "user",

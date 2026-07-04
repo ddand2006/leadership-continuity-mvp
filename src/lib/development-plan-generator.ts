@@ -60,7 +60,7 @@ export async function generateDevelopmentPlansForRole(options: {
       {
         role: "system",
         content:
-          "You are an expert rural hospital leadership development designer. Generate practical mentoring project ideas for a leadership succession platform. Each idea must be concrete, workplace-based, and appropriate for a mentor-guided stretch assignment. Use the supplied role competencies exactly when naming competencies_developed. Use only Gallup strengths from the supplied strengths library when naming strengths_leveraged. Avoid duplicating existing project titles.",
+          "You are an expert organizational leadership development designer. Generate practical mentoring project ideas for a leadership succession platform. Each idea must be concrete, workplace-based, and appropriate for a mentor-guided stretch assignment. Use the supplied role competencies exactly when naming competencies_developed. Use only Gallup strengths from the supplied strengths library when naming strengths_leveraged. Avoid duplicating existing project titles.",
       },
       {
         role: "user",
@@ -75,7 +75,7 @@ export async function generateDevelopmentPlansForRole(options: {
               title:
                 "Create a distinct, action-oriented title for each project.",
               description:
-                "Write a specific 1 to 2 sentence description grounded in hospital leadership work.",
+                "Write a specific 1 to 2 sentence description grounded in organizational leadership work.",
               difficulty:
                 "Choose foundational, intermediate, or advanced based on the complexity and visibility of the assignment.",
               duration_days:

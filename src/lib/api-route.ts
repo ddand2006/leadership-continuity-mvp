@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import {
+  loadOrganizationSubscription,
+  type OrganizationSubscriptionClient,
+} from "@/lib/subscription";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { ADMIN_ROLES } from "@/lib/mentor-access";
@@ -37,7 +41,10 @@ export function createApiErrorResponse(
   return NextResponse.json({ error: message }, { status: 500 });
 }
 
-export async function requireApiWorkspaceProfile(options?: { requireAdmin?: boolean }) {
+export async function requireApiWorkspaceProfile(options?: {
+  requireAdmin?: boolean;
+  requirePaid?: boolean;
+}) {
   const supabase = await createSupabaseServerClient();
   let user = null;
   let authError: Error | null = null;
@@ -76,12 +83,25 @@ export async function requireApiWorkspaceProfile(options?: { requireAdmin?: bool
     );
   }
 
+  const subscription = await loadOrganizationSubscription(
+    admin as unknown as OrganizationSubscriptionClient,
+    profileResult.data.organization_id,
+  );
+
+  if (options?.requirePaid !== false && !subscription.hasAccess) {
+    throw new ApiRouteError(
+      "Your Leadership Continuity System access is inactive. Visit /subscribe to restore access.",
+      402,
+    );
+  }
+
   if (options?.requireAdmin && !ADMIN_ROLES.has(profileResult.data.role)) {
     throw new ApiRouteError("Only admins can use this feature.", 403);
   }
 
   return {
     admin,
+    subscription,
     user,
     profile: profileResult.data,
   };

@@ -367,7 +367,7 @@ export function MentoringCrossDepartmentalProjectWorksheetManager({
       <p className="mt-4 max-w-4xl text-sm leading-7 text-slate-600">
         Use this worksheet to help the mentee understand how the future role affects
         other departments, where friction happens, and what kind of shared project
-        can build stronger collaboration across the hospital.
+        can build stronger collaboration across the organization.
       </p>
 
       {!storageReady ? (
@@ -894,7 +894,7 @@ export function MentoringCrossDepartmentalProjectWorksheetManager({
               </label>
               <label className="block">
                 <span className="mb-2 block text-sm font-semibold text-slate-700">
-                  What insights could help the hospital moving forward?
+                  What insights could help the organization moving forward?
                 </span>
                 <textarea
                   value={formState.hospitalInsights}

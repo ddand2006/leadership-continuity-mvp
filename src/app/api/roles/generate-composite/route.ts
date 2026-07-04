@@ -146,7 +146,7 @@ export async function POST(request: Request) {
     }
 
     const organizationName =
-      organizationResult.data?.name ?? "Rural Critical Access Hospital";
+      organizationResult.data?.name ?? "Organization";
     const documentContent = await generateRoleCompositeDocumentContent({
       organizationName,
       roleTitle: roleResult.data.title,
@@ -222,4 +222,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

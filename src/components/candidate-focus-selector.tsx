@@ -12,6 +12,8 @@ type CandidateFocusSelectorProps = {
   canCreateCandidates: boolean;
 };
 
+const CREATE_CANDIDATE_VALUE = "__create_candidate__";
+
 export function CandidateFocusSelector({
   candidates,
   selectedCandidateId,
@@ -38,9 +40,9 @@ export function CandidateFocusSelector({
   }
 
   return (
-    <aside className="theme-panel rounded-[1.75rem] p-6 lg:sticky lg:top-8">
-      <div className="flex flex-col gap-5">
-        <div>
+    <section className="w-full rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+      <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+        <div className="max-w-2xl">
           <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
             Candidate Workflow
           </p>
@@ -48,16 +50,17 @@ export function CandidateFocusSelector({
             Choose what you want to do
           </h2>
           <p className="mt-3 text-sm leading-7 text-slate-600">
-            Pick one workflow at a time, then use the panel on the right to work
-            through that candidate task.
+            Pick one workflow at a time, then work through that candidate task in
+            the main panel below.
           </p>
         </div>
 
-        <div className="grid gap-3">
+        <div className="flex flex-col gap-4 xl:min-w-[28rem]">
+          <div className="flex flex-wrap gap-3">
           <button
             type="button"
             onClick={() => updateRoute("flow", selectedCandidateId)}
-            className={`w-full rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition ${
+            className={`rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition ${
               selectedMode === "flow"
                 ? "border-teal-800 bg-teal-800 text-white"
                 : "border-slate-200/80 bg-white/85 text-slate-700 hover:bg-white"
@@ -69,7 +72,7 @@ export function CandidateFocusSelector({
             <button
               type="button"
               onClick={() => updateRoute("create", selectedCandidateId)}
-              className={`w-full rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition ${
+              className={`rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition ${
                 selectedMode === "create"
                   ? "border-slate-950 bg-slate-950 text-white"
                   : "border-slate-200/80 bg-white/85 text-slate-700 hover:bg-white"
@@ -78,29 +81,43 @@ export function CandidateFocusSelector({
               Add Candidate
             </button>
           ) : null}
-        </div>
+          </div>
 
-        <label className="block">
-          <span className="mb-2 block text-sm font-semibold text-slate-700">
-            Focus candidate
-          </span>
-          <select
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
-            value={selectedCandidateId ?? ""}
-            onChange={(event) => {
-              const nextCandidateId = event.currentTarget.value;
-              updateRoute(selectedMode, nextCandidateId || null);
-            }}
-          >
-            <option value="">Select candidate</option>
-            {candidates.map((candidate) => (
-              <option key={candidate.id} value={candidate.id}>
-                {candidate.fullName}
-              </option>
-            ))}
-          </select>
-        </label>
+          <label className="block">
+            <span className="mb-2 block text-sm font-semibold text-slate-700">
+              Focus candidate
+            </span>
+            <select
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
+              value={
+                selectedMode === "create" && !selectedCandidateId
+                  ? CREATE_CANDIDATE_VALUE
+                  : (selectedCandidateId ?? "")
+              }
+              onChange={(event) => {
+                const nextCandidateId = event.currentTarget.value;
+
+                if (nextCandidateId === CREATE_CANDIDATE_VALUE) {
+                  updateRoute("create", null);
+                  return;
+                }
+
+                updateRoute(selectedMode, nextCandidateId || null);
+              }}
+            >
+              <option value="">Select candidate</option>
+              {canCreateCandidates ? (
+                <option value={CREATE_CANDIDATE_VALUE}>Add candidate</option>
+              ) : null}
+              {candidates.map((candidate) => (
+                <option key={candidate.id} value={candidate.id}>
+                  {candidate.fullName}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
       </div>
-    </aside>
+    </section>
   );
 }

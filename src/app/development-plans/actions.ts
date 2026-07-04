@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { hasOpenAIEnv } from "@/lib/env";
 import { generateDevelopmentPlansForRole } from "@/lib/development-plan-generator";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { requireWorkspaceProfile } from "@/lib/workspace";
+import { requirePaidWorkspaceProfile } from "@/lib/workspace";
 import type { GenerateDevelopmentPlansState } from "@/app/development-plans/action-state";
 
 function parseRequestedCount(formData: FormData) {
@@ -42,7 +42,7 @@ export async function generateDevelopmentPlansAction(
   }
 
   const count = parseRequestedCount(formData);
-  const { profile } = await requireWorkspaceProfile();
+  const { profile } = await requirePaidWorkspaceProfile();
   const admin = createSupabaseAdminClient();
   const [roleResult, competenciesResult, strengthsLibraryResult, existingPlansResult] =
     await Promise.all([

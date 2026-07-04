@@ -23,6 +23,7 @@ export async function initializeWorkspaceAction(formData: FormData) {
   const user = await requireUser();
   const fullName = getRequiredField(formData, "full_name");
   const organizationName = getRequiredField(formData, "organization_name");
+  const industryName = getRequiredField(formData, "industry_name");
 
   const email = user.email;
 
@@ -36,6 +37,7 @@ export async function initializeWorkspaceAction(formData: FormData) {
       email: email as string,
       fullName,
       organizationName,
+      industryName,
     });
   } catch (error) {
     const message =
@@ -44,5 +46,5 @@ export async function initializeWorkspaceAction(formData: FormData) {
   }
 
   revalidatePath("/dashboard");
-  redirectWithMessage("Workspace initialized with your admin profile and demo hospital data.");
+  redirectWithMessage("Workspace initialized with your admin profile and demo organization data.");
 }

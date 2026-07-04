@@ -382,7 +382,7 @@ export function MentoringDepartmentalProjectWorksheetManager({
               </label>
               <label className="block">
                 <span className="mb-2 block text-sm font-semibold text-slate-700">
-                  Why does this matter to the department and hospital?
+                  Why does this matter to the department and organization?
                 </span>
                 <textarea
                   value={formState.projectImportance}

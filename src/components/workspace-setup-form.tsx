@@ -7,12 +7,14 @@ export function WorkspaceSetupForm(props: {
   authUserId: string;
   defaultFullName: string;
   defaultOrganizationName: string;
+  defaultIndustryName: string;
   setupToken: string;
 }) {
   const [fullName, setFullName] = useState(props.defaultFullName);
   const [organizationName, setOrganizationName] = useState(
     props.defaultOrganizationName,
   );
+  const [industryName, setIndustryName] = useState(props.defaultIndustryName);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -32,6 +34,7 @@ export function WorkspaceSetupForm(props: {
           authUserId: props.authUserId,
           fullName,
           organizationName,
+          industryName,
           setupToken: props.setupToken,
         }),
       });
@@ -82,6 +85,20 @@ export function WorkspaceSetupForm(props: {
           name="organization_name"
           value={organizationName}
           onChange={(event) => setOrganizationName(event.target.value)}
+          required
+        />
+      </label>
+      <label className="block">
+        <span className="mb-2 block text-sm font-semibold text-slate-700">
+          Industry
+        </span>
+        <input
+          className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
+          type="text"
+          name="industry_name"
+          value={industryName}
+          onChange={(event) => setIndustryName(event.target.value)}
+          placeholder="Healthcare, education, manufacturing, financial services..."
           required
         />
       </label>

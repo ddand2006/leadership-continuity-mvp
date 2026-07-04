@@ -130,9 +130,7 @@ export function RoleFlowPanel({
         <div className="mt-8 overflow-x-auto">
           <div className="hidden min-w-[980px] grid-cols-[12rem_16rem_1fr] items-center gap-10 lg:grid">
             <div className="flex justify-center">
-              <button
-                type="button"
-                onClick={() => updateRoute("create", selectedRoleId)}
+              <div
                 className={`group relative flex h-36 w-36 items-center justify-center ${FLOWCHART_START_BUTTON_CLASS}`}
                 style={{ transform: "rotate(45deg)" }}
               >
@@ -144,7 +142,7 @@ export function RoleFlowPanel({
                   <br />
                   ROLES
                 </span>
-              </button>
+              </div>
             </div>
 
             <div className="relative">
@@ -205,7 +203,7 @@ export function RoleFlowPanel({
                       href={action.href}
                       className={FLOWCHART_ACTION_ENABLED_CLASS}
                     >
-                      <p className="text-center text-2xl font-semibold leading-tight">
+                      <p className="text-center text-2xl font-semibold leading-tight text-white">
                         {action.title}
                       </p>
                       <p className="mt-3 text-center text-sm leading-6 text-white/80">
@@ -219,10 +217,14 @@ export function RoleFlowPanel({
                       disabled={action.disabled}
                       className={`w-full ${action.disabled ? FLOWCHART_ACTION_DISABLED_CLASS : FLOWCHART_ACTION_ENABLED_CLASS}`}
                     >
-                      <p className="text-center text-2xl font-semibold leading-tight">
+                      <p
+                        className={`text-center text-2xl font-semibold leading-tight ${action.disabled ? "text-slate-600" : "text-white"}`}
+                      >
                         {action.title}
                       </p>
-                      <p className="mt-3 text-center text-sm leading-6">
+                      <p
+                        className={`mt-3 text-center text-sm leading-6 ${action.disabled ? "text-slate-500" : "text-white/80"}`}
+                      >
                         {action.description}
                       </p>
                     </button>
@@ -234,16 +236,12 @@ export function RoleFlowPanel({
           </div>
 
           <div className="grid gap-5 lg:hidden">
-            <button
-              type="button"
-              onClick={() => updateRoute("create", selectedRoleId)}
-              className={FLOWCHART_START_BUTTON_CLASS}
-            >
+            <div className={FLOWCHART_START_BUTTON_CLASS}>
               <p className="text-sm font-semibold tracking-[0.14em] uppercase">
                 Start
               </p>
               <p className="mt-2 text-2xl font-semibold">Create Roles</p>
-            </button>
+            </div>
 
             <div className={FLOWCHART_SELECT_PANEL_CLASS}>
               <p className="text-sm font-semibold tracking-[0.14em] uppercase">
@@ -304,10 +302,14 @@ export function RoleFlowPanel({
                     disabled={action.disabled}
                     className={`${FLOWCHART_MOBILE_ACTION_DISABLED_CLASS} disabled:cursor-not-allowed`}
                   >
-                    <p className="text-lg font-semibold text-slate-600">
+                    <p
+                      className={`text-lg font-semibold ${action.disabled ? "text-slate-600" : "text-white"}`}
+                    >
                       {action.title}
                     </p>
-                    <p className="mt-2 text-sm leading-6 text-slate-500">
+                    <p
+                      className={`mt-2 text-sm leading-6 ${action.disabled ? "text-slate-500" : "text-white/80"}`}
+                    >
                       {action.description}
                     </p>
                   </button>

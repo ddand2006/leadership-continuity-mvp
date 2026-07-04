@@ -5,17 +5,24 @@ import type { Session } from "@supabase/supabase-js";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 function AuthCard(props: {
+  id?: string;
   title: string;
   description: string;
   cta: string;
   onSubmit: (payload: { email: string; password: string }) => Promise<void>;
   isSubmitting: boolean;
+  featured?: boolean;
 }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   return (
-    <section className="theme-panel-strong rounded-[1.75rem] p-8">
+    <section
+      id={props.id}
+      className={`theme-panel-strong rounded-[1.75rem] p-8 ${
+        props.featured ? "ring-2 ring-sky-200" : ""
+      }`}
+    >
       <h2 className="font-display text-3xl text-slate-900">{props.title}</h2>
       <p className="mt-3 text-sm leading-6 text-slate-600">{props.description}</p>
       <form
@@ -65,7 +72,7 @@ function AuthCard(props: {
   );
 }
 
-export function AuthForms() {
+export function AuthForms(props: { initialMode?: "signin" | "signup" }) {
   const [errorMessage, setErrorMessage] = useState("");
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [isSigningUp, setIsSigningUp] = useState(false);
@@ -158,6 +165,34 @@ export function AuthForms() {
     }
   }
 
+  const cards = [
+    {
+      key: "signin",
+      id: "sign-in",
+      title: "Sign In",
+      description:
+        "Use email and password for administrators, interviewers, or mentors once they exist in Supabase Auth.",
+      cta: "Sign In",
+      onSubmit: handleSignIn,
+      isSubmitting: isSigningIn,
+    },
+    {
+      key: "signup",
+      id: "create-account",
+      title: "Create Account",
+      description:
+        "Create the first authenticated user. Supabase will send a confirmation email to complete the account setup.",
+      cta: "Create Account",
+      onSubmit: handleSignUp,
+      isSubmitting: isSigningUp,
+    },
+  ] as const;
+
+  const orderedCards =
+    props.initialMode === "signup"
+      ? [cards[1], cards[0]]
+      : cards;
+
   return (
     <>
       {errorMessage ? (
@@ -167,20 +202,18 @@ export function AuthForms() {
       ) : null}
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <AuthCard
-          title="Sign In"
-          description="Use email and password for administrators, interviewers, or mentors once they exist in Supabase Auth."
-          cta="Sign In"
-          onSubmit={handleSignIn}
-          isSubmitting={isSigningIn}
-        />
-        <AuthCard
-          title="Create Account"
-          description="Create the first authenticated user. Supabase will send a confirmation email to complete the account setup."
-          cta="Create Account"
-          onSubmit={handleSignUp}
-          isSubmitting={isSigningUp}
-        />
+        {orderedCards.map((card) => (
+          <AuthCard
+            key={card.key}
+            id={card.id}
+            title={card.title}
+            description={card.description}
+            cta={card.cta}
+            onSubmit={card.onSubmit}
+            isSubmitting={card.isSubmitting}
+            featured={props.initialMode === card.key}
+          />
+        ))}
       </div>
     </>
   );

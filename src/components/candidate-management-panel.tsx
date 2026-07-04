@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 type RoleOption = {
   id: string;
@@ -18,10 +18,21 @@ export function CandidateManagementPanel({
   showPipelineHeader = false,
 }: CandidateManagementPanelProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const createFormRef = useRef<HTMLFormElement>(null);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createSuccess, setCreateSuccess] = useState<string | null>(null);
   const [isCreatePending, startCreateTransition] = useTransition();
+
+  function returnToFlow() {
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.set("mode", "flow");
+    nextParams.delete("candidateId");
+
+    const nextQuery = nextParams.toString();
+    router.push(nextQuery ? `${pathname}?${nextQuery}` : pathname);
+  }
 
   function handleCreateCandidate(formData: FormData) {
     setCreateError(null);
@@ -59,9 +70,18 @@ export function CandidateManagementPanel({
     <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
       {showPipelineHeader ? (
         <>
-          <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">
-            Candidate Pipeline
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">
+              Candidate Pipeline
+            </p>
+            <button
+              type="button"
+              onClick={returnToFlow}
+              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              Back to Candidates Flow
+            </button>
+          </div>
           <div className="mt-6 border-t border-slate-200" />
         </>
       ) : null}

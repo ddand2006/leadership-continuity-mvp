@@ -5,19 +5,23 @@ import { AuthForms } from "@/components/auth-forms";
 type AuthPageProps = {
   searchParams: Promise<{
     message?: string;
+    mode?: string;
   }>;
 };
 
 export default async function AuthPage({ searchParams }: AuthPageProps) {
-  const { message } = await searchParams;
+  const { message, mode } = await searchParams;
+  const initialMode = mode === "signup" ? "signup" : "signin";
 
   return (
     <main className="app-page">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 py-12 sm:px-10 lg:px-12">
+      <div className="mx-auto flex w-full max-w-[1380px] flex-col gap-10 px-6 py-12 sm:px-10 lg:px-12">
         <div className="flex items-center justify-between gap-4">
           <div>
             <h1 className="font-display text-5xl leading-tight text-slate-900">
-              Sign in to the Leadership Continuity MVP
+              {initialMode === "signup"
+                ? "Create your Leadership Continuity account"
+                : "Sign in to the Leadership Continuity MVP"}
             </h1>
           </div>
           <Link
@@ -45,7 +49,7 @@ export default async function AuthPage({ searchParams }: AuthPageProps) {
           </div>
         ) : null}
 
-        <AuthForms />
+        <AuthForms initialMode={initialMode} />
       </div>
     </main>
   );

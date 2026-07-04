@@ -14,9 +14,8 @@ import {
 } from "@/lib/mentor-report";
 import { estimateOpenAICost } from "@/lib/openaiCost";
 import { createOpenAIClient } from "@/lib/openai";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { syncCandidateRoleStrengthAssessments } from "@/lib/strengths-role-fit";
+import { createApiErrorResponse, requireApiWorkspaceProfile } from "@/lib/api-route";
 import { isAdminAppRole } from "@/lib/mentor-access";
 
 export async function POST(request: Request) {
@@ -42,41 +41,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-    }
-
-    const admin = createSupabaseAdminClient();
-    const profileResult = await admin
-      .from("profiles")
-      .select("id, organization_id, full_name, role")
-      .eq("auth_user_id", user.id)
-      .maybeSingle();
-
-    if (profileResult.error) {
-      return NextResponse.json(
-        { error: profileResult.error.message },
-        { status: 500 },
-      );
-    }
-
-    if (!profileResult.data) {
-      return NextResponse.json(
-        {
-          error:
-            "Initialize your workspace profile before generating a mentor report.",
-        },
-        { status: 403 },
-      );
-    }
-
-    const profile = profileResult.data;
+    const { admin, profile } = await requireApiWorkspaceProfile();
     const [candidateResult, candidateRoleResult, mentorAssignmentAccessResult] =
       await Promise.all([
         admin
@@ -315,7 +280,7 @@ export async function POST(request: Request) {
         {
           role: "system",
           content:
-            "You are an expert rural hospital leadership development advisor. Create a mentor-facing development report that is practical, specific, constructive, and grounded in the supplied evidence. Do not invent unsupported facts. Use only the supplied ranked project matches when recommending projects.",
+            "You are an expert organizational leadership development advisor. Create a mentor-facing development report that is practical, specific, constructive, and grounded in the supplied evidence. Do not invent unsupported facts. Use only the supplied ranked project matches when recommending projects.",
         },
         {
           role: "user",
@@ -428,9 +393,6 @@ export async function POST(request: Request) {
       version: insertResult.data.version,
     });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Unexpected mentor report failure.";
-
-    return NextResponse.json({ error: message }, { status: 500 });
+    return createApiErrorResponse(error, "Unexpected mentor report failure.");
   }
 }

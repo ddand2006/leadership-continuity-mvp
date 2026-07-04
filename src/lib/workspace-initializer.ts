@@ -6,6 +6,7 @@ import {
   developmentProjects,
   strengthsLibrary,
 } from "@/lib/bootstrap-data";
+import { isMissingOrganizationIndustryColumnError } from "@/lib/organization-industry";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 function requireData<T>(data: T | null, message: string) {
@@ -21,15 +22,17 @@ export async function initializeWorkspaceForUser(options: {
   email: string;
   fullName: string;
   organizationName: string;
+  industryName: string;
 }) {
   console.log("initializeWorkspace:start");
   const admin = createSupabaseAdminClient();
-  const { userId, email, fullName, organizationName } = options;
+  const { userId, email, fullName, organizationName, industryName } = options;
 
   console.log("initializeWorkspace:user", {
     userId,
     email,
     organizationName,
+    industryName,
   });
 
   const existingProfileResult = await admin
@@ -47,23 +50,43 @@ export async function initializeWorkspaceForUser(options: {
     throw new Error("Workspace is already initialized for this user.");
   }
 
-  const existingOrganizationResult = await admin
+  let supportsOrganizationIndustry = true;
+  let existingOrganizationResult = await admin
     .from("organizations")
-    .select("id")
+    .select("id, industry")
     .eq("name", organizationName)
     .maybeSingle();
+
+  if (isMissingOrganizationIndustryColumnError(existingOrganizationResult.error)) {
+    supportsOrganizationIndustry = false;
+    existingOrganizationResult = await admin
+      .from("organizations")
+      .select("id")
+      .eq("name", organizationName)
+      .maybeSingle();
+  }
 
   if (existingOrganizationResult.error) {
     throw new Error(existingOrganizationResult.error.message);
   }
 
   let organizationId = existingOrganizationResult.data?.id;
+  const existingOrganizationData = existingOrganizationResult.data as
+    | { id: string; industry?: string | null }
+    | null;
+  const existingOrganizationIndustry = supportsOrganizationIndustry
+    ? existingOrganizationData?.industry ?? null
+    : null;
 
   if (!organizationId) {
     console.log("initializeWorkspace:createOrganization");
     const organizationInsertResult = await admin
       .from("organizations")
-      .insert({ name: organizationName })
+      .insert(
+        supportsOrganizationIndustry
+          ? { name: organizationName, industry: industryName }
+          : { name: organizationName },
+      )
       .select("id")
       .single();
 
@@ -75,6 +98,15 @@ export async function initializeWorkspaceForUser(options: {
       organizationInsertResult.data,
       "Organization creation returned no data.",
     ).id;
+  } else if (supportsOrganizationIndustry && !existingOrganizationIndustry?.trim()) {
+    const organizationUpdateResult = await admin
+      .from("organizations")
+      .update({ industry: industryName })
+      .eq("id", organizationId);
+
+    if (organizationUpdateResult.error) {
+      throw new Error(organizationUpdateResult.error.message);
+    }
   }
 
   const profileInsertResult = await admin
@@ -419,5 +451,5 @@ export async function initializeWorkspaceForUser(options: {
   }
 
   console.log("initializeWorkspace:complete");
-  return "Workspace initialized with your admin profile and demo hospital data.";
+  return "Workspace initialized with your admin profile and demo organization data.";
 }

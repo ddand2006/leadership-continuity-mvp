@@ -1,8 +1,5 @@
 import { NextResponse } from "next/server";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-
-const ADMIN_ROLES = new Set(["system_admin", "hospital_admin"]);
+import { createApiErrorResponse, requireApiWorkspaceProfile } from "@/lib/api-route";
 
 function sumEstimatedCost(rows: Array<{ estimated_cost: number | string | null }>) {
   return Number(
@@ -14,49 +11,15 @@ function sumEstimatedCost(rows: Array<{ estimated_cost: number | string | null }
 
 export async function GET() {
   try {
-    const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-    }
-
-    const admin = createSupabaseAdminClient();
-    const profileResult = await admin
-      .from("profiles")
-      .select("organization_id, role")
-      .eq("auth_user_id", user.id)
-      .maybeSingle();
-
-    if (profileResult.error) {
-      return NextResponse.json(
-        { error: profileResult.error.message },
-        { status: 500 },
-      );
-    }
-
-    if (!profileResult.data) {
-      return NextResponse.json(
-        { error: "Initialize your workspace before viewing OpenAI cost data." },
-        { status: 403 },
-      );
-    }
-
-    if (!ADMIN_ROLES.has(profileResult.data.role)) {
-      return NextResponse.json(
-        { error: "Only admins can view OpenAI cost data." },
-        { status: 403 },
-      );
-    }
+    const { admin, profile } = await requireApiWorkspaceProfile({
+      requireAdmin: true,
+    });
 
     const currentMonthStart = new Date();
     currentMonthStart.setDate(1);
     currentMonthStart.setHours(0, 0, 0, 0);
 
-    const organizationId = profileResult.data.organization_id;
+    const organizationId = profile.organization_id;
     const [reportsCountResult, allTimeUsageResult, currentMonthUsageResult] =
       await Promise.all([
         admin
@@ -94,11 +57,9 @@ export async function GET() {
       ),
     });
   } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : "Unexpected OpenAI cost summary failure.";
-
-    return NextResponse.json({ error: message }, { status: 500 });
+    return createApiErrorResponse(
+      error,
+      "Unexpected OpenAI cost summary failure.",
+    );
   }
 }

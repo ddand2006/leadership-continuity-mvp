@@ -9,6 +9,7 @@ export async function POST(request: Request) {
     authUserId?: string;
     fullName?: string;
     organizationName?: string;
+    industryName?: string;
     setupToken?: string;
   };
 
@@ -42,12 +43,20 @@ export async function POST(request: Request) {
     );
   }
 
+  if (!body.industryName?.trim()) {
+    return NextResponse.json(
+      { error: "Industry is required." },
+      { status: 400 },
+    );
+  }
+
   try {
     const message = await initializeWorkspaceForUser({
       userId: body.authUserId,
       email: body.authEmail,
       fullName: body.fullName.trim(),
       organizationName: body.organizationName.trim(),
+      industryName: body.industryName.trim(),
     });
 
     revalidatePath("/dashboard");

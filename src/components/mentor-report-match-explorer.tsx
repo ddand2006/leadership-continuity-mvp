@@ -477,7 +477,7 @@ export function MentorReportMatchExplorer({
             {evidenceList.length > 0 ? (
               <div className="mt-4">
                 <p className="text-xs font-semibold tracking-[0.16em] text-slate-500 uppercase">
-                  Comments in the system
+                  Comments in the Leadership Continuity System
                 </p>
                 <div className="mt-3 grid gap-2">
                   {evidenceList.map((item) => (

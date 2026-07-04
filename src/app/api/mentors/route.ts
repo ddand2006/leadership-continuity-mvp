@@ -37,7 +37,7 @@ export async function POST(request: Request) {
 
     if (existingProfileResult.data) {
       throw new ApiRouteError(
-        `A user with email ${payload.email} already exists in this company.`,
+        `A user with email ${payload.email} already exists in this organization.`,
         409,
       );
     }
@@ -88,4 +88,3 @@ export async function POST(request: Request) {
     return createApiErrorResponse(error, "Unexpected mentor creation failure.");
   }
 }
-

@@ -8,7 +8,7 @@ import {
   normalizeRoleLibraryCharacteristic,
 } from "@/lib/role-characteristic-library";
 import { groupCharacteristicsByCategory } from "@/lib/role-characteristics";
-import { requireWorkspaceProfile } from "@/lib/workspace";
+import { requirePaidWorkspaceProfile } from "@/lib/workspace";
 
 type RolesPageProps = {
   searchParams: Promise<{
@@ -19,7 +19,7 @@ type RolesPageProps = {
 
 export default async function RolesPage({ searchParams }: RolesPageProps) {
   const { roleId: requestedRoleId, mode: requestedMode } = await searchParams;
-  const { profile, supabase } = await requireWorkspaceProfile();
+  const { profile, supabase } = await requirePaidWorkspaceProfile();
   const canGenerateComposite = hasOpenAIEnv();
   const [
     rolesResult,
@@ -231,7 +231,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
 
   return (
     <main className="app-page">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-12 sm:px-10 lg:px-12">
+      <div className="mx-auto flex w-full max-w-[1380px] flex-col gap-8 px-6 py-12 sm:px-10 lg:px-12">
         <section className="theme-panel-strong rounded-[2rem] p-8">
           <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">
             Role Composite Builder

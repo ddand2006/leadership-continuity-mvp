@@ -80,7 +80,7 @@ export function MentorAssignmentManager({
       <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600">
         {canChooseMentor
           ? "Use this when one candidate is being considered for more than one role. Each assignment gives that mentor access to the candidate in the context of the selected role."
-          : "Use this to attach a candidate to one of your mentoring roles. The system will keep the candidate, role, and your mentor access tied together."}
+          : "Use this to attach a candidate to one of your mentoring roles. The Leadership Continuity System will keep the candidate, role, and your mentor access tied together."}
       </p>
 
       <form

@@ -149,7 +149,7 @@ export async function generateRoleCompositeDocumentContent(options: {
       {
         role: "system",
         content:
-          "You create hospital leadership role composite documents in a structured narrative format. The format should mirror an executive hiring composite: success composite, professional identity, non-negotiable requirements, required knowledge base, disqualifiers, and one-sentence summary. Write with clear business language, concise bullets, and strong judgment. Use only the supplied role description, ideal candidate competencies, and structured role competencies. Do not mention AI or the generation process.",
+          "You create organizational leadership role composite documents in a structured narrative format. The format should mirror an executive hiring composite: success composite, professional identity, non-negotiable requirements, required knowledge base, disqualifiers, and one-sentence summary. Write with clear business language, concise bullets, and strong judgment. Use only the supplied role description, ideal candidate competencies, and structured role competencies. Do not mention AI or the generation process.",
       },
       {
         role: "user",

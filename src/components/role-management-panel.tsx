@@ -722,11 +722,11 @@ export function RoleManagementPanel({
                   Role title
                 </span>
                 <input
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:bg-white"
                   type="text"
                   value={title}
                   onChange={(event) => setTitle(event.currentTarget.value)}
-                  placeholder="VP Patient Care Services / CNO"
+                  placeholder="Example: Director of Operations"
                   required
                 />
               </label>
@@ -735,11 +735,11 @@ export function RoleManagementPanel({
                   Department
                 </span>
                 <input
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:bg-white"
                   type="text"
                   value={department}
                   onChange={(event) => setDepartment(event.currentTarget.value)}
-                  placeholder="Clinical Operations"
+                  placeholder="Example: Operations"
                 />
               </label>
               <label className="block">
@@ -747,10 +747,10 @@ export function RoleManagementPanel({
                   Description
                 </span>
                 <textarea
-                  className="min-h-32 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
+                  className="min-h-32 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:bg-white"
                   value={description}
                   onChange={(event) => setDescription(event.currentTarget.value)}
-                  placeholder="Summarize the role and its purpose."
+                  placeholder="Example: Leads day-to-day operations, aligns teams around performance goals, and ensures consistent execution across the organization."
                   required
                 />
               </label>
@@ -796,10 +796,10 @@ export function RoleManagementPanel({
                       Ideal competencies: talents
                     </span>
                     <textarea
-                      className="min-h-28 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
+                      className="min-h-28 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:bg-white"
                       value={talentsValue}
                       onChange={(event) => setTalentsValue(event.currentTarget.value)}
-                      placeholder={"Developer\nLearner\nExecutive presence"}
+                      placeholder={"Example:\nStrategic thinker\nRelationship builder\nLearner"}
                     />
                   </label>
                   <label className="block">
@@ -807,10 +807,10 @@ export function RoleManagementPanel({
                       Ideal competencies: skills
                     </span>
                     <textarea
-                      className="min-h-28 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
+                      className="min-h-28 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:bg-white"
                       value={skillsValue}
                       onChange={(event) => setSkillsValue(event.currentTarget.value)}
-                      placeholder={"Strategic planning\nOperational finance\nStaff development"}
+                      placeholder={"Example:\nBudget planning\nTeam development\nProject management"}
                     />
                   </label>
                   <label className="block">
@@ -818,10 +818,10 @@ export function RoleManagementPanel({
                       Ideal competencies: behaviors
                     </span>
                     <textarea
-                      className="min-h-28 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
+                      className="min-h-28 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:bg-white"
                       value={behaviorsValue}
                       onChange={(event) => setBehaviorsValue(event.currentTarget.value)}
-                      placeholder={"Builds trust quickly\nCommunicates clearly under pressure\nCoaches with accountability"}
+                      placeholder={"Example:\nCommunicates clearly under pressure\nBuilds trust across teams\nCoaches with accountability"}
                     />
                   </label>
                 </div>

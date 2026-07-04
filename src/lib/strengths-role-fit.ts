@@ -73,7 +73,7 @@ export async function generateCandidateRoleStrengthAssessments(options: {
       {
         role: "system",
         content:
-          "You evaluate how a candidate's CliftonStrengths profile supports success in a specific hospital leadership role competency. Score each competency from 1 to 5 using strengths evidence only. A 5 means the candidate's strengths strongly support natural success in that competency. A 3 means mixed or indirect support. A 1 means weak or little support. Use only the provided strengths, strengths-library context, and competency definitions. Return one assessment for every competency_id exactly once.",
+          "You evaluate how a candidate's CliftonStrengths profile supports success in a specific organizational leadership role competency. Score each competency from 1 to 5 using strengths evidence only. A 5 means the candidate's strengths strongly support natural success in that competency. A 3 means mixed or indirect support. A 1 means weak or little support. Use only the provided strengths, strengths-library context, and competency definitions. Return one assessment for every competency_id exactly once.",
       },
       {
         role: "user",

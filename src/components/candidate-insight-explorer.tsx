@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { CompetencyCoachingNarrativePanel } from "@/components/competency-coaching-narrative-panel";
 import { MentoringIdeasPanel } from "@/components/mentoring-ideas-panel";
 import type { RankedProjectMatch } from "@/lib/fit-analysis";
 import { sanitizeAppText, sanitizeAppTextList } from "@/lib/text-sanitizer";
@@ -73,6 +74,8 @@ export function CandidateInsightExplorer({
     () => new Map(references.map((reference) => [reference.theme_name, reference])),
     [references],
   );
+  const topStrengths = strengths.slice(0, 5);
+  const nextStrengths = strengths.slice(5, 15);
 
   const activeAssessment =
     selectedInsight?.kind === "competency"
@@ -102,16 +105,18 @@ export function CandidateInsightExplorer({
             <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600">
               Use the buttons below to isolate one role-fit area or one top strength.
               This keeps the page focused so you can review each insight without
-              competing information on screen.
+              competing information on screen. Candidate scores on this page blend
+              interview scoring with strengths-fit scoring for the same competency.
             </p>
           </div>
           <div className="rounded-3xl border border-[rgba(82,140,94,0.2)] bg-[rgba(239,251,241,0.96)] p-6 text-[#183822] shadow-[0_20px_60px_rgba(36,64,216,0.1)]">
             <p className="text-sm font-semibold tracking-[0.16em] text-[#24512f] uppercase">
-              All 34 Strengths
+              Top 15 Strengths
             </p>
             <p className="mt-3 text-sm leading-7 text-[#24512f]">
-              Click any ranked strength button to see its summary, watchouts, and
-              development use in the same focused view.
+              Keep the highest-priority strengths in view first. The top 5 are
+              separated from the next 10 so mentors can stay focused on the most
+              influential themes.
             </p>
           </div>
         </div>
@@ -149,7 +154,7 @@ export function CandidateInsightExplorer({
                           isActive ? "text-slate-200" : "text-slate-500"
                         }`}
                       >
-                        Avg {assessment.averageScore.toFixed(2)} vs target{" "}
+                        Candidate {assessment.averageScore.toFixed(2)} • Role goal{" "}
                         {assessment.targetScore.toFixed(2)}
                       </span>
                       <span className="mt-2 block text-lg font-semibold leading-snug">
@@ -170,33 +175,77 @@ export function CandidateInsightExplorer({
             <p className="text-xs font-semibold tracking-[0.16em] text-slate-500 uppercase">
               Strength buttons
             </p>
-            <div className="mt-3 flex flex-wrap gap-3">
+            <div className="mt-3 space-y-5">
               {strengths.length > 0 ? (
-                strengths.map((strength) => {
-                  const isActive =
-                    selectedInsight?.kind === "strength" &&
-                    selectedInsight.id === strength.theme_name;
+                <>
+                  <div>
+                    <p className="text-xs font-semibold tracking-[0.14em] text-slate-400 uppercase">
+                      Top 5
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-3">
+                      {topStrengths.map((strength) => {
+                        const isActive =
+                          selectedInsight?.kind === "strength" &&
+                          selectedInsight.id === strength.theme_name;
 
-                  return (
-                    <button
-                      key={strength.theme_name}
-                      type="button"
-                      onClick={() =>
-                        setSelectedInsight({
-                          kind: "strength",
-                          id: strength.theme_name,
-                        })
-                      }
-                      className={`rounded-full border px-4 py-3 text-sm font-semibold transition ${
-                        isActive
-                          ? "border-teal-900 bg-teal-900 text-white"
-                          : "border-teal-200 bg-white text-teal-900 hover:bg-teal-50"
-                      }`}
-                    >
-                      #{strength.rank} {sanitizeAppText(strength.theme_name)}
-                    </button>
-                  );
-                })
+                        return (
+                          <button
+                            key={strength.theme_name}
+                            type="button"
+                            onClick={() =>
+                              setSelectedInsight({
+                                kind: "strength",
+                                id: strength.theme_name,
+                              })
+                            }
+                            className={`rounded-full border px-4 py-3 text-sm font-semibold transition ${
+                              isActive
+                                ? "border-teal-900 bg-teal-900 text-white"
+                                : "border-teal-200 bg-white text-teal-900 hover:bg-teal-50"
+                            }`}
+                          >
+                            #{strength.rank} {sanitizeAppText(strength.theme_name)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {nextStrengths.length > 0 ? (
+                    <div>
+                      <p className="text-xs font-semibold tracking-[0.14em] text-slate-400 uppercase">
+                        Next 10
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-3">
+                        {nextStrengths.map((strength) => {
+                          const isActive =
+                            selectedInsight?.kind === "strength" &&
+                            selectedInsight.id === strength.theme_name;
+
+                          return (
+                            <button
+                              key={strength.theme_name}
+                              type="button"
+                              onClick={() =>
+                                setSelectedInsight({
+                                  kind: "strength",
+                                  id: strength.theme_name,
+                                })
+                              }
+                              className={`rounded-full border px-4 py-3 text-sm font-semibold transition ${
+                                isActive
+                                  ? "border-teal-900 bg-teal-900 text-white"
+                                  : "border-teal-200 bg-white text-teal-900 hover:bg-teal-50"
+                              }`}
+                            >
+                              #{strength.rank} {sanitizeAppText(strength.theme_name)}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : null}
+                </>
               ) : (
                 <p className="text-sm leading-7 text-slate-600">
                   No strengths have been uploaded for this candidate yet.
@@ -205,6 +254,58 @@ export function CandidateInsightExplorer({
             </div>
           </div>
         </div>
+
+        {activeStrength ? (
+          <section className="mt-6 rounded-[1.75rem] border border-[rgba(82,140,94,0.2)] bg-[rgba(239,251,241,0.96)] p-6 text-[#183822] shadow-[0_20px_60px_rgba(36,64,216,0.1)]">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold tracking-[0.16em] text-[#24512f] uppercase">
+                  Selected Strength
+                </p>
+                <h3 className="mt-3 font-display text-4xl text-[#14361d]">
+                  #{activeStrength.rank} {sanitizeAppText(activeStrength.theme_name)}
+                </h3>
+              </div>
+              <span className="rounded-full bg-white/45 px-3 py-1 text-xs font-semibold tracking-[0.14em] text-[#24512f] uppercase">
+                {activeStrengthReference?.domain ?? activeStrength.domain}
+              </span>
+            </div>
+
+            {activeStrengthReference ? (
+              <div className="mt-6 grid gap-5 lg:grid-cols-3">
+                <article className="emerald-soft-surface rounded-3xl border p-5">
+                  <p className="text-xs font-semibold tracking-[0.14em] text-[#24512f] uppercase">
+                    Strength Summary
+                  </p>
+                  <p className="mt-3 text-base leading-8 text-[#14361d]">
+                    {sanitizeAppText(activeStrengthReference.leadership_advantages)}
+                  </p>
+                </article>
+                <article className="emerald-soft-surface rounded-3xl border p-5">
+                  <p className="text-xs font-semibold tracking-[0.14em] text-[#24512f] uppercase">
+                    Watchouts
+                  </p>
+                  <p className="mt-3 text-base leading-8 text-[#14361d]">
+                    {sanitizeAppText(activeStrengthReference.possible_blind_spots)}
+                  </p>
+                </article>
+                <article className="emerald-soft-surface rounded-3xl border p-5">
+                  <p className="text-xs font-semibold tracking-[0.14em] text-[#24512f] uppercase">
+                    Development Use
+                  </p>
+                  <p className="mt-3 text-base leading-8 text-[#14361d]">
+                    {sanitizeAppText(activeStrengthReference.development_uses)}
+                  </p>
+                </article>
+              </div>
+            ) : (
+              <article className="emerald-soft-surface mt-6 rounded-3xl border p-5 text-sm leading-7 text-[#24512f]">
+                No reference summary is loaded yet for{" "}
+                {sanitizeAppText(activeStrength.theme_name)}.
+              </article>
+            )}
+          </section>
+        ) : null}
       </div>
 
       {activeAssessment ? (
@@ -218,13 +319,20 @@ export function CandidateInsightExplorer({
                 {activeAssessment.competencyName}
               </h3>
               <p className="mt-4 text-sm leading-7 text-slate-600">
-                Avg {activeAssessment.averageScore.toFixed(2)} vs target{" "}
-                {activeAssessment.targetScore.toFixed(2)}
+                The candidate score blends interview evidence with strengths fit
+                for this competency, and the role goal comes directly from the
+                target score set on the role composite.
               </p>
-              <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-slate-600">
+              <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-slate-600">
+                <span className="rounded-full bg-slate-900 px-3 py-1 text-white">
+                  Candidate score {activeAssessment.averageScore.toFixed(2)}
+                </span>
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-900">
+                  Role goal {activeAssessment.targetScore.toFixed(2)}
+                </span>
                 {activeAssessment.interviewScore !== null ? (
                   <span className="rounded-full bg-slate-100 px-3 py-1">
-                    Interview {activeAssessment.interviewScore.toFixed(2)}
+                    Interview average {activeAssessment.interviewScore.toFixed(2)}
                   </span>
                 ) : null}
                 {activeAssessment.strengthsScore !== null ? (
@@ -257,6 +365,13 @@ export function CandidateInsightExplorer({
             </div>
           </div>
 
+          <CompetencyCoachingNarrativePanel
+            canGenerate={canGenerateCandidateIdeas && Boolean(roleId)}
+            candidateId={candidateId}
+            roleId={roleId}
+            competencyId={activeAssessment.competencyId}
+          />
+
           <MentoringIdeasPanel
             ideas={activeAssessment.mentoringIdeas}
             canGenerateCandidateIdeas={canGenerateCandidateIdeas && Boolean(roleId)}
@@ -268,56 +383,6 @@ export function CandidateInsightExplorer({
         </section>
       ) : null}
 
-      {activeStrength ? (
-        <section className="rounded-[1.75rem] border border-[rgba(82,140,94,0.2)] bg-[rgba(239,251,241,0.96)] p-8 text-[#183822] shadow-[0_20px_60px_rgba(36,64,216,0.1)]">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm font-semibold tracking-[0.16em] text-[#24512f] uppercase">
-                Selected Strength
-              </p>
-              <h3 className="mt-3 font-display text-4xl text-[#14361d]">
-                #{activeStrength.rank} {sanitizeAppText(activeStrength.theme_name)}
-              </h3>
-            </div>
-            <span className="rounded-full bg-white/45 px-3 py-1 text-xs font-semibold tracking-[0.14em] text-[#24512f] uppercase">
-              {activeStrengthReference?.domain ?? activeStrength.domain}
-            </span>
-          </div>
-
-          {activeStrengthReference ? (
-            <div className="mt-6 grid gap-5">
-              <article className="emerald-soft-surface rounded-3xl border p-5">
-                <p className="text-xs font-semibold tracking-[0.14em] text-[#24512f] uppercase">
-                  Strength Summary
-                </p>
-                <p className="mt-3 text-base leading-8 text-[#14361d]">
-                  {sanitizeAppText(activeStrengthReference.leadership_advantages)}
-                </p>
-              </article>
-              <article className="emerald-soft-surface rounded-3xl border p-5">
-                <p className="text-xs font-semibold tracking-[0.14em] text-[#24512f] uppercase">
-                  Watchouts
-                </p>
-                <p className="mt-3 text-base leading-8 text-[#14361d]">
-                  {sanitizeAppText(activeStrengthReference.possible_blind_spots)}
-                </p>
-              </article>
-              <article className="emerald-soft-surface rounded-3xl border p-5">
-                <p className="text-xs font-semibold tracking-[0.14em] text-[#24512f] uppercase">
-                  Development Use
-                </p>
-                <p className="mt-3 text-base leading-8 text-[#14361d]">
-                  {sanitizeAppText(activeStrengthReference.development_uses)}
-                </p>
-              </article>
-            </div>
-          ) : (
-            <article className="emerald-soft-surface mt-6 rounded-3xl border p-5 text-sm leading-7 text-[#24512f]">
-              No reference summary is loaded yet for {sanitizeAppText(activeStrength.theme_name)}.
-            </article>
-          )}
-        </section>
-      ) : null}
     </section>
   );
 }

@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { requireWorkspaceProfile } from "@/lib/workspace";
+import { requirePaidWorkspaceProfile } from "@/lib/workspace";
 
 export default async function ReportsFormsPage() {
-  const { profile, supabase } = await requireWorkspaceProfile();
+  const { profile, supabase } = await requirePaidWorkspaceProfile();
   const [reportsResult, documentsResult, candidatesResult, rolesResult] =
     await Promise.all([
       supabase
@@ -43,7 +43,7 @@ export default async function ReportsFormsPage() {
 
   return (
     <main className="app-page">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-12 sm:px-10 lg:px-12">
+      <div className="mx-auto flex w-full max-w-[1380px] flex-col gap-8 px-6 py-12 sm:px-10 lg:px-12">
         <section className="theme-panel-strong rounded-[2rem] p-8">
           <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">
             Resources

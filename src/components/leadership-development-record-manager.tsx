@@ -106,6 +106,21 @@ function getDraftStatus(
   return record.status;
 }
 
+function createDraftRecordForAssignment(
+  selectedAssignment: LeadershipDevelopmentAssignmentOption,
+) {
+  return createEmptyLeadershipDevelopmentRecord({
+    candidateId: selectedAssignment.candidateId,
+    roleId: selectedAssignment.roleId,
+    mentorId: selectedAssignment.mentorProfileId,
+    candidateName: selectedAssignment.candidateName,
+    targetRole: selectedAssignment.roleTitle,
+    primaryMentor: selectedAssignment.mentorName,
+    dateAssigned:
+      selectedAssignment.startDate ?? new Date().toISOString().slice(0, 10),
+  });
+}
+
 export function LeadershipDevelopmentRecordManager({
   assignments,
   initialSelectedAssignmentKey,
@@ -159,9 +174,23 @@ export function LeadershipDevelopmentRecordManager({
     ? formState.reviewerFeedback.filter(isFilledLeadershipDevelopmentFeedback).length
     : 0;
 
+  function applySelectedRecord(
+    nextSelectedAssignment: LeadershipDevelopmentAssignmentOption,
+    records: LeadershipDevelopmentRecordRecord[],
+    nextRecordId: string,
+  ) {
+    setSelectedRecordId(nextRecordId);
+    setFormState(
+      nextRecordId
+        ? normalizeLeadershipDevelopmentRecord(
+            records.find((record) => record.id === nextRecordId) ?? records[0],
+          )
+        : createDraftRecordForAssignment(nextSelectedAssignment),
+    );
+  }
+
   useEffect(() => {
     if (!selectedAssignment) {
-      setFormState(null);
       return;
     }
 
@@ -199,19 +228,7 @@ export function LeadershipDevelopmentRecordManager({
             ...current,
             [getAssignmentKey(selectedAssignment)]: [],
           }));
-          setSelectedRecordId("");
-          setFormState(
-            createEmptyLeadershipDevelopmentRecord({
-              candidateId: selectedAssignment.candidateId,
-              roleId: selectedAssignment.roleId,
-              mentorId: selectedAssignment.mentorProfileId,
-              candidateName: selectedAssignment.candidateName,
-              targetRole: selectedAssignment.roleTitle,
-              primaryMentor: selectedAssignment.mentorName,
-              dateAssigned:
-                selectedAssignment.startDate ?? new Date().toISOString().slice(0, 10),
-            }),
-          );
+          applySelectedRecord(selectedAssignment, [], "");
           setError(payload.error ?? "Unable to load leadership development records.");
           return;
         }
@@ -230,25 +247,7 @@ export function LeadershipDevelopmentRecordManager({
           selectedRecordId && records.some((record) => record.id === selectedRecordId)
             ? selectedRecordId
             : (records[0]?.id ?? "");
-
-        setSelectedRecordId(nextRecordId);
-        setFormState(
-          nextRecordId
-            ? normalizeLeadershipDevelopmentRecord(
-                records.find((record) => record.id === nextRecordId) ?? records[0],
-              )
-            : createEmptyLeadershipDevelopmentRecord({
-                candidateId: selectedAssignment.candidateId,
-                roleId: selectedAssignment.roleId,
-                mentorId: selectedAssignment.mentorProfileId,
-                candidateName: selectedAssignment.candidateName,
-                targetRole: selectedAssignment.roleTitle,
-                primaryMentor: selectedAssignment.mentorName,
-                dateAssigned:
-                  selectedAssignment.startDate ??
-                  new Date().toISOString().slice(0, 10),
-              }),
-        );
+        applySelectedRecord(selectedAssignment, records, nextRecordId);
       } catch (loadError) {
         if ((loadError as Error).name === "AbortError") {
           return;
@@ -263,31 +262,7 @@ export function LeadershipDevelopmentRecordManager({
     loadRecords();
 
     return () => controller.abort();
-  }, [selectedAssignmentKey]);
-
-  useEffect(() => {
-    if (!selectedAssignment) {
-      return;
-    }
-
-    if (selectedRecord) {
-      setFormState(normalizeLeadershipDevelopmentRecord(selectedRecord));
-      return;
-    }
-
-    setFormState(
-      createEmptyLeadershipDevelopmentRecord({
-        candidateId: selectedAssignment.candidateId,
-        roleId: selectedAssignment.roleId,
-        mentorId: selectedAssignment.mentorProfileId,
-        candidateName: selectedAssignment.candidateName,
-        targetRole: selectedAssignment.roleTitle,
-        primaryMentor: selectedAssignment.mentorName,
-        dateAssigned:
-          selectedAssignment.startDate ?? new Date().toISOString().slice(0, 10),
-      }),
-    );
-  }, [selectedRecordId]);
+  }, [selectedAssignment, selectedRecordId]);
 
   function toggleSection(sectionId: CollapsibleSectionId) {
     setOpenSections((current) => ({
@@ -486,18 +461,7 @@ export function LeadershipDevelopmentRecordManager({
     setError(null);
     setSuccess(null);
     setOpenSections(createOpenSectionState());
-    setFormState(
-      createEmptyLeadershipDevelopmentRecord({
-        candidateId: selectedAssignment.candidateId,
-        roleId: selectedAssignment.roleId,
-        mentorId: selectedAssignment.mentorProfileId,
-        candidateName: selectedAssignment.candidateName,
-        targetRole: selectedAssignment.roleTitle,
-        primaryMentor: selectedAssignment.mentorName,
-        dateAssigned:
-          selectedAssignment.startDate ?? new Date().toISOString().slice(0, 10),
-      }),
-    );
+    setFormState(createDraftRecordForAssignment(selectedAssignment));
   }
 
   function handleSave(nextStatus: LeadershipDevelopmentRecordPayload["status"]) {
@@ -614,9 +578,21 @@ export function LeadershipDevelopmentRecordManager({
           <select
             value={selectedAssignmentKey}
             onChange={(event) => {
-              setSelectedAssignmentKey(event.target.value);
+              const nextAssignmentKey = event.target.value;
+              const nextAssignment =
+                assignments.find(
+                  (assignment) => getAssignmentKey(assignment) === nextAssignmentKey,
+                ) ?? null;
+
+              setSelectedAssignmentKey(nextAssignmentKey);
               setSelectedRecordId("");
               setOpenSections(createOpenSectionState());
+              setError(null);
+              setSuccess(null);
+
+              if (nextAssignment) {
+                setFormState(createDraftRecordForAssignment(nextAssignment));
+              }
             }}
             className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
           >
@@ -683,7 +659,9 @@ export function LeadershipDevelopmentRecordManager({
                   <select
                     value={selectedRecordId}
                     onChange={(event) => {
-                      setSelectedRecordId(event.target.value);
+                      const nextRecordId = event.target.value;
+
+                      applySelectedRecord(selectedAssignment, currentRecords, nextRecordId);
                       setError(null);
                       setSuccess(null);
                     }}

@@ -1,13 +1,12 @@
 import Link from "next/link";
 import { CandidateFlowPanel } from "@/components/candidate-flow-panel";
-import { CandidateFocusSelector } from "@/components/candidate-focus-selector";
 import { CandidateManagementPanel } from "@/components/candidate-management-panel";
 import {
   buildCompetencyAssessments,
   computeOverallReadiness,
 } from "@/lib/fit-analysis";
 import { isAdminAppRole } from "@/lib/mentor-access";
-import { requireWorkspaceProfile } from "@/lib/workspace";
+import { requirePaidWorkspaceProfile } from "@/lib/workspace";
 
 type CandidatesPageProps = {
   searchParams: Promise<{
@@ -21,7 +20,7 @@ export default async function CandidatesPage({
 }: CandidatesPageProps) {
   const { candidateId: requestedCandidateId, mode: requestedMode } =
     await searchParams;
-  const { profile, supabase } = await requireWorkspaceProfile();
+  const { profile, supabase } = await requirePaidWorkspaceProfile();
   const [
     candidatesResult,
     rolesResult,
@@ -224,18 +223,8 @@ export default async function CandidatesPage({
 
   return (
     <main className="app-page">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-12 sm:px-10 lg:px-12">
-        <section className="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-start">
-          <CandidateFocusSelector
-            candidates={candidateSummaries.map((candidate) => ({
-              id: candidate.id,
-              fullName: candidate.fullName,
-            }))}
-            selectedCandidateId={selectedCandidateId}
-            selectedMode={selectedMode}
-            canCreateCandidates={canCreateCandidates}
-          />
-
+      <div className="mx-auto flex w-full max-w-[1380px] flex-col gap-8 px-6 py-12 sm:px-10 lg:px-12">
+        <section className="grid gap-6">
           <div className="grid gap-6">
             {selectedMode === "create" && canCreateCandidates ? (
               <CandidateManagementPanel
@@ -262,7 +251,7 @@ export default async function CandidatesPage({
 
             <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
               <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
-                Candidates In The System
+                Candidates In The Leadership Continuity System
               </p>
               <h2 className="mt-3 font-display text-3xl text-slate-900">
                 Candidate list and scores
@@ -275,7 +264,7 @@ export default async function CandidatesPage({
               {candidateSummaries.length === 0 ? (
                 <div className="mt-6 rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm leading-7 text-slate-600">
                   {canCreateCandidates
-                    ? "No candidates exist yet in this workspace. Create one on the left to begin."
+                    ? "No candidates exist yet in this workspace. Create one to begin."
                     : "No candidates are assigned to you yet for mentoring."}
                 </div>
               ) : (

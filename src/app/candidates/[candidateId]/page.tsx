@@ -27,7 +27,7 @@ import {
 import { syncCandidateRoleStrengthAssessments } from "@/lib/strengths-role-fit";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { sanitizeAppText } from "@/lib/text-sanitizer";
-import { requireWorkspaceProfile } from "@/lib/workspace";
+import { requirePaidWorkspaceProfile } from "@/lib/workspace";
 
 type CandidateDetailPageProps = {
   params: Promise<{
@@ -46,7 +46,7 @@ export default async function CandidateDetailPage({
   const { candidateId } = await params;
   const { roleId: requestedRoleId, section: requestedSection } =
     await searchParams;
-  const { profile, supabase } = await requireWorkspaceProfile();
+  const { profile, supabase } = await requirePaidWorkspaceProfile();
   const canGenerateReport = hasOpenAIEnv();
   const admin = createSupabaseAdminClient();
 
@@ -307,23 +307,40 @@ export default async function CandidateDetailPage({
     scoresResult.data ?? [],
     strengthAssessments,
   );
-  const existingPanels = (panelsResult.data ?? []).map((panel) => {
-    const panelScores = (scoresResult.data ?? []).filter(
-      (score) => score.panel_id === panel.id,
-    );
-    const averageScore =
-      panelScores.length > 0
-        ? panelScores.reduce((sum, score) => sum + score.score_numeric, 0) /
-          panelScores.length
-        : null;
+  const existingPanels = [...(panelsResult.data ?? [])]
+    .sort((left, right) => {
+      const leftDate = left.date_completed ?? "";
+      const rightDate = right.date_completed ?? "";
 
-    return {
-      id: panel.id,
-      panelName: panel.panel_name,
-      dateCompleted: panel.date_completed,
-      averageScore: averageScore !== null ? Number(averageScore.toFixed(2)) : null,
-    };
-  });
+      if (leftDate !== rightDate) {
+        return rightDate.localeCompare(leftDate);
+      }
+
+      return left.panel_name.localeCompare(right.panel_name);
+    })
+    .map((panel) => {
+      const panelScores = (scoresResult.data ?? []).filter(
+        (score) => score.panel_id === panel.id,
+      );
+      const averageScore =
+        panelScores.length > 0
+          ? panelScores.reduce((sum, score) => sum + score.score_numeric, 0) /
+            panelScores.length
+          : null;
+
+      return {
+        id: panel.id,
+        panelName: panel.panel_name,
+        dateCompleted: panel.date_completed,
+        averageScore: averageScore !== null ? Number(averageScore.toFixed(2)) : null,
+        scores: panelScores.map((score) => ({
+          competencyId: score.competency_id,
+          scoreNumeric: score.score_numeric,
+          evidenceNotes: score.evidence_notes,
+          concernNotes: score.concern_notes,
+        })),
+      };
+    });
   const readiness = computeOverallReadiness(assessments);
   const roleMatchesWeakestToStrongest =
     buildRoleMatchesWeakestToStrongest(assessments);
@@ -411,7 +428,7 @@ export default async function CandidateDetailPage({
 
   return (
     <main className="app-page">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-12 sm:px-10 lg:px-12">
+      <div className="mx-auto flex w-full max-w-[1380px] flex-col gap-8 px-6 py-12 sm:px-10 lg:px-12">
         <CandidateDetailSectionMenu
           initialSectionId={requestedSection}
           candidateName={candidate.full_name}
@@ -547,7 +564,7 @@ export default async function CandidateDetailPage({
               id: "role-fit",
               label: "Role Fit",
               summary:
-                "Focus on the candidate’s role-fit competencies and all 34 strengths, one insight at a time.",
+                "Focus on the candidate’s role-fit competencies, top 5 strengths, and next 10 strengths one insight at a time.",
               content: (
                 <CandidateInsightExplorer
                   assessments={assessments.map((assessment) => ({
