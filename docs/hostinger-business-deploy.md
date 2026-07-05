@@ -22,6 +22,16 @@ If it does not, this app should be moved to a Hostinger VPS or another Node-capa
 
 If Hostinger falls back to a newer Corepack-managed `pnpm` release and the install step crashes before the app builds, confirm the project is deploying with the pinned `packageManager` value from `package.json` instead of Hostinger's default.
 
+## npm fallback for Hostinger
+
+If Hostinger still fails during the `pnpm` install step with a Corepack or dynamic-import error, switch the Hostinger package manager to `npm` and use:
+
+- Install command: `npm ci`
+- Build command: `npm run build`
+- Start command: `npm run start`
+
+This repository includes a committed `package-lock.json` specifically for that fallback path.
+
 ## Required environment variables
 
 Set these in the Hostinger app environment for production:
