@@ -489,7 +489,7 @@ export async function inviteManagedUser(options: {
         first_name: input.firstName,
         last_name: input.lastName,
       },
-      redirectTo: `${getAppUrl()}/auth/callback?next=/`,
+      redirectTo: `${getAppUrl()}/auth/confirm?mode=invite&next=/`,
     },
   );
 
@@ -746,7 +746,7 @@ export async function resetManagedUserPassword(options: {
     type: "recovery",
     email: current.email,
     options: {
-      redirectTo: `${getAppUrl()}/auth/callback?next=/`,
+      redirectTo: `${getAppUrl()}/auth/confirm?mode=recovery&next=/`,
     },
   });
 

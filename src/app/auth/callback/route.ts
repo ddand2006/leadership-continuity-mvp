@@ -25,5 +25,15 @@ export async function GET(request: Request) {
     }
   }
 
+  if (requestUrl.searchParams.has("token_hash") || requestUrl.searchParams.has("type")) {
+    const confirmUrl = new URL("/auth/confirm", appUrl);
+
+    for (const [key, value] of requestUrl.searchParams.entries()) {
+      confirmUrl.searchParams.set(key, value);
+    }
+
+    return NextResponse.redirect(confirmUrl);
+  }
+
   return NextResponse.redirect(new URL(next, appUrl));
 }

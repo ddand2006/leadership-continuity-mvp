@@ -135,7 +135,7 @@ export function AuthForms(props: { initialMode?: "signin" | "signup" }) {
         email: payload.email,
         password: payload.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=/`,
+          emailRedirectTo: `${window.location.origin}/auth/confirm?mode=signup&next=/`,
         },
       });
 
@@ -181,7 +181,7 @@ export function AuthForms(props: { initialMode?: "signin" | "signup" }) {
       id: "create-account",
       title: "Create Account",
       description:
-        "Create the first authenticated user. Supabase will send a confirmation email to complete the account setup.",
+        "Create the first workspace owner account. Invited users should use the email invitation they received instead of creating a second account here.",
       cta: "Create Account",
       onSubmit: handleSignUp,
       isSubmitting: isSigningUp,
