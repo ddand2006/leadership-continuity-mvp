@@ -68,11 +68,11 @@ export function CandidateStrengthsUploadCard({
           key={resetKey}
           label="Results files"
           name="files"
-          accept=".pdf,.csv,.txt"
+          accept=".pdf,.docx,.csv,.txt"
           multiple
           required
           theme="emerald"
-          helperText="Accepted formats: PDF, CSV, or TXT. Add one or more Gallup reports in a single upload. Every file on record remains visible in the source-documents panel."
+          helperText="Accepted formats: PDF, DOCX, CSV, or TXT. Add one or more Gallup reports in a single upload. Every file on record remains visible in the source-documents panel."
         />
         <button
           className="interactive-contrast rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
