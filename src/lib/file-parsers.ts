@@ -3,15 +3,14 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import mammoth from "mammoth";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { ApiRouteError } from "@/lib/api-route";
 
 const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
 const execFileAsync = promisify(execFile);
-const PDF_EXTRACTOR_SCRIPT_PATH = join(
-  process.cwd(),
-  "scripts",
-  "extract-pdf-text.cjs",
+const PDF_EXTRACTOR_SCRIPT_PATH = fileURLToPath(
+  new URL("../../scripts/extract-pdf-text.cjs", import.meta.url),
 );
 
 export function getFileExtension(fileName: string) {
@@ -47,7 +46,6 @@ async function extractPdfTextWithNodeProcess(file: File) {
       process.execPath,
       [PDF_EXTRACTOR_SCRIPT_PATH, tempFilePath],
       {
-        cwd: process.cwd(),
         maxBuffer: MAX_UPLOAD_SIZE_BYTES * 4,
       },
     );

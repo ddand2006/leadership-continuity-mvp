@@ -519,21 +519,6 @@ function getContinuityLabel(score: number) {
   return "High Risk";
 }
 
-function getReadinessLabel(value: string | null) {
-  switch (value) {
-    case "developing":
-      return "Developing";
-    case "progressing":
-      return "Progressing";
-    case "near_role_ready":
-      return "Near Role-Ready";
-    case "role_ready":
-      return "Role-Ready";
-    default:
-      return "Not yet signaled";
-  }
-}
-
 function getReadinessScore(signal: string | null) {
   switch (signal) {
     case "developing":
@@ -651,20 +636,6 @@ function getCandidateHref(candidateId: string) {
   return `/candidates/${candidateId}`;
 }
 
-function getMentoringHref(candidateId: string, roleId: string, mentorId: string | null) {
-  const params = new URLSearchParams({
-    section: "leadership-development-record",
-    candidateId,
-    roleId,
-  });
-
-  if (mentorId) {
-    params.set("mentorProfileId", mentorId);
-  }
-
-  return `/mentoring?${params.toString()}`;
-}
-
 function buildDashboardIntelligence(options: {
   profile: DashboardProfile;
   roles: DashboardRole[];
@@ -709,7 +680,6 @@ function buildDashboardIntelligence(options: {
   }
 
   const roleById = new Map(options.roles.map((role) => [role.id, role]));
-  const candidateById = new Map(options.candidates.map((candidate) => [candidate.id, candidate]));
   const mentorById = new Map(options.mentors.map((mentor) => [mentor.id, mentor]));
   const assignmentsByTrackKey = new Map<
     string,
@@ -823,7 +793,6 @@ function buildDashboardIntelligence(options: {
 
   const activeTracks = visibleTracks.filter((track) => track.candidateStatus !== "on_hold");
   const visibleRecords = visibleTracks.flatMap((track) => track.records);
-  const visibleRecordIds = new Set(visibleRecords.map((record) => record.id));
   const visibleRecordsInRange = visibleRecords.filter((record) =>
     isOnOrAfter(record.updated_at, timeRangeStart),
   );
