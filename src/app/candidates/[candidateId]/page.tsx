@@ -429,6 +429,13 @@ export default async function CandidateDetailPage({
       };
     }),
   );
+  const importedStrengthCount = (strengthsResult.data ?? []).length;
+  const readableSourceDocumentCount = (sourceDocumentsResult.data ?? []).filter(
+    (document) => (document.extracted_text ?? "").trim().length > 0,
+  ).length;
+  const topStrengthNames = (strengthsResult.data ?? [])
+    .slice(0, 5)
+    .map((strength) => strength.theme_name);
   const activeRoleMentorNames = activeRoleId
     ? Array.from(
         new Set(
@@ -663,7 +670,42 @@ export default async function CandidateDetailPage({
               content: (
                 <section className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
                   <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
-                    <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
+                    <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                      <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
+                        Strengths Import Status
+                      </p>
+                      {importedStrengthCount > 0 ? (
+                        <>
+                          <p className="mt-3 text-sm leading-7 text-slate-700">
+                            {importedStrengthCount} strengths are already visible in
+                            the system for this candidate.
+                          </p>
+                          {topStrengthNames.length > 0 ? (
+                            <p className="mt-3 text-sm leading-7 text-slate-700">
+                              Current top strengths: {topStrengthNames.join(", ")}.
+                            </p>
+                          ) : null}
+                        </>
+                      ) : sourceDocuments.length > 0 ? (
+                        <>
+                          <p className="mt-3 text-sm leading-7 text-slate-700">
+                            Gallup files are on record, but no strengths are visible
+                            in the system yet.
+                          </p>
+                          <p className="mt-3 text-sm leading-7 text-slate-600">
+                            {readableSourceDocumentCount > 0
+                              ? "The saved files include readable text, so an administrator can retry the strengths import from the archived files."
+                              : "The saved files do not currently contain machine-readable text, so the upload could not bring those strengths into the system yet."}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="mt-3 text-sm leading-7 text-slate-700">
+                          No Gallup files have been uploaded for this candidate yet.
+                        </p>
+                      )}
+                    </div>
+
+                    <p className="mt-8 text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
                       Uploaded Source Documents
                     </p>
                     <h2 className="mt-3 font-display text-3xl text-slate-900">
@@ -721,6 +763,10 @@ export default async function CandidateDetailPage({
                     <CandidateStrengthsUploadCard
                       candidateId={candidate.id}
                       candidateName={candidate.full_name}
+                      importedStrengthCount={importedStrengthCount}
+                      readableDocumentCount={readableSourceDocumentCount}
+                      sourceDocumentCount={sourceDocuments.length}
+                      topStrengthNames={topStrengthNames}
                     />
                   ) : (
                     <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">

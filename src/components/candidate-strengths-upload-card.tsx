@@ -7,9 +7,17 @@ import { FileDropInput } from "@/components/file-drop-input";
 export function CandidateStrengthsUploadCard({
   candidateId,
   candidateName,
+  importedStrengthCount,
+  readableDocumentCount,
+  sourceDocumentCount,
+  topStrengthNames,
 }: {
   candidateId: string;
   candidateName: string;
+  importedStrengthCount: number;
+  readableDocumentCount: number;
+  sourceDocumentCount: number;
+  topStrengthNames: string[];
 }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
@@ -17,6 +25,7 @@ export function CandidateStrengthsUploadCard({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [isReimportPending, startReimportTransition] = useTransition();
 
   function handleSubmit(formData: FormData) {
     setError(null);
@@ -41,6 +50,30 @@ export function CandidateStrengthsUploadCard({
     });
   }
 
+  function handleReimport() {
+    setError(null);
+    setSuccess(null);
+
+    startReimportTransition(async () => {
+      const response = await fetch("/api/candidates/reimport-strengths", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ candidateId }),
+      });
+      const result = (await response.json()) as { error?: string; message?: string };
+
+      if (!response.ok) {
+        setError(result.error ?? "Unable to reimport strengths.");
+        return;
+      }
+
+      setSuccess(result.message ?? "Strengths reimported.");
+      router.refresh();
+    });
+  }
+
   return (
     <section className="rounded-[1.75rem] border border-[rgba(82,140,94,0.2)] bg-[rgba(239,251,241,0.96)] p-8 text-[#183822] shadow-[0_20px_60px_rgba(36,64,216,0.1)]">
       <p className="text-sm font-semibold tracking-[0.16em] text-[#24512f] uppercase">
@@ -54,6 +87,52 @@ export function CandidateStrengthsUploadCard({
         Signature Theme, and Top 5 PDFs. New files are added to the archived set
         on record, and re-uploading the same file name replaces just that file.
       </p>
+
+      <div className="mt-6 rounded-3xl border border-[rgba(82,140,94,0.24)] bg-white/80 p-5">
+        <p className="text-sm font-semibold tracking-[0.16em] text-[#24512f] uppercase">
+          Import Status
+        </p>
+        {importedStrengthCount > 0 ? (
+          <>
+            <p className="mt-3 text-sm leading-7 text-[#24512f]">
+              {importedStrengthCount} strengths are already in the system for this
+              candidate. Gallup uploads import automatically, so there is no
+              separate strengths-generation step.
+            </p>
+            {topStrengthNames.length > 0 ? (
+              <p className="mt-3 text-sm leading-7 text-[#24512f]">
+                Current top strengths: {topStrengthNames.join(", ")}.
+              </p>
+            ) : null}
+          </>
+        ) : sourceDocumentCount > 0 ? (
+          <>
+            <p className="mt-3 text-sm leading-7 text-[#24512f]">
+              Gallup files are archived for this candidate, but no strengths are
+              visible in the system yet.
+            </p>
+            <p className="mt-3 text-sm leading-7 text-[#486454]">
+              {readableDocumentCount > 0
+                ? "At least one archived file has readable text, so you can retry the import from the saved files below."
+                : "The archived files do not currently contain machine-readable text. A text-based PDF, DOCX, CSV, or TXT file is needed before strengths can be imported."}
+            </p>
+            {readableDocumentCount > 0 ? (
+              <button
+                type="button"
+                onClick={handleReimport}
+                disabled={isReimportPending}
+                className="interactive-contrast mt-4 rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+              >
+                {isReimportPending ? "Reimporting strengths..." : "Reimport Archived Files"}
+              </button>
+            ) : null}
+          </>
+        ) : (
+          <p className="mt-3 text-sm leading-7 text-[#24512f]">
+            No Gallup files have been uploaded for this candidate yet.
+          </p>
+        )}
+      </div>
 
       <form
         ref={formRef}
@@ -77,7 +156,7 @@ export function CandidateStrengthsUploadCard({
         <button
           className="interactive-contrast rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
           type="submit"
-          disabled={isPending}
+          disabled={isPending || isReimportPending}
         >
           {isPending ? "Analyzing strengths..." : "Upload Strengths Documents"}
         </button>
