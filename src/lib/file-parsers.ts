@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { existsSync } from "node:fs";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import mammoth from "mammoth";
 import { tmpdir } from "node:os";
@@ -9,9 +10,22 @@ import { ApiRouteError } from "@/lib/api-route";
 
 const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
 const execFileAsync = promisify(execFile);
-const PDF_EXTRACTOR_SCRIPT_PATH = fileURLToPath(
-  new URL("../../scripts/extract-pdf-text.cjs", import.meta.url),
-);
+const PDF_EXTRACTOR_SCRIPT_PATH_CANDIDATES = [
+  join(process.cwd(), "scripts", "extract-pdf-text.cjs"),
+  fileURLToPath(new URL("../../scripts/extract-pdf-text.cjs", import.meta.url)),
+];
+
+function getPdfExtractorScriptPath() {
+  const scriptPath = PDF_EXTRACTOR_SCRIPT_PATH_CANDIDATES.find((candidate) =>
+    existsSync(candidate),
+  );
+
+  if (!scriptPath) {
+    throw new Error("PDF extractor script could not be located.");
+  }
+
+  return scriptPath;
+}
 
 export function getFileExtension(fileName: string) {
   const segments = fileName.toLowerCase().split(".");
@@ -44,7 +58,7 @@ async function extractPdfTextWithNodeProcess(file: File) {
 
     const { stdout } = await execFileAsync(
       process.execPath,
-      [PDF_EXTRACTOR_SCRIPT_PATH, tempFilePath],
+      [getPdfExtractorScriptPath(), tempFilePath],
       {
         maxBuffer: MAX_UPLOAD_SIZE_BYTES * 4,
       },
@@ -111,7 +125,7 @@ export async function extractTextFromUploadedFile(
         error,
       });
       throw new ApiRouteError(
-        "Unable to read text from this PDF. Try a DOCX or TXT version instead.",
+        "Unable to read text from this PDF. If it is image-only or scanned, upload a text-based PDF, DOCX, CSV, or TXT version instead.",
         400,
       );
     }
