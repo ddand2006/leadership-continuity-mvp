@@ -1,10 +1,12 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { requireUser } from "./auth";
+import { syncOrganizationUserAccessOnLogin } from "./organization-user-admin";
 import {
   loadOrganizationSubscription,
   type OrganizationSubscriptionClient,
 } from "./subscription";
+import { createSupabaseAdminClient } from "./supabase/admin";
 import { createSupabaseServerClient } from "./supabase/server";
 
 export type WorkspaceProfile = {
@@ -17,6 +19,7 @@ export type WorkspaceProfile = {
 export const getWorkspaceContext = cache(async () => {
   const user = await requireUser();
   const supabase = await createSupabaseServerClient();
+  const admin = createSupabaseAdminClient();
   const profileResult = await supabase
     .from("profiles")
     .select("id, organization_id, full_name, role")
@@ -25,6 +28,27 @@ export const getWorkspaceContext = cache(async () => {
 
   if (profileResult.error) {
     throw new Error(profileResult.error.message);
+  }
+
+  const account = await syncOrganizationUserAccessOnLogin({
+    admin,
+    authUserId: user.id,
+  });
+
+  if (account?.status === "suspended") {
+    redirect(
+      `/auth/reset-session?message=${encodeURIComponent(
+        "Your account is suspended. Contact your organization administrator.",
+      )}`,
+    );
+  }
+
+  if (account?.status === "archived") {
+    redirect(
+      `/auth/reset-session?message=${encodeURIComponent(
+        "Your account has been archived and can no longer access the system.",
+      )}`,
+    );
   }
 
   return {

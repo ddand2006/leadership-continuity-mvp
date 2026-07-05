@@ -7,6 +7,7 @@ import {
   strengthsLibrary,
 } from "@/lib/bootstrap-data";
 import { isMissingOrganizationIndustryColumnError } from "@/lib/organization-industry";
+import { normalizeEmail } from "@/lib/organization-users";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 function requireData<T>(data: T | null, message: string) {
@@ -27,6 +28,9 @@ export async function initializeWorkspaceForUser(options: {
   console.log("initializeWorkspace:start");
   const admin = createSupabaseAdminClient();
   const { userId, email, fullName, organizationName, industryName } = options;
+  const trimmedName = fullName.trim();
+  const [firstName, ...remainingNameParts] = trimmedName.split(/\s+/);
+  const lastName = remainingNameParts.join(" ") || "Admin";
 
   console.log("initializeWorkspace:user", {
     userId,
@@ -114,8 +118,8 @@ export async function initializeWorkspaceForUser(options: {
     .insert({
       auth_user_id: userId,
       organization_id: organizationId,
-      full_name: fullName,
-      email,
+      full_name: trimmedName,
+      email: normalizeEmail(email),
       role: "system_admin",
     })
     .select("id")
@@ -130,6 +134,24 @@ export async function initializeWorkspaceForUser(options: {
     profileInsertResult.data,
     "Profile creation returned no data.",
   ).id;
+
+  const organizationUserInsertResult = await admin.from("organization_users").insert({
+    organization_id: organizationId,
+    auth_user_id: userId,
+    profile_id: adminProfileId,
+    first_name: firstName || "Admin",
+    last_name: lastName,
+    email: normalizeEmail(email),
+    admin_role: "ceo_admin",
+    status: "active",
+    activated_at: new Date().toISOString(),
+    created_by_profile_id: adminProfileId,
+    updated_by_profile_id: adminProfileId,
+  });
+
+  if (organizationUserInsertResult.error) {
+    throw new Error(organizationUserInsertResult.error.message);
+  }
 
   const strengthsResult = await admin
     .from("strengths_library")

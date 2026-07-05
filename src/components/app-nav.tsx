@@ -1,7 +1,9 @@
 import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
 import { getCurrentUser } from "@/lib/auth";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isPaywallEnabled } from "@/lib/subscription";
+import { isAdminAppRole } from "@/lib/mentor-access";
 
 const resourceNavItems = [
   {
@@ -62,12 +64,30 @@ function getInitials(user: User) {
 
 export async function AppNav({ pathname }: { pathname: string }) {
   const user = await getCurrentUser();
+  let isAdmin = false;
+
+  if (user) {
+    const supabase = await createSupabaseServerClient();
+    const profileResult = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("auth_user_id", user.id)
+      .maybeSingle();
+
+    if (profileResult.error) {
+      throw new Error(profileResult.error.message);
+    }
+
+    isAdmin = profileResult.data ? isAdminAppRole(profileResult.data.role) : false;
+  }
+
   const navItems = [
     { href: "/", label: "Home" },
     { href: "/roles", label: "Roles" },
     { href: "/candidates", label: "Candidates" },
     { href: "/mentoring", label: "Mentoring" },
     { href: "/dashboard", label: "Dashboard" },
+    ...(isAdmin ? [{ href: "/administration", label: "Administration" }] : []),
     ...(isPaywallEnabled() ? [{ href: "/subscribe", label: "Access" }] : []),
   ];
 

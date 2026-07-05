@@ -3,6 +3,7 @@ import {
   loadOrganizationSubscription,
   type OrganizationSubscriptionClient,
 } from "@/lib/subscription";
+import { syncOrganizationUserAccessOnLogin } from "@/lib/organization-user-admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { ADMIN_ROLES } from "@/lib/mentor-access";
@@ -81,6 +82,19 @@ export async function requireApiWorkspaceProfile(options?: {
       "Initialize your workspace profile before using this feature.",
       403,
     );
+  }
+
+  const account = await syncOrganizationUserAccessOnLogin({
+    admin,
+    authUserId: user.id,
+  });
+
+  if (account?.status === "suspended") {
+    throw new ApiRouteError("Your account is suspended.", 403);
+  }
+
+  if (account?.status === "archived") {
+    throw new ApiRouteError("Your account is archived.", 403);
   }
 
   const subscription = await loadOrganizationSubscription(
