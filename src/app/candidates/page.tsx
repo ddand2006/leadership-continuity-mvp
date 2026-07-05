@@ -21,71 +21,166 @@ export default async function CandidatesPage({
   const { candidateId: requestedCandidateId, mode: requestedMode } =
     await searchParams;
   const { account, profile, supabase } = await requirePaidWorkspaceProfile();
+  const isAdmin = isAdminAppRole(profile.role);
+  const accessibleCandidateIds = new Set<string>();
+
+  if (account?.is_candidate && account.candidate_id) {
+    accessibleCandidateIds.add(account.candidate_id);
+  }
+
+  const mentorAssignmentsAccessResult = isAdmin
+    ? { data: [], error: null }
+    : await supabase
+        .from("mentor_role_assignments")
+        .select("candidate_id, role_id, mentor_profile_id, status")
+        .eq("organization_id", profile.organization_id)
+        .eq("mentor_profile_id", profile.id);
+
+  if (mentorAssignmentsAccessResult.error) {
+    throw new Error(mentorAssignmentsAccessResult.error.message);
+  }
+
+  const mentorAssignmentsForAccess = mentorAssignmentsAccessResult.data ?? [];
+  const resolvedAccessibleCandidateIds = getAccessibleCandidateIds({
+    profile,
+    account,
+    mentorAssignments: mentorAssignmentsForAccess,
+  });
+
+  for (const candidateId of resolvedAccessibleCandidateIds ?? []) {
+    accessibleCandidateIds.add(candidateId);
+  }
+
+  const candidateIdFilter = Array.from(accessibleCandidateIds);
+
+  const candidatesResult =
+    !isAdmin && candidateIdFilter.length === 0
+      ? { data: [], error: null }
+      : isAdmin
+        ? await supabase
+            .from("candidates")
+            .select("id, full_name, current_title, target_role_id, status")
+            .eq("organization_id", profile.organization_id)
+            .order("created_at", { ascending: true })
+        : await supabase
+            .from("candidates")
+            .select("id, full_name, current_title, target_role_id, status")
+            .eq("organization_id", profile.organization_id)
+            .in("id", candidateIdFilter)
+            .order("created_at", { ascending: true });
+
+  if (candidatesResult.error) {
+    throw new Error(candidatesResult.error.message);
+  }
+
+  const visibleCandidateIds = (candidatesResult.data ?? []).map(
+    (candidate) => candidate.id,
+  );
+  const hasVisibleCandidates = visibleCandidateIds.length > 0;
+
   const [
-    candidatesResult,
     rolesResult,
     strengthsResult,
-    competenciesResult,
-    panelsResult,
-    scoresResult,
     considerationsResult,
     mentorAssignmentsResult,
+    panelsResult,
     strengthAssessmentsResult,
   ] = await Promise.all([
-    supabase
-      .from("candidates")
-      .select("id, full_name, current_title, target_role_id, status")
-      .eq("organization_id", profile.organization_id)
-      .order("created_at", { ascending: true }),
     supabase
       .from("roles")
       .select("id, title")
       .eq("organization_id", profile.organization_id),
-    supabase
-      .from("candidate_strengths")
-      .select("candidate_id, theme_name, rank, domain")
-      .eq("organization_id", profile.organization_id)
-      .order("rank", { ascending: true }),
-    supabase
-      .from("role_competencies")
-      .select("id, role_id, name, target_score, weight")
-      .eq("organization_id", profile.organization_id),
-    supabase
-      .from("interview_panels")
-      .select("id, candidate_id, role_id")
-      .eq("organization_id", profile.organization_id),
-    supabase
-      .from("interview_scores")
-      .select("panel_id, competency_id, score_numeric, evidence_notes, concern_notes")
-      .eq("organization_id", profile.organization_id),
-    supabase
-      .from("candidate_role_considerations")
-      .select("candidate_id, role_id, is_primary")
-      .eq("organization_id", profile.organization_id),
-    supabase
-      .from("mentor_role_assignments")
-      .select("candidate_id, role_id, mentor_profile_id")
-      .eq("organization_id", profile.organization_id),
-    supabase
-      .from("candidate_role_strength_assessments")
-      .select("candidate_id, role_id, competency_id, strength_score, supporting_strengths, rationale")
-      .eq("organization_id", profile.organization_id),
+    hasVisibleCandidates
+      ? supabase
+          .from("candidate_strengths")
+          .select("candidate_id, theme_name, rank, domain")
+          .eq("organization_id", profile.organization_id)
+          .in("candidate_id", visibleCandidateIds)
+          .order("rank", { ascending: true })
+      : Promise.resolve({ data: [], error: null }),
+    hasVisibleCandidates
+      ? supabase
+          .from("candidate_role_considerations")
+          .select("candidate_id, role_id, is_primary")
+          .eq("organization_id", profile.organization_id)
+          .in("candidate_id", visibleCandidateIds)
+      : Promise.resolve({ data: [], error: null }),
+    hasVisibleCandidates
+      ? supabase
+          .from("mentor_role_assignments")
+          .select("candidate_id, role_id, mentor_profile_id")
+          .eq("organization_id", profile.organization_id)
+          .in("candidate_id", visibleCandidateIds)
+      : Promise.resolve({ data: [], error: null }),
+    hasVisibleCandidates
+      ? supabase
+          .from("interview_panels")
+          .select("id, candidate_id, role_id")
+          .eq("organization_id", profile.organization_id)
+          .in("candidate_id", visibleCandidateIds)
+      : Promise.resolve({ data: [], error: null }),
+    hasVisibleCandidates
+      ? supabase
+          .from("candidate_role_strength_assessments")
+          .select(
+            "candidate_id, role_id, competency_id, strength_score, supporting_strengths, rationale",
+          )
+          .eq("organization_id", profile.organization_id)
+          .in("candidate_id", visibleCandidateIds)
+      : Promise.resolve({ data: [], error: null }),
   ]);
 
   for (const result of [
-    candidatesResult,
     rolesResult,
     strengthsResult,
-    competenciesResult,
-    panelsResult,
-    scoresResult,
     considerationsResult,
     mentorAssignmentsResult,
+    panelsResult,
     strengthAssessmentsResult,
   ]) {
     if (result.error) {
       throw new Error(result.error.message);
     }
+  }
+
+  const relevantRoleIds = Array.from(
+    new Set([
+      ...((candidatesResult.data ?? [])
+        .map((candidate) => candidate.target_role_id)
+        .filter(Boolean) as string[]),
+      ...((considerationsResult.data ?? []).map((item) => item.role_id) as string[]),
+      ...((mentorAssignmentsResult.data ?? []).map((item) => item.role_id) as string[]),
+      ...((panelsResult.data ?? []).map((item) => item.role_id) as string[]),
+      ...((strengthAssessmentsResult.data ?? []).map((item) => item.role_id) as string[]),
+    ]),
+  );
+
+  const competenciesResult =
+    relevantRoleIds.length > 0
+      ? await supabase
+          .from("role_competencies")
+          .select("id, role_id, name, target_score, weight")
+          .eq("organization_id", profile.organization_id)
+          .in("role_id", relevantRoleIds)
+      : { data: [], error: null };
+
+  if (competenciesResult.error) {
+    throw new Error(competenciesResult.error.message);
+  }
+
+  const panelIds = (panelsResult.data ?? []).map((panel) => panel.id);
+  const scoresResult =
+    panelIds.length > 0
+      ? await supabase
+          .from("interview_scores")
+          .select(
+            "panel_id, competency_id, score_numeric, evidence_notes, concern_notes",
+          )
+          .in("panel_id", panelIds)
+      : { data: [], error: null };
+
+  if (scoresResult.error) {
+    throw new Error(scoresResult.error.message);
   }
 
   const roleMap = new Map((rolesResult.data ?? []).map((role) => [role.id, role]));
@@ -147,14 +242,10 @@ export default async function CandidatesPage({
     strengthAssessmentsByCandidateAndRole.set(key, current);
   }
 
-  const accessibleCandidateIds = getAccessibleCandidateIds({
-    profile,
-    account,
-    mentorAssignments: mentorAssignmentsResult.data ?? [],
-  });
-
   const visibleCandidates = (candidatesResult.data ?? []).filter((candidate) =>
-    accessibleCandidateIds ? accessibleCandidateIds.has(candidate.id) : true,
+    resolvedAccessibleCandidateIds
+      ? resolvedAccessibleCandidateIds.has(candidate.id)
+      : true,
   );
 
   const candidateSummaries = visibleCandidates.map((candidate) => {
@@ -217,7 +308,7 @@ export default async function CandidatesPage({
     candidateSummaries.some((candidate) => candidate.id === requestedCandidateId)
       ? requestedCandidateId
       : null;
-  const canCreateCandidates = isAdminAppRole(profile.role);
+  const canCreateCandidates = isAdmin;
 
   return (
     <main className="app-page">
