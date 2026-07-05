@@ -91,11 +91,21 @@ export default function AuthConfirmPage() {
       setErrorMessage("");
 
       try {
-        const { data: initialSessionData } = await supabase.auth.getSession();
+        // Always process the email link before trusting any already-open
+        // browser session, otherwise an admin who is already signed in can
+        // accidentally change their own password while completing someone
+        // else's invite or recovery flow.
+        if (code) {
+          const exchangeResult = await supabase.auth.exchangeCodeForSession(code);
 
-        if (initialSessionData.session) {
-          await finishSession(initialSessionData.session);
-          return;
+          if (exchangeResult.error) {
+            throw exchangeResult.error;
+          }
+
+          if (exchangeResult.data.session) {
+            await finishSession(exchangeResult.data.session);
+            return;
+          }
         }
 
         if (tokenHash && isVerifyOtpType(type)) {
@@ -112,6 +122,24 @@ export default function AuthConfirmPage() {
             await finishSession(verifyResult.data.session);
             return;
           }
+        }
+
+        if (flowMode === "invite" || flowMode === "recovery") {
+          if (active) {
+            setState("error");
+            setErrorMessage(
+              "This invite or password reset link is missing details or has expired. Request a fresh email link and try again.",
+            );
+          }
+
+          return;
+        }
+
+        const { data: initialSessionData } = await supabase.auth.getSession();
+
+        if (initialSessionData.session) {
+          await finishSession(initialSessionData.session);
+          return;
         }
 
         await new Promise((resolvePromise) => window.setTimeout(resolvePromise, 750));
@@ -166,7 +194,7 @@ export default function AuthConfirmPage() {
       active = false;
       subscription.unsubscribe();
     };
-  }, [flowMode, nextPath, supabase, tokenHash, type]);
+  }, [code, flowMode, nextPath, supabase, tokenHash, type]);
 
   async function handlePasswordSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
