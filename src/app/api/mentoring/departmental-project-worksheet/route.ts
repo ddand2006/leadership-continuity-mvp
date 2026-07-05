@@ -4,7 +4,7 @@ import {
   createApiErrorResponse,
   requireApiWorkspaceProfile,
 } from "@/lib/api-route";
-import { isAdminAppRole } from "@/lib/mentor-access";
+import { isAdminAppRole, isCandidateSelfAccess } from "@/lib/mentor-access";
 import {
   departmentalProjectWorksheetPayloadSchema,
   isMissingDepartmentalProjectWorksheetTableError,
@@ -12,18 +12,19 @@ import {
 
 export async function POST(request: Request) {
   try {
-    const { admin, profile } = await requireApiWorkspaceProfile();
+    const { account, admin, profile } = await requireApiWorkspaceProfile();
     const payload = departmentalProjectWorksheetPayloadSchema.parse(
       await request.json(),
     );
 
-    if (!isAdminAppRole(profile.role) && profile.role !== "mentor") {
-      throw new ApiRouteError("Only admins or mentors can save this worksheet.", 403);
-    }
+    const canAccessAsCandidate = isCandidateSelfAccess(account, payload.candidateId);
+    const canAccessAsMentor =
+      (isAdminAppRole(profile.role) || profile.role === "mentor") &&
+      (isAdminAppRole(profile.role) || payload.mentorProfileId === profile.id);
 
-    if (!isAdminAppRole(profile.role) && payload.mentorProfileId !== profile.id) {
+    if (!canAccessAsCandidate && !canAccessAsMentor) {
       throw new ApiRouteError(
-        "Mentors can only save worksheets for their own candidate-role assignments.",
+        "You do not have access to save this worksheet.",
         403,
       );
     }
@@ -123,4 +124,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

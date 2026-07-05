@@ -1,7 +1,11 @@
 import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
 import { getCurrentUser } from "@/lib/auth";
-import { isAdminAppRole, isMentorAppUser } from "@/lib/mentor-access";
+import {
+  isAdminAppRole,
+  isCandidateAppUser,
+  isMentorAppUser,
+} from "@/lib/mentor-access";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isPaywallEnabled } from "@/lib/subscription";
 
@@ -66,6 +70,7 @@ export async function AppNav({ pathname }: { pathname: string }) {
   const user = await getCurrentUser();
   let isAdmin = false;
   let isMentor = false;
+  let isCandidate = false;
   let isCandidateOnly = false;
 
   if (user) {
@@ -96,7 +101,8 @@ export async function AppNav({ pathname }: { pathname: string }) {
       profileResult.data && accountResult.data
         ? isMentorAppUser(profileResult.data, accountResult.data)
         : profileResult.data?.role === "mentor";
-    isCandidateOnly = Boolean(user && !isAdmin && !isMentor && accountResult.data?.is_candidate);
+    isCandidate = isCandidateAppUser(accountResult.data);
+    isCandidateOnly = Boolean(user && !isAdmin && !isMentor && isCandidate);
   }
 
   const navItems = user
@@ -104,7 +110,9 @@ export async function AppNav({ pathname }: { pathname: string }) {
         { href: "/", label: "Home" },
         ...(isAdmin ? [{ href: "/roles", label: "Roles" }] : []),
         { href: "/candidates", label: "Candidates" },
-        ...(isAdmin || isMentor ? [{ href: "/mentoring", label: "Mentoring" }] : []),
+        ...(isAdmin || isMentor || isCandidate
+          ? [{ href: "/mentoring", label: "Mentoring" }]
+          : []),
         ...(isAdmin || isMentor ? [{ href: "/dashboard", label: "Dashboard" }] : []),
         ...(isAdmin ? [{ href: "/administration", label: "Administration" }] : []),
         ...(isPaywallEnabled() ? [{ href: "/subscribe", label: "Access" }] : []),

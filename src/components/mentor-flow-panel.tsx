@@ -55,10 +55,12 @@ function getAssignmentKey(assignment: {
 export function MentorFlowPanel({
   assignments,
   selectedAssignmentKey,
+  canManageAssignments,
   canChooseMentor,
 }: {
   assignments: MentorFlowAssignment[];
   selectedAssignmentKey: string | null;
+  canManageAssignments: boolean;
   canChooseMentor: boolean;
 }) {
   const router = useRouter();
@@ -123,6 +125,20 @@ export function MentorFlowPanel({
       disabled: !selectedAssignment,
     },
   ];
+  const createActionLabel = canChooseMentor ? "Assign mentor" : "Attach candidate";
+  const startLabel = canManageAssignments ? (
+    <>
+      {canChooseMentor ? "ASSIGN" : "ATTACH"}
+      <br />
+      {canChooseMentor ? "MENTOR" : "CANDIDATE"}
+    </>
+  ) : (
+    <>
+      YOUR
+      <br />
+      TRACK
+    </>
+  );
 
   return (
     <section className="theme-panel rounded-[1.75rem] p-8">
@@ -140,11 +156,17 @@ export function MentorFlowPanel({
 
       {assignments.length === 0 ? (
         <div className="mt-6 rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm leading-7 text-slate-600">
-          No mentoring tracks exist yet. Start with{" "}
-          <span className="font-semibold">
-            {canChooseMentor ? "Assign Mentor" : "Attach Candidate"}
-          </span>{" "}
-          to create the first role-based mentoring track.
+          {canManageAssignments ? (
+            <>
+              No mentoring tracks exist yet. Start with{" "}
+              <span className="font-semibold">
+                {canChooseMentor ? "Assign Mentor" : "Attach Candidate"}
+              </span>{" "}
+              to create the first role-based mentoring track.
+            </>
+          ) : (
+            "No mentoring track is assigned to your candidate account yet."
+          )}
         </div>
       ) : null}
 
@@ -159,9 +181,7 @@ export function MentorFlowPanel({
                 className="px-4 text-center text-lg font-semibold leading-6"
                 style={{ transform: "rotate(-45deg)" }}
               >
-                {canChooseMentor ? "ASSIGN" : "ATTACH"}
-                <br />
-                {canChooseMentor ? "MENTOR" : "CANDIDATE"}
+                {startLabel}
               </span>
             </div>
           </div>
@@ -173,7 +193,9 @@ export function MentorFlowPanel({
               <select
                 className={FLOWCHART_SELECT_INPUT_CLASS}
                 value={
-                  currentSection === "mentor-assignments" && !selectedAssignment
+                  canManageAssignments &&
+                  currentSection === "mentor-assignments" &&
+                  !selectedAssignment
                     ? CREATE_MENTOR_TRACK_VALUE
                     : (selectedAssignment ? getAssignmentKey(selectedAssignment) : "")
                 }
@@ -195,9 +217,11 @@ export function MentorFlowPanel({
                 <option value="" className="text-slate-900">
                   Select mentoring track
                 </option>
-                <option value={CREATE_MENTOR_TRACK_VALUE} className="text-slate-900">
-                  {canChooseMentor ? "Assign mentor" : "Attach candidate"}
-                </option>
+                {canManageAssignments ? (
+                  <option value={CREATE_MENTOR_TRACK_VALUE} className="text-slate-900">
+                    {createActionLabel}
+                  </option>
+                ) : null}
                 {assignments.map((assignment) => (
                   <option
                     key={getAssignmentKey(assignment)}
@@ -263,7 +287,9 @@ export function MentorFlowPanel({
               Start
             </p>
             <p className="mt-2 text-2xl font-semibold">
-              {canChooseMentor ? "Assign Mentor" : "Attach Candidate"}
+              {canManageAssignments
+                ? (canChooseMentor ? "Assign Mentor" : "Attach Candidate")
+                : "Your Mentoring Track"}
             </p>
           </div>
 
@@ -274,7 +300,9 @@ export function MentorFlowPanel({
             <select
               className={FLOWCHART_SELECT_INPUT_CLASS}
               value={
-                currentSection === "mentor-assignments" && !selectedAssignment
+                canManageAssignments &&
+                currentSection === "mentor-assignments" &&
+                !selectedAssignment
                   ? CREATE_MENTOR_TRACK_VALUE
                   : (selectedAssignment ? getAssignmentKey(selectedAssignment) : "")
               }
@@ -296,9 +324,11 @@ export function MentorFlowPanel({
               <option value="" className="text-slate-900">
                 Select mentoring track
               </option>
-              <option value={CREATE_MENTOR_TRACK_VALUE} className="text-slate-900">
-                {canChooseMentor ? "Assign mentor" : "Attach candidate"}
-              </option>
+              {canManageAssignments ? (
+                <option value={CREATE_MENTOR_TRACK_VALUE} className="text-slate-900">
+                  {createActionLabel}
+                </option>
+              ) : null}
               {assignments.map((assignment) => (
                 <option
                   key={getAssignmentKey(assignment)}

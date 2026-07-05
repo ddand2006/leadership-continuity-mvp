@@ -9,7 +9,11 @@ import { LeadershipDevelopmentRecordManager } from "@/components/leadership-deve
 import { MentoringWorkspaceMenu } from "@/components/mentoring-workspace-menu";
 import { isMissingCrossDepartmentalProjectWorksheetTableError } from "@/lib/mentoring-cross-departmental-project-worksheet";
 import { isMissingDepartmentalProjectWorksheetTableError } from "@/lib/mentoring-departmental-project-worksheet";
-import { isAdminAppRole, isMentorAppUser } from "@/lib/mentor-access";
+import {
+  isAdminAppRole,
+  isCandidateAppUser,
+  isMentorAppUser,
+} from "@/lib/mentor-access";
 import { isMissingPreparationWorksheetTableError } from "@/lib/mentoring-preparation-worksheet";
 import { requirePaidWorkspaceProfile } from "@/lib/workspace";
 
@@ -40,8 +44,13 @@ export default async function MentoringPage({
     section: requestedSection,
   } = await searchParams;
   const { account, profile, supabase } = await requirePaidWorkspaceProfile();
+  const isAdmin = isAdminAppRole(profile.role);
+  const isMentor = isMentorAppUser(profile, account);
+  const isCandidate = isCandidateAppUser(account);
+  const candidateIdForSelfAccess = account?.candidate_id ?? null;
+  const canManageMentorAssignments = isAdmin || isMentor;
 
-  if (!isAdminAppRole(profile.role) && !isMentorAppUser(profile, account)) {
+  if (!isAdmin && !isMentor && !isCandidate) {
     redirect(
       "/candidates?message=Candidate+accounts+can+only+view+their+own+candidate+records",
     );
@@ -135,32 +144,42 @@ export default async function MentoringPage({
     (reportsResult.data ?? []).map((report) => `${report.candidate_id}:${report.role_id}`),
   );
 
-  const visibleAssignments = isAdminAppRole(profile.role)
+  const visibleAssignments = isAdmin
     ? mentorAssignmentsResult.data ?? []
-    : (mentorAssignmentsResult.data ?? []).filter(
-        (assignment) => assignment.mentor_profile_id === profile.id,
+    : (mentorAssignmentsResult.data ?? []).filter((assignment) =>
+        isMentor
+          ? assignment.mentor_profile_id === profile.id
+          : candidateIdForSelfAccess !== null &&
+            assignment.candidate_id === candidateIdForSelfAccess,
       );
-  const visibleRoleOptions = isAdminAppRole(profile.role)
+  const visibleRoleOptions = isAdmin
     ? rolesResult.data ?? []
-    : (rolesResult.data ?? []).filter((role) =>
+    : isMentor
+      ? (rolesResult.data ?? []).filter((role) =>
         (roleMentorAssignmentsResult.data ?? []).some(
           (assignment) =>
             assignment.role_id === role.id &&
             assignment.mentor_profile_id === profile.id &&
             assignment.status === "active",
         ),
-      );
-  const visibleMentorOptions = isAdminAppRole(profile.role)
+      )
+      : [];
+  const visibleMentorOptions = isAdmin
     ? mentorsResult.data ?? []
-    : (mentorsResult.data ?? []).filter((mentor) => mentor.id === profile.id);
+    : isMentor
+      ? (mentorsResult.data ?? []).filter((mentor) => mentor.id === profile.id)
+      : [];
+  const allowedSectionIds = new Set([
+    "overview",
+    "preparation-worksheet",
+    "leadership-development-record",
+    "departmental-project",
+    "cross-departmental-project",
+    "readiness-review",
+    ...(canManageMentorAssignments ? ["mentor-assignments"] : []),
+  ]);
   const selectedSectionId =
-    requestedSection === "mentor-assignments" ||
-    requestedSection === "preparation-worksheet" ||
-    requestedSection === "leadership-development-record" ||
-    requestedSection === "departmental-project" ||
-    requestedSection === "cross-departmental-project" ||
-    requestedSection === "readiness-review" ||
-    requestedSection === "overview"
+    requestedSection && allowedSectionIds.has(requestedSection)
       ? requestedSection
       : "overview";
   const requestedAssignmentKey =
@@ -478,7 +497,7 @@ export default async function MentoringPage({
       (assignment) => getAssignmentKey(assignment) === requestedAssignmentKey,
     )
       ? requestedAssignmentKey
-      : null;
+      : (visibleAssignments[0] ? getAssignmentKey(visibleAssignments[0]) : null);
   const isResourceSection =
     selectedSectionId === "preparation-worksheet" ||
     selectedSectionId === "departmental-project" ||
@@ -554,95 +573,99 @@ export default async function MentoringPage({
         </>
       ),
     },
-    {
-      id: "mentor-assignments",
-      label: "Mentor Assignments",
-      content: (
-        <>
-          {(isAdminAppRole(profile.role) || visibleRoleOptions.length > 0) ? (
-            <MentorAssignmentManager
-              candidates={(candidatesResult.data ?? []).map((candidate) => ({
-                id: candidate.id,
-                full_name: candidate.full_name,
-              }))}
-              roles={visibleRoleOptions.map((role) => ({
-                id: role.id,
-                title: role.title,
-              }))}
-              mentors={visibleMentorOptions.map((mentor) => ({
-                id: mentor.id,
-                full_name: mentor.full_name,
-                position_title: mentor.position_title,
-              }))}
-              canChooseMentor={isAdminAppRole(profile.role)}
-            />
-          ) : null}
+    ...(canManageMentorAssignments
+      ? [
+          {
+            id: "mentor-assignments",
+            label: "Mentor Assignments",
+            content: (
+              <>
+                {(isAdmin || visibleRoleOptions.length > 0) ? (
+                  <MentorAssignmentManager
+                    candidates={(candidatesResult.data ?? []).map((candidate) => ({
+                      id: candidate.id,
+                      full_name: candidate.full_name,
+                    }))}
+                    roles={visibleRoleOptions.map((role) => ({
+                      id: role.id,
+                      title: role.title,
+                    }))}
+                    mentors={visibleMentorOptions.map((mentor) => ({
+                      id: mentor.id,
+                      full_name: mentor.full_name,
+                      position_title: mentor.position_title,
+                    }))}
+                    canChooseMentor={isAdmin}
+                  />
+                ) : null}
 
-          <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
-                  Mentor Assignments
-                </p>
-                <h2 className="mt-3 font-display text-3xl text-slate-900">
-                  Current candidate-role assignments
-                </h2>
-              </div>
-              <Link
-                href="/candidates"
-                className="interactive-contrast rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-900"
-              >
-                Open Candidates
-              </Link>
-            </div>
-
-            <div className="mt-6 grid gap-3">
-              {visibleAssignments.length > 0 ? (
-                visibleAssignments.map((assignment) => {
-                  const candidate = candidateMap.get(assignment.candidate_id);
-                  const role = roleMap.get(assignment.role_id);
-                  const mentor = mentorMap.get(assignment.mentor_profile_id);
-                  const hasReport = candidateRolePairsWithReports.has(
-                    `${assignment.candidate_id}:${assignment.role_id}`,
-                  );
-
-                  return (
+                <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
+                        Mentor Assignments
+                      </p>
+                      <h2 className="mt-3 font-display text-3xl text-slate-900">
+                        Current candidate-role assignments
+                      </h2>
+                    </div>
                     <Link
-                      key={`${assignment.candidate_id}-${assignment.role_id}-${assignment.mentor_profile_id}`}
-                      href={`/candidates/${assignment.candidate_id}?roleId=${assignment.role_id}`}
-                      className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700 transition hover:-translate-y-0.5 hover:shadow-[0_20px_60px_rgba(15,23,42,0.06)]"
+                      href="/candidates"
+                      className="interactive-contrast rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-900"
                     >
-                      <p className="font-semibold text-slate-900">
-                        {candidate?.full_name ?? "Unknown candidate"}
-                      </p>
-                      <p className="mt-1 text-slate-600">
-                        Role: {role?.title ?? "Unknown role"}
-                      </p>
-                      <p className="mt-1 text-slate-600">
-                        Mentor: {mentor?.full_name ?? "Unknown mentor"}
-                      </p>
-                      <p className="mt-1 text-slate-600">
-                        Start date: {assignment.start_date || "Not set"}
-                      </p>
-                      <p className="mt-1 text-slate-600">
-                        Report status:{" "}
-                        {hasReport ? "Report generated" : "Needs mentor report"}
-                      </p>
+                      Open Candidates
                     </Link>
-                  );
-                })
-              ) : (
-                <article className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm leading-7 text-slate-600">
-                  {isAdminAppRole(profile.role)
-                    ? "No mentor assignments exist yet. Create the first candidate-role assignment above."
-                    : "No candidate-role assignments are attached to your mentor account yet."}
-                </article>
-              )}
-            </div>
-          </section>
-        </>
-      ),
-    },
+                  </div>
+
+                  <div className="mt-6 grid gap-3">
+                    {visibleAssignments.length > 0 ? (
+                      visibleAssignments.map((assignment) => {
+                        const candidate = candidateMap.get(assignment.candidate_id);
+                        const role = roleMap.get(assignment.role_id);
+                        const mentor = mentorMap.get(assignment.mentor_profile_id);
+                        const hasReport = candidateRolePairsWithReports.has(
+                          `${assignment.candidate_id}:${assignment.role_id}`,
+                        );
+
+                        return (
+                          <Link
+                            key={`${assignment.candidate_id}-${assignment.role_id}-${assignment.mentor_profile_id}`}
+                            href={`/candidates/${assignment.candidate_id}?roleId=${assignment.role_id}`}
+                            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700 transition hover:-translate-y-0.5 hover:shadow-[0_20px_60px_rgba(15,23,42,0.06)]"
+                          >
+                            <p className="font-semibold text-slate-900">
+                              {candidate?.full_name ?? "Unknown candidate"}
+                            </p>
+                            <p className="mt-1 text-slate-600">
+                              Role: {role?.title ?? "Unknown role"}
+                            </p>
+                            <p className="mt-1 text-slate-600">
+                              Mentor: {mentor?.full_name ?? "Unknown mentor"}
+                            </p>
+                            <p className="mt-1 text-slate-600">
+                              Start date: {assignment.start_date || "Not set"}
+                            </p>
+                            <p className="mt-1 text-slate-600">
+                              Report status:{" "}
+                              {hasReport ? "Report generated" : "Needs mentor report"}
+                            </p>
+                          </Link>
+                        );
+                      })
+                    ) : (
+                      <article className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm leading-7 text-slate-600">
+                        {isAdmin
+                          ? "No mentor assignments exist yet. Create the first candidate-role assignment above."
+                          : "No candidate-role assignments are attached to your mentor account yet."}
+                      </article>
+                    )}
+                  </div>
+                </section>
+              </>
+            ),
+          },
+        ]
+      : []),
     {
       id: "preparation-worksheet",
       label: "Preparation Worksheet",
@@ -741,12 +764,14 @@ export default async function MentoringPage({
               Mentoring Workflow
             </p>
             <h1 className="mt-3 font-display text-5xl leading-tight text-slate-900">
-              Manage mentoring by candidate and role
+              {canManageMentorAssignments
+                ? "Manage mentoring by candidate and role"
+                : "View your mentoring by role"}
             </h1>
             <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">
-              Mentors are now attached to the candidate through a specific role.
-              That means one candidate can sit in more than one role track, with a
-              different mentor assigned to each track when needed.
+              {canManageMentorAssignments
+                ? "Mentors are now attached to the candidate through a specific role. That means one candidate can sit in more than one role track, with a different mentor assigned to each track when needed."
+                : "Your mentoring workspace is limited to role tracks assigned to your candidate account, so you can review your own development work without seeing anyone else's information."}
             </p>
           </section>
         ) : null}
@@ -784,7 +809,8 @@ export default async function MentoringPage({
               ),
             }))}
             selectedAssignmentKey={selectedAssignmentKey}
-            canChooseMentor={isAdminAppRole(profile.role)}
+            canManageAssignments={canManageMentorAssignments}
+            canChooseMentor={isAdmin}
           />
         ) : null}
 

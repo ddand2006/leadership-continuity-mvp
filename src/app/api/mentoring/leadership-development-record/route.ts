@@ -5,7 +5,11 @@ import {
   createApiErrorResponse,
   requireApiWorkspaceProfile,
 } from "@/lib/api-route";
-import { isAdminAppRole } from "@/lib/mentor-access";
+import {
+  isAdminAppRole,
+  isCandidateSelfAccess,
+} from "@/lib/mentor-access";
+import type { OrganizationUserRecord } from "@/lib/organization-users";
 import {
   calculateLeadershipDevelopmentGapRemaining,
   calculateLeadershipDevelopmentImprovement,
@@ -37,20 +41,34 @@ function assertScore(value: string, fieldLabel: string) {
   return parsed;
 }
 
-function ensureMentorCanAccessRecord(profile: { id: string; role: string }, mentorId: string) {
-  if (!isAdminAppRole(profile.role) && profile.role !== "mentor") {
-    throw new ApiRouteError(
-      "Only admins or mentors can manage leadership development records.",
-      403,
-    );
+function ensureUserCanAccessRecord(options: {
+  account: Pick<
+    OrganizationUserRecord,
+    "candidate_id" | "is_candidate" | "is_mentor" | "admin_role"
+  > | null;
+  profile: { id: string; role: string };
+  candidateId: string;
+  mentorId: string;
+}) {
+  if (isAdminAppRole(options.profile.role)) {
+    return;
   }
 
-  if (!isAdminAppRole(profile.role) && mentorId !== profile.id) {
-    throw new ApiRouteError(
-      "Mentors can only manage records for their own candidate-role assignments.",
-      403,
-    );
+  if (
+    options.profile.role === "mentor" &&
+    options.mentorId === options.profile.id
+  ) {
+    return;
   }
+
+  if (isCandidateSelfAccess(options.account, options.candidateId)) {
+    return;
+  }
+
+  throw new ApiRouteError(
+    "You do not have access to this leadership development record.",
+    403,
+  );
 }
 
 async function ensureAssignmentExists(options: {
@@ -188,7 +206,7 @@ function normalizeRecordFromDatabase(record: {
 
 export async function GET(request: Request) {
   try {
-    const { admin, profile } = await requireApiWorkspaceProfile();
+    const { account, admin, profile } = await requireApiWorkspaceProfile();
     const url = new URL(request.url);
     const query = leadershipDevelopmentQuerySchema.parse({
       candidateId: url.searchParams.get("candidateId"),
@@ -196,7 +214,12 @@ export async function GET(request: Request) {
       mentorId: url.searchParams.get("mentorId"),
     });
 
-    ensureMentorCanAccessRecord(profile, query.mentorId);
+    ensureUserCanAccessRecord({
+      account,
+      profile,
+      candidateId: query.candidateId,
+      mentorId: query.mentorId,
+    });
     await ensureAssignmentExists({
       admin,
       organizationId: profile.organization_id,
@@ -317,10 +340,15 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { admin, profile } = await requireApiWorkspaceProfile();
+    const { account, admin, profile } = await requireApiWorkspaceProfile();
     const payload = leadershipDevelopmentRecordPayloadSchema.parse(await request.json());
 
-    ensureMentorCanAccessRecord(profile, payload.mentorId);
+    ensureUserCanAccessRecord({
+      account,
+      profile,
+      candidateId: payload.candidateId,
+      mentorId: payload.mentorId,
+    });
     await ensureAssignmentExists({
       admin,
       organizationId: profile.organization_id,

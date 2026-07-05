@@ -30,6 +30,10 @@ export function isMentorAppUser(
   return profile.role === "mentor" || Boolean(account?.is_mentor);
 }
 
+export function isCandidateAppUser(account: AccessAccount) {
+  return Boolean(account?.is_candidate && account.candidate_id);
+}
+
 export function isCandidateSelfAccess(
   account: AccessAccount,
   candidateId: string,
