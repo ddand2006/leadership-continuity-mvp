@@ -203,7 +203,7 @@ export default async function CandidateDetailPage({
             .order("created_at", { ascending: true }),
           supabase
             .from("interview_panels")
-            .select("id, panel_name, date_completed")
+            .select("id, panel_name, date_completed, created_at")
             .eq("organization_id", profile.organization_id)
             .eq("candidate_id", candidate.id)
             .eq("role_id", activeRoleId),
@@ -332,6 +332,13 @@ export default async function CandidateDetailPage({
         return rightDate.localeCompare(leftDate);
       }
 
+      const leftCreatedAt = left.created_at ?? "";
+      const rightCreatedAt = right.created_at ?? "";
+
+      if (leftCreatedAt !== rightCreatedAt) {
+        return rightCreatedAt.localeCompare(leftCreatedAt);
+      }
+
       return left.panel_name.localeCompare(right.panel_name);
     })
     .map((panel) => {
@@ -348,6 +355,7 @@ export default async function CandidateDetailPage({
         id: panel.id,
         panelName: panel.panel_name,
         dateCompleted: panel.date_completed,
+        createdAt: panel.created_at,
         averageScore: averageScore !== null ? Number(averageScore.toFixed(2)) : null,
         scores: panelScores.map((score) => ({
           competencyId: score.competency_id,

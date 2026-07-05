@@ -8,6 +8,7 @@ import {
 import { isAdminAppRole } from "@/lib/mentor-access";
 
 const payloadSchema = z.object({
+  panelId: z.string().uuid().nullable().optional(),
   candidateId: z.string().uuid(),
   roleId: z.string().uuid(),
   panelName: z.string().min(1),
@@ -35,7 +36,7 @@ export async function POST(request: Request) {
       candidateResult,
       roleResult,
       mentorAssignmentResult,
-      existingPanelResult,
+      editablePanelResult,
       competenciesResult,
     ] = await Promise.all([
       admin
@@ -56,14 +57,16 @@ export async function POST(request: Request) {
         .eq("organization_id", profile.organization_id)
         .eq("candidate_id", payload.candidateId)
         .eq("role_id", payload.roleId),
-      admin
-        .from("interview_panels")
-        .select("id")
-        .eq("organization_id", profile.organization_id)
-        .eq("candidate_id", payload.candidateId)
-        .eq("role_id", payload.roleId)
-        .eq("panel_name", payload.panelName.trim())
-        .maybeSingle(),
+      payload.panelId
+        ? admin
+            .from("interview_panels")
+            .select("id")
+            .eq("organization_id", profile.organization_id)
+            .eq("id", payload.panelId)
+            .eq("candidate_id", payload.candidateId)
+            .eq("role_id", payload.roleId)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
       admin
         .from("role_competencies")
         .select("id")
@@ -75,7 +78,7 @@ export async function POST(request: Request) {
       candidateResult,
       roleResult,
       mentorAssignmentResult,
-      existingPanelResult,
+      editablePanelResult,
       competenciesResult,
     ]) {
       if (result.error) {
@@ -85,6 +88,13 @@ export async function POST(request: Request) {
 
     if (!candidateResult.data || !roleResult.data) {
       throw new ApiRouteError("The candidate or role could not be found.", 404);
+    }
+
+    if (payload.panelId && !editablePanelResult.data) {
+      throw new ApiRouteError(
+        "The saved interview panel could not be found for editing.",
+        404,
+      );
     }
 
     const mentorHasAccess = (mentorAssignmentResult.data ?? []).some(
@@ -116,7 +126,7 @@ export async function POST(request: Request) {
       );
     }
 
-    let panelId = existingPanelResult.data?.id ?? null;
+    let panelId = payload.panelId ? editablePanelResult.data?.id ?? null : null;
 
     if (!panelId) {
       const panelInsertResult = await admin
@@ -140,6 +150,7 @@ export async function POST(request: Request) {
       const panelUpdateResult = await admin
         .from("interview_panels")
         .update({
+          panel_name: payload.panelName.trim(),
           date_completed: payload.dateCompleted,
         })
         .eq("organization_id", profile.organization_id)
@@ -170,7 +181,9 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({
-      message: `Interview scores saved for "${candidateResult.data.full_name}" in ${roleResult.data.title}.`,
+      message: payload.panelId
+        ? `Interview scores updated for "${candidateResult.data.full_name}" in ${roleResult.data.title}.`
+        : `Interview scores saved for "${candidateResult.data.full_name}" in ${roleResult.data.title}.`,
       panelId,
     });
   } catch (error) {

@@ -18,6 +18,7 @@ type InterviewScoreEntryPanelProps = {
     id: string;
     panelName: string;
     dateCompleted: string | null;
+    createdAt: string | null;
     averageScore: number | null;
     scores: Array<{
       competencyId: string;
@@ -512,6 +513,7 @@ export function InterviewScoreEntryPanel({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          panelId: selectedPanelId,
           candidateId,
           roleId,
           panelName,
