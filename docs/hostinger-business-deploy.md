@@ -15,9 +15,12 @@ If it does not, this app should be moved to a Hostinger VPS or another Node-capa
 ## Runtime
 
 - Node.js: `20.9+`
+- pnpm: `10.33.0` via the `packageManager` field in `package.json`
 - Install command: `pnpm install --frozen-lockfile`
 - Build command: `pnpm build`
 - Start command: `pnpm start`
+
+If Hostinger falls back to a newer Corepack-managed `pnpm` release and the install step crashes before the app builds, confirm the project is deploying with the pinned `packageManager` value from `package.json` instead of Hostinger's default.
 
 ## Required environment variables
 
