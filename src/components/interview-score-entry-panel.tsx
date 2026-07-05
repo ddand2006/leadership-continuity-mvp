@@ -7,6 +7,8 @@ type InterviewScoreEntryPanelProps = {
   candidateId: string;
   roleId: string | null;
   roleTitle: string | null;
+  readOnly?: boolean;
+  canEditTargetScores?: boolean;
   competencies: Array<{
     id: string;
     name: string;
@@ -298,6 +300,8 @@ export function InterviewScoreEntryPanel({
   candidateId,
   roleId,
   roleTitle,
+  readOnly = false,
+  canEditTargetScores = true,
   competencies,
   existingPanels,
 }: InterviewScoreEntryPanelProps) {
@@ -537,21 +541,24 @@ export function InterviewScoreEntryPanel({
         Interview Scoring
       </p>
       <h2 className="mt-3 font-display text-3xl text-slate-900">
-        Submit interviewer feedback for this role
+        {readOnly
+          ? "Review interviewer feedback for this role"
+          : "Submit interviewer feedback for this role"}
       </h2>
       <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600">
-        After the interview is complete, score the candidate against each role
-        competency, add evidence from the conversation, and capture any concerns
-        that should shape readiness decisions.
+        {readOnly
+          ? "Interview scoring remains visible here for context, but only assigned mentors and organization administrators can add or update scores."
+          : "After the interview is complete, score the candidate against each role competency, add evidence from the conversation, and capture any concerns that should shape readiness decisions."}
       </p>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <button
           type="button"
           onClick={resetForm}
+          disabled={readOnly}
           className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-teal-400 hover:text-teal-800"
         >
-          Start a new interview round
+          {readOnly ? "Viewing saved interview rounds" : "Start a new interview round"}
         </button>
         {isEditingExistingPanel ? (
           <p className="text-sm text-slate-600">
@@ -624,6 +631,7 @@ export function InterviewScoreEntryPanel({
                               min="1"
                               max="5"
                               step="0.1"
+                              disabled={readOnly || !canEditTargetScores}
                               value={targetScores[competency.id] ?? ""}
                               onChange={(event) =>
                                 updateTargetScore(
@@ -638,7 +646,10 @@ export function InterviewScoreEntryPanel({
                               type="button"
                               onClick={() => handleTargetScoreSave(competency.id)}
                               disabled={
-                                !roleId || savingTargetCompetencyId === competency.id
+                                readOnly ||
+                                !canEditTargetScores ||
+                                !roleId ||
+                                savingTargetCompetencyId === competency.id
                               }
                               className="interactive-contrast rounded-full bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-teal-900 disabled:cursor-not-allowed disabled:bg-slate-300"
                             >
@@ -659,6 +670,7 @@ export function InterviewScoreEntryPanel({
                             min="0"
                             max="5"
                             step="0.1"
+                            disabled={readOnly}
                             value={scores[competency.id]?.scoreNumeric ?? ""}
                             onChange={(event) =>
                               updateScoreField(
@@ -706,6 +718,7 @@ export function InterviewScoreEntryPanel({
                         </span>
                         <textarea
                           className="min-h-24 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500"
+                          disabled={readOnly}
                           value={scores[competency.id]?.evidenceNotes ?? ""}
                           onChange={(event) =>
                             updateScoreField(
@@ -723,6 +736,7 @@ export function InterviewScoreEntryPanel({
                         </span>
                         <textarea
                           className="min-h-24 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500"
+                          disabled={readOnly}
                           value={scores[competency.id]?.concernNotes ?? ""}
                           onChange={(event) =>
                             updateScoreField(
@@ -746,16 +760,23 @@ export function InterviewScoreEntryPanel({
             )}
           </div>
 
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={isPending || !roleId || competencies.length === 0}
-              className="interactive-contrast rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-900 disabled:cursor-not-allowed disabled:bg-slate-300"
-            >
-              {isPending ? "Saving Interview Scores..." : "Save Interview Scores"}
-            </button>
-          </div>
+          {readOnly ? (
+            <p className="text-sm leading-7 text-slate-600">
+              This account can review saved interview history but cannot edit or
+              submit interview scoring.
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={isPending || !roleId || competencies.length === 0}
+                className="interactive-contrast rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-900 disabled:cursor-not-allowed disabled:bg-slate-300"
+              >
+                {isPending ? "Saving Interview Scores..." : "Save Interview Scores"}
+              </button>
+            </div>
+          )}
 
           {targetScoreError ? (
             <p className="text-sm text-rose-700">{targetScoreError}</p>
@@ -808,7 +829,13 @@ export function InterviewScoreEntryPanel({
                       onClick={() => loadExistingPanel(panel.id)}
                       className="rounded-full border border-[#9fd2ad] bg-white px-3 py-2 text-xs font-semibold text-[#24512f] transition hover:border-teal-500 hover:text-teal-800"
                     >
-                      {selectedPanelId === panel.id ? "Editing this panel" : "Edit saved panel"}
+                      {selectedPanelId === panel.id
+                        ? readOnly
+                          ? "Viewing this panel"
+                          : "Editing this panel"
+                        : readOnly
+                          ? "View saved panel"
+                          : "Edit saved panel"}
                     </button>
                     <button
                       type="button"

@@ -1,9 +1,16 @@
 import Link from "next/link";
+import { getAccessibleCandidateIds } from "@/lib/mentor-access";
 import { requirePaidWorkspaceProfile } from "@/lib/workspace";
 
 export default async function ReportsFormsPage() {
-  const { profile, supabase } = await requirePaidWorkspaceProfile();
-  const [reportsResult, documentsResult, candidatesResult, rolesResult] =
+  const { account, profile, supabase } = await requirePaidWorkspaceProfile();
+  const [
+    reportsResult,
+    documentsResult,
+    candidatesResult,
+    rolesResult,
+    mentorAssignmentsResult,
+  ] =
     await Promise.all([
       supabase
         .from("mentor_reports")
@@ -23,6 +30,10 @@ export default async function ReportsFormsPage() {
         .from("roles")
         .select("id, title")
         .eq("organization_id", profile.organization_id),
+      supabase
+        .from("mentor_role_assignments")
+        .select("candidate_id, role_id, mentor_profile_id, status")
+        .eq("organization_id", profile.organization_id),
     ]);
 
   for (const result of [
@@ -30,14 +41,30 @@ export default async function ReportsFormsPage() {
     documentsResult,
     candidatesResult,
     rolesResult,
+    mentorAssignmentsResult,
   ]) {
     if (result.error) {
       throw new Error(result.error.message);
     }
   }
 
+  const accessibleCandidateIds = getAccessibleCandidateIds({
+    profile,
+    account,
+    mentorAssignments: mentorAssignmentsResult.data ?? [],
+  });
+  const visibleReports = (reportsResult.data ?? []).filter((report) =>
+    accessibleCandidateIds ? accessibleCandidateIds.has(report.candidate_id) : true,
+  );
+  const visibleDocuments = (documentsResult.data ?? []).filter((document) =>
+    accessibleCandidateIds ? accessibleCandidateIds.has(document.candidate_id) : true,
+  );
+  const visibleCandidates = (candidatesResult.data ?? []).filter((candidate) =>
+    accessibleCandidateIds ? accessibleCandidateIds.has(candidate.id) : true,
+  );
+
   const candidateMap = new Map(
-    (candidatesResult.data ?? []).map((candidate) => [candidate.id, candidate]),
+    visibleCandidates.map((candidate) => [candidate.id, candidate]),
   );
   const roleMap = new Map((rolesResult.data ?? []).map((role) => [role.id, role]));
 
@@ -65,7 +92,7 @@ export default async function ReportsFormsPage() {
               Generated Mentor Reports
             </p>
             <p className="mt-3 text-4xl font-semibold text-slate-900">
-              {reportsResult.data?.length ?? 0}
+              {visibleReports.length}
             </p>
           </article>
           <article className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
@@ -73,7 +100,7 @@ export default async function ReportsFormsPage() {
               Uploaded Source Documents
             </p>
             <p className="mt-3 text-4xl font-semibold text-slate-900">
-              {documentsResult.data?.length ?? 0}
+              {visibleDocuments.length}
             </p>
           </article>
           <article className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
@@ -106,8 +133,8 @@ export default async function ReportsFormsPage() {
             </div>
 
             <div className="mt-6 grid gap-3">
-              {(reportsResult.data ?? []).length > 0 ? (
-                (reportsResult.data ?? []).slice(0, 8).map((report) => (
+              {visibleReports.length > 0 ? (
+                visibleReports.slice(0, 8).map((report) => (
                   <article
                     key={report.id}
                     className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700"
@@ -140,8 +167,8 @@ export default async function ReportsFormsPage() {
               Uploaded Forms and Files
             </p>
             <div className="mt-6 grid gap-3 text-sm leading-7 text-[#24512f]">
-              {(documentsResult.data ?? []).length > 0 ? (
-                (documentsResult.data ?? []).slice(0, 8).map((document) => (
+              {visibleDocuments.length > 0 ? (
+                visibleDocuments.slice(0, 8).map((document) => (
                   <article
                     key={document.id}
                     className="emerald-soft-surface rounded-2xl border px-4 py-4"

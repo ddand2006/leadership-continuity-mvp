@@ -19,7 +19,7 @@ import {
   rankMentoringIdeasForCompetency,
   type DevelopmentProjectRecord,
 } from "@/lib/fit-analysis";
-import { isAdminAppRole } from "@/lib/mentor-access";
+import { isAdminAppRole, isCandidateSelfAccess } from "@/lib/mentor-access";
 import {
   buildRoleMatchesWeakestToStrongest,
   MentorReport,
@@ -46,7 +46,7 @@ export default async function CandidateDetailPage({
   const { candidateId } = await params;
   const { roleId: requestedRoleId, section: requestedSection } =
     await searchParams;
-  const { profile, supabase } = await requirePaidWorkspaceProfile();
+  const { account, profile, supabase } = await requirePaidWorkspaceProfile();
   const canGenerateReport = hasOpenAIEnv();
   const admin = createSupabaseAdminClient();
 
@@ -131,19 +131,30 @@ export default async function CandidateDetailPage({
     mentorMap.has(assignment.mentor_profile_id),
   );
 
-  const accessibleRoleIds = isAdminAppRole(profile.role)
-    ? considerations.map((item) => item.role_id)
-    : displayableMentorAssignments
-        .filter((assignment) => assignment.mentor_profile_id === profile.id)
-        .map((assignment) => assignment.role_id);
+  const isAdmin = isAdminAppRole(profile.role);
+  const canViewOwnCandidate = isCandidateSelfAccess(account, candidateId);
+  const allCandidateRoleIds = Array.from(
+    new Set([
+      ...considerations.map((item) => item.role_id),
+      ...(candidate.target_role_id ? [candidate.target_role_id] : []),
+    ]),
+  );
+  const mentorAccessibleRoleIds = displayableMentorAssignments
+    .filter(
+      (assignment) =>
+        assignment.mentor_profile_id === profile.id && assignment.status === "active",
+    )
+    .map((assignment) => assignment.role_id);
+  const accessibleRoleIds =
+    isAdmin || canViewOwnCandidate ? allCandidateRoleIds : mentorAccessibleRoleIds;
 
-  if (!isAdminAppRole(profile.role) && accessibleRoleIds.length === 0) {
+  if (!isAdmin && !canViewOwnCandidate && accessibleRoleIds.length === 0) {
     redirect("/candidates?message=You+do+not+have+access+to+that+candidate");
   }
 
-  const allowedRoleIds = new Set(
-    isAdminAppRole(profile.role) ? considerations.map((item) => item.role_id) : accessibleRoleIds,
-  );
+  const allowedRoleIds = new Set(accessibleRoleIds);
+  const canManageCandidate = isAdmin || mentorAccessibleRoleIds.length > 0;
+  const canManageStrengths = isAdmin;
   const primaryConsideration =
     considerations.find((item) => item.is_primary) ??
     considerations[0] ??
@@ -551,6 +562,8 @@ export default async function CandidateDetailPage({
                   candidateId={candidate.id}
                   roleId={activeRoleId}
                   roleTitle={roleResult.data?.title ?? null}
+                  readOnly={!canManageCandidate}
+                  canEditTargetScores={canManageCandidate}
                   competencies={(competenciesResult.data ?? []).map((competency) => ({
                     id: competency.id,
                     name: competency.name,
@@ -574,7 +587,9 @@ export default async function CandidateDetailPage({
                   }))}
                   strengths={strengthsResult.data ?? []}
                   references={strengthsReferenceResult.data ?? []}
-                  canGenerateCandidateIdeas={canGenerateReport && Boolean(activeRoleId)}
+                  canGenerateCandidateIdeas={
+                    canManageCandidate && canGenerateReport && Boolean(activeRoleId)
+                  }
                   candidateId={candidate.id}
                   candidateName={candidate.full_name}
                   roleId={activeRoleId ?? undefined}
@@ -643,10 +658,26 @@ export default async function CandidateDetailPage({
                     )}
                   </section>
 
-                  <CandidateStrengthsUploadCard
-                    candidateId={candidate.id}
-                    candidateName={candidate.full_name}
-                  />
+                  {canManageStrengths ? (
+                    <CandidateStrengthsUploadCard
+                      candidateId={candidate.id}
+                      candidateName={candidate.full_name}
+                    />
+                  ) : (
+                    <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+                      <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
+                        Upload Permissions
+                      </p>
+                      <h3 className="mt-3 font-display text-2xl text-slate-900">
+                        Strengths files are read-only here
+                      </h3>
+                      <p className="mt-4 text-sm leading-7 text-slate-600">
+                        Only organization administrators can upload or replace
+                        Gallup strengths documents. Existing files remain available
+                        here for review.
+                      </p>
+                    </section>
+                  )}
                 </section>
               ),
             },
@@ -677,12 +708,20 @@ export default async function CandidateDetailPage({
                           Version {latestReportResult.data.version}
                         </span>
                       ) : null}
-                      <GenerateMentorReportButton
-                        candidateId={candidate.id}
-                        roleId={activeRoleId}
-                        disabled={!canGenerateReport}
-                        hasExistingReport={Boolean(latestReportResult.data)}
-                      />
+                      {canManageCandidate ? (
+                        <GenerateMentorReportButton
+                          candidateId={candidate.id}
+                          roleId={activeRoleId}
+                          disabled={!canGenerateReport}
+                          hasExistingReport={Boolean(latestReportResult.data)}
+                        />
+                      ) : (
+                        <p className="max-w-sm text-sm leading-7 text-slate-600">
+                          Assigned mentors and organization administrators can
+                          refresh this report when new development information is
+                          available.
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -707,7 +746,9 @@ export default async function CandidateDetailPage({
                         candidateName={candidate.full_name}
                         roleId={activeRoleId}
                         canGenerateCandidateIdeas={
-                          canGenerateReport && Boolean(activeRoleId)
+                          canManageCandidate &&
+                          canGenerateReport &&
+                          Boolean(activeRoleId)
                         }
                       />
                     </div>

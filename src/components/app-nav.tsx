@@ -1,9 +1,9 @@
 import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
 import { getCurrentUser } from "@/lib/auth";
+import { isAdminAppRole, isMentorAppUser } from "@/lib/mentor-access";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isPaywallEnabled } from "@/lib/subscription";
-import { isAdminAppRole } from "@/lib/mentor-access";
 
 const resourceNavItems = [
   {
@@ -65,31 +65,58 @@ function getInitials(user: User) {
 export async function AppNav({ pathname }: { pathname: string }) {
   const user = await getCurrentUser();
   let isAdmin = false;
+  let isMentor = false;
+  let isCandidateOnly = false;
 
   if (user) {
     const supabase = await createSupabaseServerClient();
-    const profileResult = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("auth_user_id", user.id)
-      .maybeSingle();
+    const [profileResult, accountResult] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("id, role")
+        .eq("auth_user_id", user.id)
+        .maybeSingle(),
+      supabase
+        .from("organization_users")
+        .select("candidate_id, is_candidate, is_mentor, admin_role, status")
+        .eq("auth_user_id", user.id)
+        .maybeSingle(),
+    ]);
 
     if (profileResult.error) {
       throw new Error(profileResult.error.message);
     }
 
+    if (accountResult.error) {
+      throw new Error(accountResult.error.message);
+    }
+
     isAdmin = profileResult.data ? isAdminAppRole(profileResult.data.role) : false;
+    isMentor =
+      profileResult.data && accountResult.data
+        ? isMentorAppUser(profileResult.data, accountResult.data)
+        : profileResult.data?.role === "mentor";
+    isCandidateOnly = Boolean(user && !isAdmin && !isMentor && accountResult.data?.is_candidate);
   }
 
-  const navItems = [
-    { href: "/", label: "Home" },
-    { href: "/roles", label: "Roles" },
-    { href: "/candidates", label: "Candidates" },
-    { href: "/mentoring", label: "Mentoring" },
-    { href: "/dashboard", label: "Dashboard" },
-    ...(isAdmin ? [{ href: "/administration", label: "Administration" }] : []),
-    ...(isPaywallEnabled() ? [{ href: "/subscribe", label: "Access" }] : []),
-  ];
+  const navItems = user
+    ? [
+        { href: "/", label: "Home" },
+        ...(isAdmin ? [{ href: "/roles", label: "Roles" }] : []),
+        { href: "/candidates", label: "Candidates" },
+        ...(isAdmin || isMentor ? [{ href: "/mentoring", label: "Mentoring" }] : []),
+        ...(isAdmin || isMentor ? [{ href: "/dashboard", label: "Dashboard" }] : []),
+        ...(isAdmin ? [{ href: "/administration", label: "Administration" }] : []),
+        ...(isPaywallEnabled() ? [{ href: "/subscribe", label: "Access" }] : []),
+      ]
+    : [
+        { href: "/", label: "Home" },
+        ...(isPaywallEnabled() ? [{ href: "/subscribe", label: "Access" }] : []),
+      ];
+  const accountLandingHref =
+    isAdmin || isMentor ? "/dashboard" : "/candidates";
+  const accountLandingLabel =
+    isCandidateOnly ? "Open Candidates" : "Open Dashboard";
 
   return (
     <header className="relative z-10 px-5 pt-4 sm:px-8 lg:px-10">
@@ -139,10 +166,10 @@ export async function AppNav({ pathname }: { pathname: string }) {
 
                   <div className="grid gap-2 p-3">
                     <Link
-                      href="/dashboard"
+                      href={accountLandingHref}
                       className="rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
                     >
-                      Open Dashboard
+                      {accountLandingLabel}
                     </Link>
                     <Link
                       href="/auth/logout"
@@ -184,31 +211,33 @@ export async function AppNav({ pathname }: { pathname: string }) {
               );
             })}
 
-            <details className="group relative">
-              <summary className="flex cursor-pointer list-none items-center gap-2 rounded-full border border-slate-200/80 bg-white/85 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-teal-200 hover:text-teal-900">
-                <span>Resources</span>
-                <span
-                  aria-hidden="true"
-                  className="text-slate-400 transition group-open:rotate-180"
-                >
-                  ▾
-                </span>
-              </summary>
+            {isAdmin || isMentor ? (
+              <details className="group relative">
+                <summary className="flex cursor-pointer list-none items-center gap-2 rounded-full border border-slate-200/80 bg-white/85 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-teal-200 hover:text-teal-900">
+                  <span>Resources</span>
+                  <span
+                    aria-hidden="true"
+                    className="text-slate-400 transition group-open:rotate-180"
+                  >
+                    ▾
+                  </span>
+                </summary>
 
-              <div className="absolute left-0 top-[calc(100%+0.75rem)] z-20 hidden min-w-72 overflow-hidden rounded-[1.5rem] border border-white/80 bg-white/95 shadow-[0_30px_90px_rgba(15,23,42,0.16)] backdrop-blur group-open:block">
-                <div className="grid gap-2 p-3">
-                  {resourceNavItems.map((item) => (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className="rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
-                    >
-                      {item.label}
-                    </Link>
-                  ))}
+                <div className="absolute left-0 top-[calc(100%+0.75rem)] z-20 hidden min-w-72 overflow-hidden rounded-[1.5rem] border border-white/80 bg-white/95 shadow-[0_30px_90px_rgba(15,23,42,0.16)] backdrop-blur group-open:block">
+                  <div className="grid gap-2 p-3">
+                    {resourceNavItems.map((item) => (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className="rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            </details>
+              </details>
+            ) : null}
           </nav>
         </div>
       </div>

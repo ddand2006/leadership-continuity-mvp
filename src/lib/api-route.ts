@@ -115,6 +115,7 @@ export async function requireApiWorkspaceProfile(options?: {
 
   return {
     admin,
+    account,
     subscription,
     user,
     profile: profileResult.data,

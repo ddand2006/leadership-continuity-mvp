@@ -10,6 +10,7 @@ function AuthCard(props: {
   description: string;
   cta: string;
   onSubmit: (payload: { email: string; password: string }) => Promise<void>;
+  onForgotPassword?: (email: string) => Promise<void>;
   isSubmitting: boolean;
   featured?: boolean;
 }) {
@@ -60,6 +61,17 @@ function AuthCard(props: {
             onChange={(event) => setPassword(event.target.value)}
           />
         </label>
+        {props.onForgotPassword ? (
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => void props.onForgotPassword?.(email)}
+              className="text-sm font-semibold text-teal-800 transition hover:text-teal-950"
+            >
+              Forgot password?
+            </button>
+          </div>
+        ) : null}
         <button
           className="interactive-contrast w-full rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-900 disabled:cursor-not-allowed disabled:opacity-60"
           type="submit"
@@ -74,8 +86,10 @@ function AuthCard(props: {
 
 export function AuthForms(props: { initialMode?: "signin" | "signup" }) {
   const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [isSigningUp, setIsSigningUp] = useState(false);
+  const [isSendingReset, setIsSendingReset] = useState(false);
 
   async function syncSessionToServer(session: Session) {
     const response = await fetch("/api/auth/session", {
@@ -97,6 +111,7 @@ export function AuthForms(props: { initialMode?: "signin" | "signup" }) {
 
   async function handleSignIn(payload: { email: string; password: string }) {
     setErrorMessage("");
+    setSuccessMessage("");
     setIsSigningIn(true);
 
     try {
@@ -127,6 +142,7 @@ export function AuthForms(props: { initialMode?: "signin" | "signup" }) {
 
   async function handleSignUp(payload: { email: string; password: string }) {
     setErrorMessage("");
+    setSuccessMessage("");
     setIsSigningUp(true);
 
     try {
@@ -165,6 +181,42 @@ export function AuthForms(props: { initialMode?: "signin" | "signup" }) {
     }
   }
 
+  async function handleForgotPassword(email: string) {
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    if (!email.trim()) {
+      setErrorMessage("Enter your email address first, then request a password reset.");
+      return;
+    }
+
+    setIsSendingReset(true);
+
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/auth/confirm?mode=recovery&next=/`,
+      });
+
+      if (error) {
+        setErrorMessage(error.message);
+        return;
+      }
+
+      setSuccessMessage(
+        "Password reset email sent. Check your inbox and follow the link to choose a new password.",
+      );
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to send a password reset email right now.",
+      );
+    } finally {
+      setIsSendingReset(false);
+    }
+  }
+
   const cards = [
     {
       key: "signin",
@@ -174,7 +226,8 @@ export function AuthForms(props: { initialMode?: "signin" | "signup" }) {
         "Use email and password for administrators, interviewers, or mentors once they exist in Supabase Auth.",
       cta: "Sign In",
       onSubmit: handleSignIn,
-      isSubmitting: isSigningIn,
+      onForgotPassword: handleForgotPassword,
+      isSubmitting: isSigningIn || isSendingReset,
     },
     {
       key: "signup",
@@ -184,6 +237,7 @@ export function AuthForms(props: { initialMode?: "signin" | "signup" }) {
         "Create the first workspace owner account. Invited users should use the email invitation they received instead of creating a second account here.",
       cta: "Create Account",
       onSubmit: handleSignUp,
+      onForgotPassword: undefined,
       isSubmitting: isSigningUp,
     },
   ] as const;
@@ -201,6 +255,12 @@ export function AuthForms(props: { initialMode?: "signin" | "signup" }) {
         </div>
       ) : null}
 
+      {successMessage ? (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-900">
+          {successMessage}
+        </div>
+      ) : null}
+
       <div className="grid gap-6 lg:grid-cols-2">
         {orderedCards.map((card) => (
           <AuthCard
@@ -210,6 +270,7 @@ export function AuthForms(props: { initialMode?: "signin" | "signup" }) {
             description={card.description}
             cta={card.cta}
             onSubmit={card.onSubmit}
+            onForgotPassword={card.onForgotPassword}
             isSubmitting={card.isSubmitting}
             featured={props.initialMode === card.key}
           />

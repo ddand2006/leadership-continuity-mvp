@@ -5,7 +5,7 @@ import {
   buildCompetencyAssessments,
   computeOverallReadiness,
 } from "@/lib/fit-analysis";
-import { isAdminAppRole } from "@/lib/mentor-access";
+import { getAccessibleCandidateIds, isAdminAppRole } from "@/lib/mentor-access";
 import { requirePaidWorkspaceProfile } from "@/lib/workspace";
 
 type CandidatesPageProps = {
@@ -20,7 +20,7 @@ export default async function CandidatesPage({
 }: CandidatesPageProps) {
   const { candidateId: requestedCandidateId, mode: requestedMode } =
     await searchParams;
-  const { profile, supabase } = await requirePaidWorkspaceProfile();
+  const { account, profile, supabase } = await requirePaidWorkspaceProfile();
   const [
     candidatesResult,
     rolesResult,
@@ -147,13 +147,11 @@ export default async function CandidatesPage({
     strengthAssessmentsByCandidateAndRole.set(key, current);
   }
 
-  const accessibleCandidateIds = isAdminAppRole(profile.role)
-    ? null
-    : new Set(
-        (mentorAssignmentsResult.data ?? [])
-          .filter((assignment) => assignment.mentor_profile_id === profile.id)
-          .map((assignment) => assignment.candidate_id),
-      );
+  const accessibleCandidateIds = getAccessibleCandidateIds({
+    profile,
+    account,
+    mentorAssignments: mentorAssignmentsResult.data ?? [],
+  });
 
   const visibleCandidates = (candidatesResult.data ?? []).filter((candidate) =>
     accessibleCandidateIds ? accessibleCandidateIds.has(candidate.id) : true,

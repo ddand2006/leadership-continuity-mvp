@@ -2,6 +2,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { requireUser } from "./auth";
 import { syncOrganizationUserAccessOnLogin } from "./organization-user-admin";
+import type { OrganizationUserRecord } from "./organization-users";
 import {
   loadOrganizationSubscription,
   type OrganizationSubscriptionClient,
@@ -15,6 +16,8 @@ export type WorkspaceProfile = {
   full_name: string;
   role: string;
 };
+
+export type WorkspaceAccount = OrganizationUserRecord | null;
 
 export const getWorkspaceContext = cache(async () => {
   const user = await requireUser();
@@ -54,6 +57,7 @@ export const getWorkspaceContext = cache(async () => {
   return {
     user,
     supabase,
+    account,
     profile: profileResult.data as WorkspaceProfile | null,
   };
 });

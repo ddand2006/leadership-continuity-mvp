@@ -5,6 +5,7 @@ import {
   createApiErrorResponse,
   requireApiWorkspaceProfile,
 } from "@/lib/api-route";
+import { isAdminAppRole, mentorHasCandidateAccess } from "@/lib/mentor-access";
 import { buildCandidateMentoringIdeaDocumentBuffer } from "@/lib/candidate-mentoring-idea-document";
 
 const payloadSchema = z.object({
@@ -49,7 +50,12 @@ export async function POST(request: Request) {
     const { admin, profile } = await requireApiWorkspaceProfile();
     const payload = payloadSchema.parse(await request.json());
 
-    const [candidateResult, roleResult, competencyResult] = await Promise.all([
+    const [
+      candidateResult,
+      roleResult,
+      competencyResult,
+      mentorAssignmentsResult,
+    ] = await Promise.all([
       admin
         .from("candidates")
         .select("id, full_name")
@@ -68,13 +74,25 @@ export async function POST(request: Request) {
         .eq("organization_id", profile.organization_id)
         .eq("id", payload.competencyId)
         .maybeSingle(),
+      admin
+        .from("mentor_role_assignments")
+        .select("candidate_id, role_id, mentor_profile_id, status")
+        .eq("organization_id", profile.organization_id)
+        .eq("candidate_id", payload.candidateId)
+        .eq("role_id", payload.roleId),
     ]);
 
-    if (candidateResult.error || roleResult.error || competencyResult.error) {
+    if (
+      candidateResult.error ||
+      roleResult.error ||
+      competencyResult.error ||
+      mentorAssignmentsResult.error
+    ) {
       throw new ApiRouteError(
         candidateResult.error?.message ??
           roleResult.error?.message ??
           competencyResult.error?.message ??
+          mentorAssignmentsResult.error?.message ??
           "Unable to load the mentoring project context.",
         500,
       );
@@ -82,6 +100,20 @@ export async function POST(request: Request) {
 
     if (!candidateResult.data || !roleResult.data || !competencyResult.data) {
       throw new ApiRouteError("Unable to locate the candidate, role, or competency.", 404);
+    }
+
+    const mentorHasAccess = mentorHasCandidateAccess({
+      profileId: profile.id,
+      candidateId: payload.candidateId,
+      roleId: payload.roleId,
+      mentorAssignments: mentorAssignmentsResult.data ?? [],
+    });
+
+    if (!isAdminAppRole(profile.role) && !mentorHasAccess) {
+      throw new ApiRouteError(
+        "You do not have access to download mentoring project documents for this candidate.",
+        403,
+      );
     }
 
     const buffer = await buildCandidateMentoringIdeaDocumentBuffer({

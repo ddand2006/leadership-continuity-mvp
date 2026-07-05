@@ -16,7 +16,7 @@ import { estimateOpenAICost } from "@/lib/openaiCost";
 import { createOpenAIClient } from "@/lib/openai";
 import { syncCandidateRoleStrengthAssessments } from "@/lib/strengths-role-fit";
 import { createApiErrorResponse, requireApiWorkspaceProfile } from "@/lib/api-route";
-import { isAdminAppRole } from "@/lib/mentor-access";
+import { isAdminAppRole, mentorHasCandidateAccess } from "@/lib/mentor-access";
 
 export async function POST(request: Request) {
   try {
@@ -42,6 +42,7 @@ export async function POST(request: Request) {
     }
 
     const { admin, profile } = await requireApiWorkspaceProfile();
+    const isAdmin = isAdminAppRole(profile.role);
     const [candidateResult, candidateRoleResult, mentorAssignmentAccessResult] =
       await Promise.all([
         admin
@@ -57,16 +58,15 @@ export async function POST(request: Request) {
           .eq("candidate_id", candidateId)
           .eq("role_id", roleId)
           .maybeSingle(),
-        isAdminAppRole(profile.role)
+        isAdmin
           ? Promise.resolve({ data: { candidate_id: candidateId }, error: null })
           : admin
               .from("mentor_role_assignments")
-              .select("candidate_id")
+              .select("candidate_id, role_id, mentor_profile_id, status")
               .eq("organization_id", profile.organization_id)
               .eq("candidate_id", candidateId)
               .eq("role_id", roleId)
-              .eq("mentor_profile_id", profile.id)
-              .maybeSingle(),
+              .eq("mentor_profile_id", profile.id),
       ]);
 
     if (candidateResult.error) {
@@ -97,7 +97,18 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!mentorAssignmentAccessResult.data) {
+    const mentorHasAccess = isAdmin
+      ? true
+      : mentorHasCandidateAccess({
+          profileId: profile.id,
+          candidateId,
+          roleId,
+          mentorAssignments: Array.isArray(mentorAssignmentAccessResult.data)
+            ? mentorAssignmentAccessResult.data
+            : [],
+        });
+
+    if (!mentorHasAccess) {
       return NextResponse.json(
         {
           error:

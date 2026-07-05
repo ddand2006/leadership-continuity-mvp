@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { PrintCompositeActions } from "@/components/print-composite-actions";
 import { PrintCompositePageClient } from "@/components/print-composite-page-client";
+import { isAdminAppRole } from "@/lib/mentor-access";
 import { groupCharacteristicsByCategory } from "@/lib/role-characteristics";
 import { requirePaidWorkspaceProfile } from "@/lib/workspace";
 
@@ -16,6 +17,12 @@ export default async function PrintRoleCompositePage({
 }: PrintRoleCompositePageProps) {
   const { roleId } = await params;
   const { profile, supabase } = await requirePaidWorkspaceProfile();
+
+  if (!isAdminAppRole(profile.role)) {
+    redirect(
+      "/candidates?message=Role+composites+are+available+to+organization+administrators+only",
+    );
+  }
 
   const [
     roleResult,

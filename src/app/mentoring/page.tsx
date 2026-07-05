@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { MentorFlowPanel } from "@/components/mentor-flow-panel";
 import { MentoringCrossDepartmentalProjectWorksheetManager } from "@/components/mentoring-cross-departmental-project-worksheet-manager";
 import { MentoringDepartmentalProjectWorksheetManager } from "@/components/mentoring-departmental-project-worksheet-manager";
@@ -8,7 +9,7 @@ import { LeadershipDevelopmentRecordManager } from "@/components/leadership-deve
 import { MentoringWorkspaceMenu } from "@/components/mentoring-workspace-menu";
 import { isMissingCrossDepartmentalProjectWorksheetTableError } from "@/lib/mentoring-cross-departmental-project-worksheet";
 import { isMissingDepartmentalProjectWorksheetTableError } from "@/lib/mentoring-departmental-project-worksheet";
-import { isAdminAppRole } from "@/lib/mentor-access";
+import { isAdminAppRole, isMentorAppUser } from "@/lib/mentor-access";
 import { isMissingPreparationWorksheetTableError } from "@/lib/mentoring-preparation-worksheet";
 import { requirePaidWorkspaceProfile } from "@/lib/workspace";
 
@@ -38,7 +39,14 @@ export default async function MentoringPage({
     roleId: requestedRoleId,
     section: requestedSection,
   } = await searchParams;
-  const { profile, supabase } = await requirePaidWorkspaceProfile();
+  const { account, profile, supabase } = await requirePaidWorkspaceProfile();
+
+  if (!isAdminAppRole(profile.role) && !isMentorAppUser(profile, account)) {
+    redirect(
+      "/candidates?message=Candidate+accounts+can+only+view+their+own+candidate+records",
+    );
+  }
+
   const [
     candidatesResult,
     reportsResult,

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { SubscriptionPaywallPanel } from "@/components/subscription-paywall-panel";
 import { requireUser } from "@/lib/auth";
 import {
@@ -1830,6 +1831,12 @@ export default async function DashboardPage({
   });
   const snapshot = await getDashboardSnapshot(user.id, filters);
   const intelligence = snapshot.intelligence;
+
+  if (snapshot.profile?.role === "candidate") {
+    redirect(
+      "/candidates?message=Candidate+accounts+can+only+view+their+own+candidate+records",
+    );
+  }
 
   return (
     <main className="app-page">

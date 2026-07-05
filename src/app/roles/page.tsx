@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { RoleFlowPanel } from "@/components/role-flow-panel";
 import { RoleManagementPanel } from "@/components/role-management-panel";
 import { RoleMentorDialog } from "@/components/role-mentor-dialog";
@@ -7,6 +8,7 @@ import {
   isMissingRoleCharacteristicLibraryTableError,
   normalizeRoleLibraryCharacteristic,
 } from "@/lib/role-characteristic-library";
+import { isAdminAppRole } from "@/lib/mentor-access";
 import { groupCharacteristicsByCategory } from "@/lib/role-characteristics";
 import { requirePaidWorkspaceProfile } from "@/lib/workspace";
 
@@ -20,6 +22,13 @@ type RolesPageProps = {
 export default async function RolesPage({ searchParams }: RolesPageProps) {
   const { roleId: requestedRoleId, mode: requestedMode } = await searchParams;
   const { profile, supabase } = await requirePaidWorkspaceProfile();
+
+  if (!isAdminAppRole(profile.role)) {
+    redirect(
+      "/candidates?message=Role+configuration+is+available+to+organization+administrators+only",
+    );
+  }
+
   const canGenerateComposite = hasOpenAIEnv();
   const [
     rolesResult,

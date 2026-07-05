@@ -13,7 +13,7 @@ import {
   rankMentoringIdeasForCompetency,
   type DevelopmentProjectRecord,
 } from "@/lib/fit-analysis";
-import { isAdminAppRole } from "@/lib/mentor-access";
+import { isAdminAppRole, mentorHasCandidateAccess } from "@/lib/mentor-access";
 
 const payloadSchema = z.object({
   candidateId: z.string().uuid(),
@@ -91,7 +91,7 @@ export async function POST(request: Request) {
         .or(`organization_id.is.null,organization_id.eq.${profile.organization_id}`),
       admin
         .from("mentor_role_assignments")
-        .select("mentor_profile_id, role_id, status")
+        .select("candidate_id, mentor_profile_id, role_id, status")
         .eq("organization_id", profile.organization_id)
         .eq("candidate_id", payload.candidateId)
         .eq("role_id", payload.roleId),
@@ -127,10 +127,12 @@ export async function POST(request: Request) {
       throw new ApiRouteError("Role could not be found.", 404);
     }
 
-    const mentorHasAccess = (mentorAssignmentsResult.data ?? []).some(
-      (assignment) =>
-        assignment.mentor_profile_id === profile.id && assignment.status === "active",
-    );
+    const mentorHasAccess = mentorHasCandidateAccess({
+      profileId: profile.id,
+      candidateId: payload.candidateId,
+      roleId: payload.roleId,
+      mentorAssignments: mentorAssignmentsResult.data ?? [],
+    });
 
     if (!isAdminAppRole(profile.role) && !mentorHasAccess) {
       throw new ApiRouteError(
