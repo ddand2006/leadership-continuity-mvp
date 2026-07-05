@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { CandidateRoleConsiderationManager } from "@/components/candidate-role-consideration-manager";
 import { CandidateDetailSectionMenu } from "@/components/candidate-detail-section-menu";
 import { CandidateInsightExplorer } from "@/components/candidate-insight-explorer";
 import { MentorReportMatchExplorer } from "@/components/mentor-report-match-explorer";
@@ -38,6 +39,10 @@ type CandidateDetailPageProps = {
     section?: string;
   }>;
 };
+
+function getConsiderationStatusLabel(status: string) {
+  return status === "on_hold" ? "On Hold" : "Active";
+}
 
 export default async function CandidateDetailPage({
   params,
@@ -427,7 +432,7 @@ export default async function CandidateDetailPage({
       )
     : [];
   const candidateWorkspaceDetailItems = [
-    `Current title: ${candidate.current_title}`,
+    `Current title: ${candidate.current_title ?? "Not entered"}`,
     `Active role: ${roleResult.data?.title ?? "No role selected"}`,
     `Weighted readiness: ${readiness.toFixed(2)} / 5`,
     `Mentors: ${
@@ -452,6 +457,45 @@ export default async function CandidateDetailPage({
                 "Review the roles this candidate is being considered for and the mentors currently assigned to the active role.",
               content: (
                 <section className="grid gap-6">
+                  {isAdmin ? (
+                    <CandidateRoleConsiderationManager
+                      candidateId={candidate.id}
+                      candidateName={candidate.full_name}
+                      roles={(rolesResult.data ?? []).map((role) => ({
+                        id: role.id,
+                        title: role.title,
+                      }))}
+                      considerations={considerations.map((consideration) => {
+                        const role = roleMap.get(consideration.role_id);
+                        const mentorNames = Array.from(
+                          new Set(
+                            displayableMentorAssignments
+                              .filter(
+                                (assignment) =>
+                                  assignment.role_id === consideration.role_id,
+                              )
+                              .map(
+                                (assignment) =>
+                                  mentorMap.get(assignment.mentor_profile_id)?.full_name,
+                              )
+                              .filter(Boolean),
+                          ),
+                        ) as string[];
+
+                        return {
+                          roleId: consideration.role_id,
+                          roleTitle: role?.title ?? "Unknown role",
+                          status:
+                            consideration.status === "on_hold"
+                              ? ("on_hold" as const)
+                              : ("active" as const),
+                          isPrimary: consideration.is_primary,
+                          mentorNames,
+                        };
+                      })}
+                    />
+                  ) : null}
+
                   <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
                     <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
                       Roles Under Consideration
@@ -487,11 +531,18 @@ export default async function CandidateDetailPage({
                                     : "border-slate-200 bg-slate-50"
                                 }`}
                               >
-                                <p className="font-semibold text-slate-900">
-                                  {role?.title ?? "Unknown role"}
-                                </p>
+                                <div className="flex flex-wrap items-center gap-3">
+                                  <p className="font-semibold text-slate-900">
+                                    {role?.title ?? "Unknown role"}
+                                  </p>
+                                  {consideration.is_primary ? (
+                                    <span className="rounded-full bg-teal-100 px-3 py-1 text-[11px] font-semibold tracking-[0.12em] text-teal-900 uppercase">
+                                      Primary
+                                    </span>
+                                  ) : null}
+                                </div>
                                 <p className="mt-2 text-slate-600">
-                                  Status: {consideration.status}
+                                  Status: {getConsiderationStatusLabel(consideration.status)}
                                 </p>
                                 <p className="mt-2 text-slate-600">
                                   Mentors:{" "}
