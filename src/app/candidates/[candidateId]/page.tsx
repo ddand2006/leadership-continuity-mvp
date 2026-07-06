@@ -388,6 +388,9 @@ export default async function CandidateDetailPage({
   const topStrengthNames = (strengthsResult.data ?? [])
     .slice(0, 5)
     .map((strength) => strength.theme_name);
+  const candidateStrengthsFilesHref = activeRoleId
+    ? `/candidates/${candidate.id}?roleId=${activeRoleId}&section=strengths-files`
+    : `/candidates/${candidate.id}?section=strengths-files`;
   const activeRoleMentorNames = activeRoleId
     ? Array.from(
         new Set(
@@ -597,21 +600,83 @@ export default async function CandidateDetailPage({
               summary:
                 "Focus on the candidate’s role-fit competencies, top 5 strengths, and next 10 strengths one insight at a time.",
               content: (
-                <CandidateInsightExplorer
-                  assessments={assessments.map((assessment) => ({
-                    ...assessment,
-                    mentoringIdeas:
-                      mentoringIdeasByCompetencyId.get(assessment.competencyId) ?? [],
-                  }))}
-                  strengths={strengthsResult.data ?? []}
-                  references={strengthsReferenceResult.data ?? []}
-                  canGenerateCandidateIdeas={
-                    canManageCandidate && canGenerateReport && Boolean(activeRoleId)
-                  }
-                  candidateId={candidate.id}
-                  candidateName={candidate.full_name}
-                  roleId={activeRoleId ?? undefined}
-                />
+                <section className="grid gap-6">
+                  <section className="rounded-[1.75rem] border border-[rgba(82,140,94,0.2)] bg-[rgba(239,251,241,0.96)] p-8 text-[#183822] shadow-[0_20px_60px_rgba(36,64,216,0.1)]">
+                    <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="max-w-3xl">
+                        <p className="text-sm font-semibold tracking-[0.16em] text-[#24512f] uppercase">
+                          Gallup Files
+                        </p>
+                        <h2 className="mt-3 font-display text-3xl text-[#183822]">
+                          Keep strengths documents in view while reviewing role fit
+                        </h2>
+                        {importedStrengthCount > 0 ? (
+                          <>
+                            <p className="mt-4 text-sm leading-7 text-[#24512f]">
+                              Gallup files are uploaded and {importedStrengthCount}{" "}
+                              strengths are already available for this candidate.
+                            </p>
+                            {topStrengthNames.length > 0 ? (
+                              <p className="mt-3 text-sm leading-7 text-[#24512f]">
+                                Current top strengths: {topStrengthNames.join(", ")}.
+                              </p>
+                            ) : null}
+                          </>
+                        ) : sourceDocuments.length > 0 ? (
+                          <>
+                            <p className="mt-4 text-sm leading-7 text-[#24512f]">
+                              Gallup files are on record for this candidate, but
+                              strengths are not visible in the system yet.
+                            </p>
+                            <p className="mt-3 text-sm leading-7 text-[#486454]">
+                              {readableSourceDocumentCount > 0
+                                ? "At least one archived file has readable text, so you can open Strengths Files to retry the import."
+                                : "The saved files do not currently contain machine-readable text, so a text-based Gallup file is still needed for strengths import."}
+                            </p>
+                          </>
+                        ) : (
+                          <p className="mt-4 text-sm leading-7 text-[#24512f]">
+                            No Gallup files have been uploaded for this candidate
+                            yet. Add them in Strengths Files so the role-fit view can
+                            reflect the candidate&apos;s imported strengths.
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex min-w-[13rem] flex-col items-start gap-3">
+                        <span className="rounded-full bg-white/80 px-4 py-2 text-sm font-semibold text-[#24512f] shadow-[inset_0_0_0_1px_rgba(82,140,94,0.18)]">
+                          {importedStrengthCount > 0
+                            ? "Uploaded"
+                            : sourceDocuments.length > 0
+                              ? "Files on record"
+                              : "Not uploaded yet"}
+                        </span>
+                        <Link
+                          href={candidateStrengthsFilesHref}
+                          className="interactive-contrast rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-900"
+                        >
+                          Open Strengths Files
+                        </Link>
+                      </div>
+                    </div>
+                  </section>
+
+                  <CandidateInsightExplorer
+                    assessments={assessments.map((assessment) => ({
+                      ...assessment,
+                      mentoringIdeas:
+                        mentoringIdeasByCompetencyId.get(assessment.competencyId) ?? [],
+                    }))}
+                    strengths={strengthsResult.data ?? []}
+                    references={strengthsReferenceResult.data ?? []}
+                    canGenerateCandidateIdeas={
+                      canManageCandidate && canGenerateReport && Boolean(activeRoleId)
+                    }
+                    candidateId={candidate.id}
+                    candidateName={candidate.full_name}
+                    roleId={activeRoleId ?? undefined}
+                  />
+                </section>
               ),
             },
             {
