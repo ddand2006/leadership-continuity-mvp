@@ -1,5 +1,6 @@
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import { ApiRouteError } from "@/lib/api-route";
+import { getFileExtension } from "@/lib/file-parsers";
 import {
   ROLE_CHARACTERISTIC_CATEGORIES,
   type RoleCandidateCharacteristicInput,
@@ -294,21 +295,134 @@ function parseWorkbookRowLayout(rows: unknown[][]) {
   return dedupeCharacteristics(characteristics);
 }
 
-export function parseRoleCharacteristicsWorkbook(buffer: Buffer) {
-  const workbook = XLSX.read(buffer, { type: "buffer" });
-  const firstSheetName = workbook.SheetNames[0];
+function parseCsvText(text: string) {
+  const rows: string[][] = [];
+  let currentRow: string[] = [];
+  let currentCell = "";
+  let inQuotes = false;
 
-  if (!firstSheetName) {
+  function pushCell() {
+    currentRow.push(currentCell);
+    currentCell = "";
+  }
+
+  function pushRow() {
+    pushCell();
+    const hasAnyValue = currentRow.some((value) => normalizeCellValue(value).length > 0);
+
+    if (hasAnyValue) {
+      rows.push(currentRow);
+    }
+
+    currentRow = [];
+  }
+
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+    const nextCharacter = text[index + 1];
+
+    if (character === '"') {
+      if (inQuotes && nextCharacter === '"') {
+        currentCell += '"';
+        index += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+
+      continue;
+    }
+
+    if (character === "," && !inQuotes) {
+      pushCell();
+      continue;
+    }
+
+    if ((character === "\n" || character === "\r") && !inQuotes) {
+      if (character === "\r" && nextCharacter === "\n") {
+        index += 1;
+      }
+
+      pushRow();
+      continue;
+    }
+
+    currentCell += character;
+  }
+
+  if (currentCell.length > 0 || currentRow.length > 0) {
+    pushRow();
+  }
+
+  return rows;
+}
+
+function getExcelCellValueText(value: unknown): string {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  if (typeof value === "object") {
+    if ("text" in value && typeof value.text === "string") {
+      return value.text;
+    }
+
+    if ("result" in value && value.result !== undefined) {
+      return String(value.result);
+    }
+
+    if ("richText" in value && Array.isArray(value.richText)) {
+      return value.richText
+        .map((item) => (typeof item?.text === "string" ? item.text : ""))
+        .join("");
+    }
+  }
+
+  return String(value);
+}
+
+async function parseXlsxRows(buffer: Buffer) {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(
+    buffer as unknown as Parameters<typeof workbook.xlsx.load>[0],
+  );
+  const worksheet = workbook.worksheets[0];
+
+  if (!worksheet) {
     throw new ApiRouteError("The uploaded file does not contain any sheets.", 400);
   }
 
-  const worksheet = workbook.Sheets[firstSheetName];
-  const rows = XLSX.utils.sheet_to_json(worksheet, {
-    header: 1,
-    defval: "",
-    raw: false,
-    blankrows: false,
-  }) as unknown[][];
+  const rows: unknown[][] = [];
+  worksheet.eachRow({ includeEmpty: false }, (row) => {
+    const rowValues = Array.isArray(row.values) ? row.values.slice(1) : [];
+    const normalizedValues = rowValues.map((value) => getExcelCellValueText(value));
+
+    if (normalizedValues.some((value) => normalizeCellValue(value).length > 0)) {
+      rows.push(normalizedValues);
+    }
+  });
+
+  return rows;
+}
+
+export async function parseRoleCharacteristicsWorkbook(
+  buffer: Buffer,
+  fileName: string,
+) {
+  const extension = getFileExtension(fileName);
+  let rows: unknown[][];
+
+  if (extension === "csv") {
+    rows = parseCsvText(buffer.toString("utf8"));
+  } else if (extension === "xlsx") {
+    rows = await parseXlsxRows(buffer);
+  } else if (extension === "xls") {
+    throw new ApiRouteError(
+      "Legacy XLS files are no longer supported. Please resave the spreadsheet as XLSX or CSV and upload it again.",
+      400,
+    );
+  } else {
+    throw new ApiRouteError("Unsupported file type. Use CSV or XLSX.", 400);
+  }
 
   if (rows.length < 2) {
     throw new ApiRouteError(

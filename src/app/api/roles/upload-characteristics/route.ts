@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     }
 
     if (!(file instanceof File)) {
-      throw new ApiRouteError("Upload a CSV or Excel competency file first.", 400);
+      throw new ApiRouteError("Upload a CSV or XLSX competency file first.", 400);
     }
 
     assertAcceptedFileType(file, ["csv", "xlsx", "xls"]);
@@ -46,8 +46,9 @@ export async function POST(request: Request) {
       throw new ApiRouteError("Selected role could not be found.", 404);
     }
 
-    const parsedCharacteristics = parseRoleCharacteristicsWorkbook(
+    const parsedCharacteristics = await parseRoleCharacteristicsWorkbook(
       Buffer.from(await file.arrayBuffer()),
+      file.name,
     );
     const characteristics = await normalizeRoleCandidateCharacteristics(
       parsedCharacteristics,

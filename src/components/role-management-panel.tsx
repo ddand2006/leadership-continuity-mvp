@@ -994,7 +994,7 @@ export function RoleManagementPanel({
           Import ideal candidate competencies
         </h2>
         <p className="mt-4 text-sm leading-7 text-slate-600">
-          Upload a CSV or Excel file with ideal candidate competencies, then
+          Upload a CSV or XLSX file with ideal candidate competencies, then
           attach it to an existing role. This can include spreadsheet formats
           with headers like Type of Set and Competency, or grouped columns like
           Talents, Skills, and Behaviors.
@@ -1060,9 +1060,9 @@ export function RoleManagementPanel({
             key={uploadCharacteristicsResetKey}
             label="Competencies file"
             name="file"
-            accept=".csv,.xlsx,.xls"
+            accept=".csv,.xlsx"
             required
-            helperText="Accepted formats: CSV, XLSX, or XLS. Use columns like Competency, Talents, Skills, Behaviors, or rows with Type of Set and Competency."
+            helperText="Accepted formats: CSV or XLSX. Use columns like Competency, Talents, Skills, Behaviors, or rows with Type of Set and Competency. Legacy XLS files should be resaved as XLSX first."
           />
           <button
             className="interactive-contrast rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-900 disabled:cursor-not-allowed disabled:bg-slate-300"
