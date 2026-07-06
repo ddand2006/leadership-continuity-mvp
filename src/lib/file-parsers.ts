@@ -1,13 +1,11 @@
 import mammoth from "mammoth";
 import { PDFParse } from "pdf-parse";
 import { ApiRouteError } from "@/lib/api-route";
+import { assertAcceptedFileType, getFileExtension } from "@/lib/upload-file-utils";
+
+export { assertAcceptedFileType, getFileExtension } from "@/lib/upload-file-utils";
 
 const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
-
-export function getFileExtension(fileName: string) {
-  const segments = fileName.toLowerCase().split(".");
-  return segments.length > 1 ? segments.at(-1) ?? "" : "";
-}
 
 function normalizeExtractedText(value: string) {
   return value.replace(/\u0000/g, "").replace(/\r/g, "").trim();
@@ -35,21 +33,6 @@ async function extractPdfTextWithPdfParse(file: File) {
     return ensureExtractedText(result.text, file.name);
   } finally {
     await parser.destroy();
-  }
-}
-
-function formatAllowedExtensions(extensions: string[]) {
-  return extensions.map((extension) => extension.toUpperCase()).join(", ");
-}
-
-export function assertAcceptedFileType(file: File, allowedExtensions: string[]) {
-  const extension = getFileExtension(file.name);
-
-  if (!allowedExtensions.includes(extension)) {
-    throw new ApiRouteError(
-      `Unsupported file type. Use ${formatAllowedExtensions(allowedExtensions)}.`,
-      400,
-    );
   }
 }
 

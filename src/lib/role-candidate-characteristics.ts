@@ -1,5 +1,5 @@
 import { ApiRouteError } from "@/lib/api-route";
-import { getFileExtension } from "@/lib/file-parsers";
+import { getFileExtension } from "@/lib/upload-file-utils";
 import {
   ROLE_CHARACTERISTIC_CATEGORIES,
   type RoleCandidateCharacteristicInput,

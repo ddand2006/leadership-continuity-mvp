@@ -4,7 +4,7 @@ import {
   createApiErrorResponse,
   requireApiWorkspaceProfile,
 } from "@/lib/api-route";
-import { assertAcceptedFileType } from "@/lib/file-parsers";
+import { assertAcceptedFileType } from "@/lib/upload-file-utils";
 import {
   buildRoleCompositeDocumentStoragePath,
   getRoleCompositeDocumentsBucket,

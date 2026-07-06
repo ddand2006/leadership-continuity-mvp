@@ -4,10 +4,10 @@ import {
   createApiErrorResponse,
   requireApiWorkspaceProfile,
 } from "@/lib/api-route";
-import { assertAcceptedFileType } from "@/lib/file-parsers";
 import { parseRoleCharacteristicsWorkbook } from "@/lib/role-candidate-characteristics";
 import { syncRoleCharacteristicLibrary } from "@/lib/role-characteristic-library";
 import { normalizeRoleCandidateCharacteristics } from "@/lib/role-characteristics-normalizer";
+import { assertAcceptedFileType } from "@/lib/upload-file-utils";
 
 export const runtime = "nodejs";
 const MAX_COMPETENCY_UPLOAD_SIZE_BYTES = 50 * 1024 * 1024;
