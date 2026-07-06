@@ -10,6 +10,7 @@ import { syncRoleCharacteristicLibrary } from "@/lib/role-characteristic-library
 import { normalizeRoleCandidateCharacteristics } from "@/lib/role-characteristics-normalizer";
 
 export const runtime = "nodejs";
+const MAX_COMPETENCY_UPLOAD_SIZE_BYTES = 50 * 1024 * 1024;
 
 export async function POST(request: Request) {
   try {
@@ -27,6 +28,14 @@ export async function POST(request: Request) {
 
     if (!(file instanceof File)) {
       throw new ApiRouteError("Upload a CSV or XLSX competency file first.", 400);
+    }
+
+    if (file.size === 0) {
+      throw new ApiRouteError("Uploaded file is empty.", 400);
+    }
+
+    if (file.size > MAX_COMPETENCY_UPLOAD_SIZE_BYTES) {
+      throw new ApiRouteError("Uploaded file must be 50 MB or smaller.", 400);
     }
 
     assertAcceptedFileType(file, ["csv", "xlsx", "xls"]);

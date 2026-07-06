@@ -35,6 +35,39 @@ type RoleManagementPanelProps = {
   mode?: "create" | "import" | "composite";
 };
 
+const MAX_COMPETENCY_UPLOAD_SIZE_BYTES = 50 * 1024 * 1024;
+
+type ApiResult = {
+  error?: string;
+  message?: string;
+  roleId?: string;
+};
+
+async function readApiResult(response: Response): Promise<ApiResult> {
+  const payloadText = await response.text();
+
+  if (!payloadText) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(payloadText) as ApiResult;
+  } catch {
+    if (response.status === 413) {
+      return {
+        error:
+          "The upload was too large for the server to process. Save the spreadsheet as a smaller XLSX or CSV file and try again.",
+      };
+    }
+
+    return {
+      error: response.ok
+        ? "The server returned an unexpected response."
+        : "The upload failed before the app could read the server response. Try saving the spreadsheet as a standard XLSX or CSV file and upload it again.",
+    };
+  }
+}
+
 export function RoleManagementPanel({
   roles,
   sharedLibrary,
@@ -439,28 +472,43 @@ export function RoleManagementPanel({
     setUploadCompositeDocumentSuccess(null);
 
     startUploadCharacteristicsTransition(async () => {
-      const roleId = String(formData.get("roleId") ?? "");
-      const response = await fetch("/api/roles/upload-characteristics", {
-        method: "POST",
-        body: formData,
-      });
-      const result = (await response.json()) as { error?: string; message?: string };
+      try {
+        const roleId = String(formData.get("roleId") ?? "");
+        const file = formData.get("file");
 
-      if (!response.ok) {
-        setUploadCharacteristicsError(
-          result.error ?? "Unable to upload role competencies.",
+        if (file instanceof File && file.size > MAX_COMPETENCY_UPLOAD_SIZE_BYTES) {
+          setUploadCharacteristicsError("Uploaded file must be 50 MB or smaller.");
+          return;
+        }
+
+        const response = await fetch("/api/roles/upload-characteristics", {
+          method: "POST",
+          body: formData,
+        });
+        const result = await readApiResult(response);
+
+        if (!response.ok) {
+          setUploadCharacteristicsError(
+            result.error ?? "Unable to upload role competencies.",
+          );
+          return;
+        }
+
+        uploadCharacteristicsFormRef.current?.reset();
+        setUploadCharacteristicsResetKey((current) => current + 1);
+        setSelectedCompetencyRoleId(roleId);
+        setIsEditingCompetencies(false);
+        setUploadCharacteristicsSuccess(
+          result.message ?? "Role competencies uploaded.",
         );
-        return;
+        router.refresh();
+      } catch (error) {
+        setUploadCharacteristicsError(
+          error instanceof Error
+            ? error.message
+            : "Unable to upload role competencies.",
+        );
       }
-
-      uploadCharacteristicsFormRef.current?.reset();
-      setUploadCharacteristicsResetKey((current) => current + 1);
-      setSelectedCompetencyRoleId(roleId);
-      setIsEditingCompetencies(false);
-      setUploadCharacteristicsSuccess(
-        result.message ?? "Role competencies uploaded.",
-      );
-      router.refresh();
     });
   }
 

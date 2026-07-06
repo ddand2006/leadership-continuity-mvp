@@ -382,9 +382,18 @@ function getExcelCellValueText(value: unknown): string {
 
 async function parseXlsxRows(buffer: Buffer) {
   const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.load(
-    buffer as unknown as Parameters<typeof workbook.xlsx.load>[0],
-  );
+
+  try {
+    await workbook.xlsx.load(
+      buffer as unknown as Parameters<typeof workbook.xlsx.load>[0],
+    );
+  } catch {
+    throw new ApiRouteError(
+      "This spreadsheet could not be read as XLSX. Open it in Excel or Numbers, save it again as .xlsx or CSV, and upload it again.",
+      400,
+    );
+  }
+
   const worksheet = workbook.worksheets[0];
 
   if (!worksheet) {

@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   experimental: {
-    proxyClientMaxBodySize: "20mb",
+    proxyClientMaxBodySize: "50mb",
   },
   turbopack: {
     ignoreIssue: [
