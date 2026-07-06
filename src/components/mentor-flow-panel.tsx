@@ -249,7 +249,7 @@ export function MentorFlowPanel({
                   <div className="absolute top-1/2 left-[-2.75rem] h-[2px] w-11 -translate-y-1/2 bg-slate-900" />
                   {action.href && !action.disabled ? (
                     <Link href={action.href} className={FLOWCHART_ACTION_ENABLED_CLASS}>
-                      <p className="text-center text-2xl font-semibold leading-tight">
+                      <p className="text-center text-2xl font-semibold leading-tight text-white">
                         {action.title}
                       </p>
                       <p className="mt-3 text-center text-sm leading-6 text-white/80">
@@ -267,7 +267,11 @@ export function MentorFlowPanel({
                           : FLOWCHART_ACTION_ENABLED_CLASS
                       }`}
                     >
-                      <p className="text-center text-2xl font-semibold leading-tight">
+                      <p
+                        className={`text-center text-2xl font-semibold leading-tight ${
+                          action.disabled ? "text-slate-700" : "text-white"
+                        }`}
+                      >
                         {action.title}
                       </p>
                       <p className="mt-3 text-center text-sm leading-6">
