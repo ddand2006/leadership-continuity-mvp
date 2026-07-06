@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { GeneratedCandidateMentoringIdea } from "@/lib/candidate-mentoring-ideas";
 import type { RankedProjectMatch } from "@/lib/fit-analysis";
+import { buildDevelopmentPriorityEvidenceSummary } from "@/lib/mentor-report";
 import { sanitizeAppText, sanitizeAppTextList } from "@/lib/text-sanitizer";
 
 type RoleMatch = {
@@ -153,6 +154,14 @@ export function MentorReportMatchExplorer({
       ...selectedAssessment.evidenceNotes.map((note) => `Observed evidence: ${note}`),
       ...selectedAssessment.concernNotes.map((note) => `Concern to address: ${note}`),
     ];
+  }, [selectedAssessment]);
+
+  const alignedPriorityEvidence = useMemo(() => {
+    if (!selectedAssessment) {
+      return null;
+    }
+
+    return buildDevelopmentPriorityEvidenceSummary(selectedAssessment);
   }, [selectedAssessment]);
 
   async function handleGenerateIdeas() {
@@ -434,7 +443,18 @@ export function MentorReportMatchExplorer({
                   Why this matters now
                 </p>
                 <p className="mt-2 text-sm leading-7 text-slate-700">
-                  {sanitizeAppText(selectedPriority.evidence)}
+                  {sanitizeAppText(
+                    alignedPriorityEvidence ?? selectedPriority.evidence,
+                  )}
+                </p>
+              </div>
+            ) : alignedPriorityEvidence ? (
+              <div className="mt-4">
+                <p className="text-xs font-semibold tracking-[0.16em] text-slate-500 uppercase">
+                  Why this matters now
+                </p>
+                <p className="mt-2 text-sm leading-7 text-slate-700">
+                  {alignedPriorityEvidence}
                 </p>
               </div>
             ) : null}

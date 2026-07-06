@@ -54,6 +54,75 @@ export const mentorReportSchema = z.object({
 
 export type MentorReport = z.infer<typeof mentorReportSchema>;
 
+type DevelopmentPriorityEvidenceAssessment = Pick<
+  CompetencyAssessment,
+  | "averageScore"
+  | "targetScore"
+  | "interviewScore"
+  | "strengthsScore"
+  | "weightedGap"
+  | "concernNotes"
+  | "evidenceNotes"
+>;
+
+export function buildDevelopmentPriorityEvidenceSummary(
+  assessment: DevelopmentPriorityEvidenceAssessment,
+) {
+  const scoreParts = [
+    `Average score ${assessment.averageScore.toFixed(2)} vs target ${assessment.targetScore.toFixed(2)}.`,
+  ];
+
+  if (assessment.interviewScore !== null) {
+    scoreParts.push(
+      `Interview average ${assessment.interviewScore.toFixed(2)}.`,
+    );
+  }
+
+  if (assessment.strengthsScore !== null) {
+    scoreParts.push(
+      `Strengths fit ${assessment.strengthsScore.toFixed(2)}.`,
+    );
+  }
+
+  scoreParts.push(`Weighted gap ${assessment.weightedGap.toFixed(2)}.`);
+
+  if (assessment.concernNotes.length > 0) {
+    scoreParts.push(
+      `Current concern notes: ${sanitizeAppTextList(assessment.concernNotes).join("; ")}.`,
+    );
+  } else if (assessment.evidenceNotes.length > 0) {
+    scoreParts.push(
+      `Recent evidence notes: ${sanitizeAppTextList(assessment.evidenceNotes).join("; ")}.`,
+    );
+  } else {
+    scoreParts.push("No qualitative notes are stored yet.");
+  }
+
+  return sanitizeAppText(scoreParts.join(" "));
+}
+
+export function normalizeDevelopmentPriorities(
+  developmentPriorities: MentorReport["development_priorities"],
+  assessments: CompetencyAssessment[],
+): MentorReport["development_priorities"] {
+  const assessmentMap = new Map(
+    assessments.map((assessment) => [assessment.competencyName, assessment]),
+  );
+
+  return developmentPriorities.map((priority) => {
+    const assessment = assessmentMap.get(priority.competency);
+
+    if (!assessment) {
+      return priority;
+    }
+
+    return {
+      ...priority,
+      evidence: buildDevelopmentPriorityEvidenceSummary(assessment),
+    };
+  });
+}
+
 export function buildRoleMatchesWeakestToStrongest(
   assessments: CompetencyAssessment[],
 ): MentorReport["strongest_role_matches"] {

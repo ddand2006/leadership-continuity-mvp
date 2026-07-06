@@ -11,6 +11,7 @@ import {
   buildMentorReportNarrative,
   buildRoleMatchesWeakestToStrongest,
   mentorReportSchema,
+  normalizeDevelopmentPriorities,
 } from "@/lib/mentor-report";
 import { estimateOpenAICost } from "@/lib/openaiCost";
 import { createOpenAIClient } from "@/lib/openai";
@@ -344,6 +345,10 @@ export async function POST(request: Request) {
 
     const normalizedReport = {
       ...response.output_parsed,
+      development_priorities: normalizeDevelopmentPriorities(
+        response.output_parsed.development_priorities,
+        competencyAssessments,
+      ),
       strongest_role_matches:
         buildRoleMatchesWeakestToStrongest(competencyAssessments),
     };
