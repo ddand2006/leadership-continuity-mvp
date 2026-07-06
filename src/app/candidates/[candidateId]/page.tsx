@@ -25,7 +25,6 @@ import {
   buildRoleMatchesWeakestToStrongest,
   MentorReport,
 } from "@/lib/mentor-report";
-import { syncCandidateRoleStrengthAssessments } from "@/lib/strengths-role-fit";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { sanitizeAppText } from "@/lib/text-sanitizer";
 import { requirePaidWorkspaceProfile } from "@/lib/workspace";
@@ -264,59 +263,12 @@ export default async function CandidateDetailPage({
     throw new Error(scoresResult.error.message);
   }
 
-  let strengthAssessments = (strengthAssessmentsResult.data ?? []).map((assessment) => ({
+  const strengthAssessments = (strengthAssessmentsResult.data ?? []).map((assessment) => ({
     competency_id: assessment.competency_id,
     strength_score: Number(assessment.strength_score),
     supporting_strengths: assessment.supporting_strengths as string[],
     rationale: assessment.rationale,
   }));
-
-  if (
-    activeRoleId &&
-    roleResult.data &&
-    (competenciesResult.data ?? []).length > 0 &&
-    (strengthsResult.data ?? []).length > 0 &&
-    strengthAssessments.length === 0 &&
-    hasOpenAIEnv()
-  ) {
-    try {
-      const strengthsLibraryResult = await admin
-        .from("strengths_library")
-        .select(
-          "theme_name, domain, leadership_advantages, possible_blind_spots, development_uses",
-        )
-        .order("theme_name", { ascending: true });
-
-      if (strengthsLibraryResult.error) {
-        throw strengthsLibraryResult.error;
-      }
-
-      strengthAssessments = await syncCandidateRoleStrengthAssessments({
-        admin,
-        organizationId: profile.organization_id,
-        candidateId: candidate.id,
-        roleId: activeRoleId,
-        candidateName: candidate.full_name,
-        roleTitle: roleResult.data.title,
-        roleDescription: roleResult.data.description,
-        competencies: (competenciesResult.data ?? []).map((competency) => ({
-          ...competency,
-          behavioral_indicators: [],
-          red_flags: [],
-        })),
-        strengths: strengthsResult.data ?? [],
-        strengthsLibrary: (strengthsLibraryResult.data ?? []).map((theme) => ({
-          theme_name: theme.theme_name,
-          domain: theme.domain,
-          leadership_advantages: theme.leadership_advantages,
-          possible_blind_spots: theme.possible_blind_spots,
-          development_uses: theme.development_uses,
-        })),
-      });
-    } catch (error) {
-      console.error("Unable to refresh strengths-based readiness scoring.", error);
-    }
-  }
 
   const assessments = buildCompetencyAssessments(
     competenciesResult.data ?? [],
