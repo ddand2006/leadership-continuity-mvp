@@ -14,7 +14,7 @@ import {
   normalizeDevelopmentPriorities,
 } from "@/lib/mentor-report";
 import { estimateOpenAICost } from "@/lib/openaiCost";
-import { createOpenAIClient } from "@/lib/openai";
+import { createOpenAIClient, serializeModelInput } from "@/lib/openai";
 import { syncCandidateRoleStrengthAssessments } from "@/lib/strengths-role-fit";
 import { createApiErrorResponse, requireApiWorkspaceProfile } from "@/lib/api-route";
 import { isAdminAppRole, mentorHasCandidateAccess } from "@/lib/mentor-access";
@@ -223,6 +223,13 @@ export async function POST(request: Request) {
       );
     }
 
+    const strengthThemeNames = new Set(
+      (strengthsResult.data ?? []).map((strength) => strength.theme_name),
+    );
+    const relevantStrengthsLibrary = (strengthsLibraryResult.data ?? []).filter((theme) =>
+      strengthThemeNames.has(theme.theme_name),
+    );
+
     const strengthAssessments =
       (strengthAssessmentsResult.data ?? []).length > 0
         ? (strengthAssessmentsResult.data ?? []).map((assessment) => ({
@@ -245,7 +252,7 @@ export async function POST(request: Request) {
               red_flags: competency.red_flags as string[],
             })),
             strengths: strengthsResult.data ?? [],
-            strengthsLibrary: (strengthsLibraryResult.data ?? []).map((theme) => ({
+            strengthsLibrary: relevantStrengthsLibrary.map((theme) => ({
               theme_name: theme.theme_name,
               domain: theme.domain,
               leadership_advantages: theme.leadership_advantages,
@@ -296,39 +303,35 @@ export async function POST(request: Request) {
         },
         {
           role: "user",
-          content: JSON.stringify(
-            {
-              role: {
-                title: role.title,
-                description: role.description,
-                competencies: competenciesResult.data,
-              },
-              candidate: {
-                full_name: candidate.full_name,
-                current_title: candidate.current_title,
-                status: candidate.status,
-                target_role_title: role.title,
-              },
-              readiness_score: readiness,
-              competency_assessments: competencyAssessments,
-              candidate_strengths: strengths,
-              strengths_buckets: {
-                primary: strengthBuckets.primary,
-                supporting: strengthBuckets.supporting,
-                stretch: strengthBuckets.stretch,
-              },
-              strengths_library: strengthsLibraryResult.data,
-              ranked_project_matches: rankedProjects,
-              instructions: {
-                development_priorities: "Return 3 to 5 priorities.",
-                recommended_projects: "Return 3 to 5 projects using only supplied project titles.",
-                strengths_to_leverage:
-                  "For every development priority, connect at least one specific strength.",
-              },
+          content: serializeModelInput({
+            role: {
+              title: role.title,
+              description: role.description,
+              competencies: competenciesResult.data,
             },
-            null,
-            2,
-          ),
+            candidate: {
+              full_name: candidate.full_name,
+              current_title: candidate.current_title,
+              status: candidate.status,
+              target_role_title: role.title,
+            },
+            readiness_score: readiness,
+            competency_assessments: competencyAssessments,
+            candidate_strengths: strengths,
+            strengths_buckets: {
+              primary: strengthBuckets.primary,
+              supporting: strengthBuckets.supporting,
+              stretch: strengthBuckets.stretch,
+            },
+            strengths_library: relevantStrengthsLibrary,
+            ranked_project_matches: rankedProjects,
+            instructions: {
+              development_priorities: "Return 3 to 5 priorities.",
+              recommended_projects: "Return 3 to 5 projects using only supplied project titles.",
+              strengths_to_leverage:
+                "For every development priority, connect at least one specific strength.",
+            },
+          }),
         },
       ],
       text: {

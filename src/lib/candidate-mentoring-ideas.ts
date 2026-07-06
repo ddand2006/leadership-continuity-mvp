@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { zodTextFormat } from "openai/helpers/zod";
 import { getOpenAIEnv } from "@/lib/env";
-import { createOpenAIClient } from "@/lib/openai";
+import { createOpenAIClient, serializeModelInput } from "@/lib/openai";
 
 const generatedCandidateMentoringIdeasSchema = z.object({
   ideas: z.array(
@@ -79,10 +79,9 @@ export async function generateCandidateMentoringIdeas(options: {
         content:
           "You are an expert organizational leadership mentor. Generate candidate-specific mentoring assignments for one competency gap. Make the ideas concrete, role-relevant, and shaped by the candidate's strengths. Do not simply repeat the reference library ideas. Use them only as inspiration. Each idea should feel personal to this candidate's readiness profile, current role, and strengths pattern. Structure every idea like a mentoring working document inspired by leadership development worksheets, not a short summary.",
       },
-      {
-        role: "user",
-        content: JSON.stringify(
-          {
+        {
+          role: "user",
+          content: serializeModelInput({
             candidate: options.candidate,
             target_role: options.role,
             competency_focus: options.competency,
@@ -130,11 +129,8 @@ export async function generateCandidateMentoringIdeas(options: {
               success_signals:
                 "Return 2 to 4 observable signs that the mentoring assignment is working.",
             },
-          },
-          null,
-          2,
-        ),
-      },
+          }),
+        },
     ],
     text: {
       format: zodTextFormat(

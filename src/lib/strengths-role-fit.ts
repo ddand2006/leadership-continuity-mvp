@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { ApiRouteError } from "@/lib/api-route";
 import { getOpenAIEnv, hasOpenAIEnv } from "@/lib/env";
-import { createOpenAIClient } from "@/lib/openai";
+import { createOpenAIClient, serializeModelInput } from "@/lib/openai";
 import { sanitizeAppText, sanitizeAppTextList } from "@/lib/text-sanitizer";
 
 type StrengthLibraryRecord = {
@@ -68,7 +68,7 @@ export async function generateCandidateRoleStrengthAssessments(options: {
   const openai = createOpenAIClient();
   const openAIEnv = getOpenAIEnv();
   const response = await openai.responses.parse({
-    model: openAIEnv.OPENAI_MODEL,
+    model: openAIEnv.OPENAI_FAST_MODEL,
     input: [
       {
         role: "system",
@@ -77,39 +77,35 @@ export async function generateCandidateRoleStrengthAssessments(options: {
       },
       {
         role: "user",
-        content: JSON.stringify(
-          {
-            candidate_name: options.candidateName,
-            role: {
-              title: options.roleTitle,
-              description: options.roleDescription ?? null,
-            },
-            competencies: options.competencies.map((competency) => ({
-              competency_id: competency.id,
-              name: competency.name,
-              definition: competency.definition ?? null,
-              behavioral_indicators: competency.behavioral_indicators ?? [],
-              red_flags: competency.red_flags ?? [],
-            })),
-            candidate_strengths: options.strengths.map((strength) => ({
-              theme_name: strength.theme_name,
-              rank: strength.rank,
-              domain: strength.domain,
-              notes: strength.notes ?? null,
-            })),
-            strengths_library: options.strengthsLibrary,
-            instructions: {
-              coverage:
-                "Return one assessment for every competency_id provided in the competencies array.",
-              scoring:
-                "Use the full 1 to 5 scale. Higher scores mean stronger natural fit from strengths alone.",
-              supporting_strengths:
-                "Reference the most relevant strengths by official theme name.",
-            },
+        content: serializeModelInput({
+          candidate_name: options.candidateName,
+          role: {
+            title: options.roleTitle,
+            description: options.roleDescription ?? null,
           },
-          null,
-          2,
-        ),
+          competencies: options.competencies.map((competency) => ({
+            competency_id: competency.id,
+            name: competency.name,
+            definition: competency.definition ?? null,
+            behavioral_indicators: competency.behavioral_indicators ?? [],
+            red_flags: competency.red_flags ?? [],
+          })),
+          candidate_strengths: options.strengths.map((strength) => ({
+            theme_name: strength.theme_name,
+            rank: strength.rank,
+            domain: strength.domain,
+            notes: strength.notes ?? null,
+          })),
+          strengths_library: options.strengthsLibrary,
+          instructions: {
+            coverage:
+              "Return one assessment for every competency_id provided in the competencies array.",
+            scoring:
+              "Use the full 1 to 5 scale. Higher scores mean stronger natural fit from strengths alone.",
+            supporting_strengths:
+              "Reference the most relevant strengths by official theme name.",
+          },
+        }),
       },
     ],
     text: {

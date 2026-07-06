@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { zodTextFormat } from "openai/helpers/zod";
 import { getOpenAIEnv } from "@/lib/env";
-import { createOpenAIClient } from "@/lib/openai";
+import { createOpenAIClient, serializeModelInput } from "@/lib/openai";
 
 const generatedCandidateCoachingNarrativeSchema = z.object({
   progress_over_time: z.string().min(1),
@@ -69,10 +69,9 @@ export async function generateCandidateCoachingNarrative(options: {
         content:
           "You are an expert executive coach and succession mentor. Write a coaching document for a leader mentoring an internal candidate against one leadership competency. Use the candidate's score progression over time, strengths profile, competency expectations, and interview evidence. The tone should be practical, encouraging, and candid. Focus on how the mentor can help the candidate improve, not on generic HR language.",
       },
-      {
-        role: "user",
-        content: JSON.stringify(
-          {
+        {
+          role: "user",
+          content: serializeModelInput({
             candidate: options.candidate,
             target_role: options.role,
             competency_focus: options.competency,
@@ -94,11 +93,8 @@ export async function generateCandidateCoachingNarrative(options: {
               coaching_checkpoints:
                 "Return 3 to 5 bullet-friendly checkpoints the mentor can use to monitor progress over the next few weeks or months.",
             },
-          },
-          null,
-          2,
-        ),
-      },
+          }),
+        },
     ],
     text: {
       format: zodTextFormat(

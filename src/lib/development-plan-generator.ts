@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { zodTextFormat } from "openai/helpers/zod";
 import { getOpenAIEnv } from "@/lib/env";
-import { createOpenAIClient } from "@/lib/openai";
+import { createOpenAIClient, serializeModelInput } from "@/lib/openai";
 
 const generatedDevelopmentPlanSchema = z.object({
   plans: z.array(
@@ -62,10 +62,9 @@ export async function generateDevelopmentPlansForRole(options: {
         content:
           "You are an expert organizational leadership development designer. Generate practical mentoring project ideas for a leadership succession platform. Each idea must be concrete, workplace-based, and appropriate for a mentor-guided stretch assignment. Use the supplied role competencies exactly when naming competencies_developed. Use only Gallup strengths from the supplied strengths library when naming strengths_leveraged. Avoid duplicating existing project titles.",
       },
-      {
-        role: "user",
-        content: JSON.stringify(
-          {
+        {
+          role: "user",
+          content: serializeModelInput({
             role: options.role,
             target_plan_count: options.count,
             role_competencies: options.competencies,
@@ -91,11 +90,8 @@ export async function generateDevelopmentPlansForRole(options: {
               evidence_of_success:
                 "Return 2 to 4 observable indicators that the assignment was completed well.",
             },
-          },
-          null,
-          2,
-        ),
-      },
+          }),
+        },
     ],
     text: {
       format: zodTextFormat(

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { zodTextFormat } from "openai/helpers/zod";
 import { hasOpenAIEnv, getOpenAIEnv } from "@/lib/env";
-import { createOpenAIClient } from "@/lib/openai";
+import { createOpenAIClient, serializeModelInput } from "@/lib/openai";
 import {
   type RoleCandidateCharacteristicInput,
   type RoleCharacteristicCategory,
@@ -65,7 +65,7 @@ export async function normalizeRoleCandidateCharacteristics(
     const openAIEnv = getOpenAIEnv();
     const openai = createOpenAIClient();
     const response = await openai.responses.parse({
-      model: openAIEnv.OPENAI_MODEL,
+      model: openAIEnv.OPENAI_FAST_MODEL,
       input: [
         {
           role: "system",
@@ -74,16 +74,12 @@ export async function normalizeRoleCandidateCharacteristics(
         },
         {
           role: "user",
-          content: JSON.stringify(
-            {
-              items: cleanedItems.map((item) => ({
-                category: item.category,
-                characteristic: item.characteristic,
-              })),
-            },
-            null,
-            2,
-          ),
+          content: serializeModelInput({
+            items: cleanedItems.map((item) => ({
+              category: item.category,
+              characteristic: item.characteristic,
+            })),
+          }),
         },
       ],
       text: {

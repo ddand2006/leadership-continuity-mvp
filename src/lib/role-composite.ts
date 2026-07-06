@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { zodTextFormat } from "openai/helpers/zod";
 import { getOpenAIEnv } from "@/lib/env";
-import { createOpenAIClient } from "@/lib/openai";
+import { createOpenAIClient, serializeModelInput } from "@/lib/openai";
 
 export const roleCompositeSchema = z.object({
   title: z.string().min(1),
@@ -60,10 +60,9 @@ export async function extractRoleCompositeFromText(options: {
         content:
           "You extract organizational leadership role composites into structured data. Return only supported information from the document. If the document does not explicitly give weights or target scores, infer practical values for an organizational leadership role. Prefer 4 to 7 competencies. Keep target scores between 1.0 and 5.0. Keep weights positive and relative, usually between 0.5 and 5.0.",
       },
-      {
-        role: "user",
-        content: JSON.stringify(
-          {
+        {
+          role: "user",
+          content: serializeModelInput({
             file_name: options.fileName,
             composite_text: options.text,
             extraction_rules: {
@@ -73,11 +72,8 @@ export async function extractRoleCompositeFromText(options: {
               competencies:
                 "Return the most important competencies with a definition, weight, target_score, behavioral_indicators, and red_flags",
             },
-          },
-          null,
-          2,
-        ),
-      },
+          }),
+        },
     ],
     text: {
       format: zodTextFormat(roleCompositeSchema, "role_composite"),
@@ -109,10 +105,9 @@ export async function generateRoleCompositeFromIdealCompetencies(options: {
         content:
           "You are an expert organizational leadership architect. Generate a practical role composite from the supplied role description and ideal candidate competencies. Create 4 to 7 role competencies. Each competency must include a strong definition, a positive weight, a target_score between 1 and 5, 3 to 6 behavioral indicators, and 3 to 6 red flags. Use the supplied ideal talents, skills, and behaviors as evidence for what success should look like.",
       },
-      {
-        role: "user",
-        content: JSON.stringify(
-          {
+        {
+          role: "user",
+          content: serializeModelInput({
             role: {
               title: options.title,
               department: options.department,
@@ -130,11 +125,8 @@ export async function generateRoleCompositeFromIdealCompetencies(options: {
               competencies:
                 "Infer the strongest 4 to 7 role competencies from the supplied ideal competencies and role description.",
             },
-          },
-          null,
-          2,
-        ),
-      },
+          }),
+        },
     ],
     text: {
       format: zodTextFormat(roleCompositeSchema, "generated_role_composite"),

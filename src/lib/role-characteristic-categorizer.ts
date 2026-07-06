@@ -120,7 +120,7 @@ export async function categorizeRoleCharacteristic(input: string) {
     const openai = createOpenAIClient();
     const openAIEnv = getOpenAIEnv();
     const response = await openai.responses.parse({
-      model: openAIEnv.OPENAI_MODEL,
+      model: openAIEnv.OPENAI_FAST_MODEL,
       input: [
         {
           role: "system",

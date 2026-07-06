@@ -2,7 +2,7 @@ import { Document, Packer, Paragraph, TextRun } from "docx";
 import { z } from "zod";
 import { zodTextFormat } from "openai/helpers/zod";
 import { getOpenAIEnv } from "@/lib/env";
-import { createOpenAIClient } from "@/lib/openai";
+import { createOpenAIClient, serializeModelInput } from "@/lib/openai";
 
 const interviewScorecardSchema = z.object({
   purpose: z.string().min(1),
@@ -137,10 +137,9 @@ export async function generateRoleInterviewScorecardContent(options: {
         content:
           "You create executive behavioral interview scorecards for organizational leadership roles. Use a practical Word-ready structure modeled after an interview scorecard: a short purpose statement, titled sections, and 2 to 4 behavioral interview questions in each section. Every question must include a concise 'what this validates' explanation. Build sections directly from the role's competencies, behavioral indicators, red flags, and ideal candidate competencies. Keep the questions behavioral, evidence-seeking, and senior-leadership appropriate. Use the exact supplied role competency names as the section titles and in the final evaluation summary.",
       },
-      {
-        role: "user",
-        content: JSON.stringify(
-          {
+        {
+          role: "user",
+          content: serializeModelInput({
             organization_name: options.organizationName,
             role: {
               title: options.roleTitle,
@@ -158,11 +157,8 @@ export async function generateRoleInterviewScorecardContent(options: {
               final_summary:
                 "Return the exact role competency names in the same order for the final evaluation summary.",
             },
-          },
-          null,
-          2,
-        ),
-      },
+          }),
+        },
     ],
     text: {
       format: zodTextFormat(

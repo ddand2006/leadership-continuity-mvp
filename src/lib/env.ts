@@ -43,8 +43,11 @@ export function getSupabaseAdminEnv() {
 }
 
 export function getOpenAIEnv() {
+  const defaultModel = process.env.OPENAI_MODEL ?? "gpt-5.5";
+
   return {
-    OPENAI_MODEL: process.env.OPENAI_MODEL ?? "gpt-5.5",
+    OPENAI_MODEL: defaultModel,
+    OPENAI_FAST_MODEL: process.env.OPENAI_FAST_MODEL ?? defaultModel,
     OPENAI_API_KEY: nonEmptyString.parse(process.env.OPENAI_API_KEY),
   };
 }

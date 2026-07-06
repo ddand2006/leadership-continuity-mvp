@@ -8,3 +8,7 @@ export function createOpenAIClient() {
     apiKey: env.OPENAI_API_KEY,
   });
 }
+
+export function serializeModelInput(value: unknown) {
+  return JSON.stringify(value);
+}

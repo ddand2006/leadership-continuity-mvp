@@ -9,7 +9,7 @@ import {
 import { z } from "zod";
 import { zodTextFormat } from "openai/helpers/zod";
 import { getOpenAIEnv } from "@/lib/env";
-import { createOpenAIClient } from "@/lib/openai";
+import { createOpenAIClient, serializeModelInput } from "@/lib/openai";
 
 const roleCompositeDocumentSchema = z.object({
   success_composite_title: z.string().min(1),
@@ -151,10 +151,9 @@ export async function generateRoleCompositeDocumentContent(options: {
         content:
           "You create organizational leadership role composite documents in a structured narrative format. The format should mirror an executive hiring composite: success composite, professional identity, non-negotiable requirements, required knowledge base, disqualifiers, and one-sentence summary. Write with clear business language, concise bullets, and strong judgment. Use only the supplied role description, ideal candidate competencies, and structured role competencies. Do not mention AI or the generation process.",
       },
-      {
-        role: "user",
-        content: JSON.stringify(
-          {
+        {
+          role: "user",
+          content: serializeModelInput({
             organization_name: options.organizationName,
             role: {
               title: options.roleTitle,
@@ -174,11 +173,8 @@ export async function generateRoleCompositeDocumentContent(options: {
                 "Disqualifiers with behavioral, leadership, cultural, and regulatory/ethical red flags.",
               section_5: "One sentence composite summary.",
             },
-          },
-          null,
-          2,
-        ),
-      },
+          }),
+        },
     ],
     text: {
       format: zodTextFormat(

@@ -1,6 +1,6 @@
 import { ApiRouteError } from "@/lib/api-route";
 import { getOpenAIEnv } from "@/lib/env";
-import { createOpenAIClient } from "@/lib/openai";
+import { createOpenAIClient, serializeModelInput } from "@/lib/openai";
 import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 
@@ -175,7 +175,7 @@ export async function analyzeStrengthsDocuments({
   const openAIEnv = getOpenAIEnv();
   const openai = createOpenAIClient();
   const response = await openai.responses.parse({
-    model: openAIEnv.OPENAI_MODEL,
+    model: openAIEnv.OPENAI_FAST_MODEL,
     input: [
       {
         role: "system",
@@ -184,31 +184,27 @@ export async function analyzeStrengthsDocuments({
       },
       {
         role: "user",
-        content: JSON.stringify(
-          {
-            candidate_name_hint: candidateName,
-            strengths_library: themes.map((theme) => ({
-              theme_name: theme.theme_name,
-              domain: theme.domain,
-            })),
-            heuristic_rank_hint: heuristicRankings.map((item) => ({
-              rank: item.rank,
-              theme_name: item.theme_name,
-            })),
-            documents: documents.map((document) => ({
-              file_name: document.fileName,
-              text: document.text,
-            })),
-            instructions: {
-              ranked_themes:
-                "Return the strongest available rank order from the documents. If ALL_34 is present, include all 34 themes in order. If only top-five evidence is present, return those top five in rank order.",
-              notes:
-                "Use short plain-language notes for themes with narrative evidence, typically the top five only.",
-            },
+        content: serializeModelInput({
+          candidate_name_hint: candidateName,
+          strengths_library: themes.map((theme) => ({
+            theme_name: theme.theme_name,
+            domain: theme.domain,
+          })),
+          heuristic_rank_hint: heuristicRankings.map((item) => ({
+            rank: item.rank,
+            theme_name: item.theme_name,
+          })),
+          documents: documents.map((document) => ({
+            file_name: document.fileName,
+            text: document.text,
+          })),
+          instructions: {
+            ranked_themes:
+              "Return the strongest available rank order from the documents. If ALL_34 is present, include all 34 themes in order. If only top-five evidence is present, return those top five in rank order.",
+            notes:
+              "Use short plain-language notes for themes with narrative evidence, typically the top five only.",
           },
-          null,
-          2,
-        ),
+        }),
       },
     ],
     text: {
