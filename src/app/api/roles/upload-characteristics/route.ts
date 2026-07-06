@@ -4,13 +4,24 @@ import {
   createApiErrorResponse,
   requireApiWorkspaceProfile,
 } from "@/lib/api-route";
-import { parseRoleCharacteristicsWorkbook } from "@/lib/role-candidate-characteristics";
 import { syncRoleCharacteristicLibrary } from "@/lib/role-characteristic-library";
 import { normalizeRoleCandidateCharacteristics } from "@/lib/role-characteristics-normalizer";
-import { assertAcceptedFileType } from "@/lib/upload-file-utils";
 
 export const runtime = "nodejs";
 const MAX_COMPETENCY_UPLOAD_SIZE_BYTES = 50 * 1024 * 1024;
+
+function getFileExtension(fileName: string) {
+  const segments = fileName.toLowerCase().split(".");
+  return segments.length > 1 ? segments.at(-1) ?? "" : "";
+}
+
+function assertAcceptedFileType(file: File, allowedExtensions: string[]) {
+  const extension = getFileExtension(file.name);
+
+  if (!allowedExtensions.includes(extension)) {
+    throw new ApiRouteError("Unsupported file type. Use CSV or XLSX.", 400);
+  }
+}
 
 export async function POST(request: Request) {
   try {
@@ -55,7 +66,18 @@ export async function POST(request: Request) {
       throw new ApiRouteError("Selected role could not be found.", 404);
     }
 
-    const parsedCharacteristics = await parseRoleCharacteristicsWorkbook(
+    const parserModule = await import("@/lib/role-candidate-characteristics").catch(
+      () => null,
+    );
+
+    if (!parserModule?.parseRoleCharacteristicsWorkbook) {
+      throw new ApiRouteError(
+        "The server could not load the spreadsheet upload parser. Please try saving the file as CSV and upload it again.",
+        500,
+      );
+    }
+
+    const parsedCharacteristics = await parserModule.parseRoleCharacteristicsWorkbook(
       Buffer.from(await file.arrayBuffer()),
       file.name,
     );
