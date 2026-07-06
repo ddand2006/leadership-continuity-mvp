@@ -4,6 +4,28 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { FileDropInput } from "@/components/file-drop-input";
 
+async function readApiMessage(response: Response) {
+  const responseText = await response.text();
+
+  if (!responseText) {
+    return {
+      error: response.ok ? undefined : "The server returned an empty response.",
+      message: undefined,
+    };
+  }
+
+  try {
+    return JSON.parse(responseText) as { error?: string; message?: string };
+  } catch {
+    return {
+      error: response.ok
+        ? undefined
+        : `Unexpected server response: ${responseText.slice(0, 240)}`,
+      message: undefined,
+    };
+  }
+}
+
 export function CandidateStrengthsUploadCard({
   candidateId,
   candidateName,
@@ -32,21 +54,29 @@ export function CandidateStrengthsUploadCard({
     setSuccess(null);
 
     startTransition(async () => {
-      const response = await fetch("/api/candidates/upload-strengths", {
-        method: "POST",
-        body: formData,
-      });
-      const result = (await response.json()) as { error?: string; message?: string };
+      try {
+        const response = await fetch("/api/candidates/upload-strengths", {
+          method: "POST",
+          body: formData,
+        });
+        const result = await readApiMessage(response);
 
-      if (!response.ok) {
-        setError(result.error ?? "Unable to upload strengths documents.");
-        return;
+        if (!response.ok) {
+          setError(result.error ?? "Unable to upload strengths documents.");
+          return;
+        }
+
+        formRef.current?.reset();
+        setResetKey((current) => current + 1);
+        setSuccess(result.message ?? "Strengths documents uploaded.");
+        router.refresh();
+      } catch (error) {
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Unable to upload strengths documents.",
+        );
       }
-
-      formRef.current?.reset();
-      setResetKey((current) => current + 1);
-      setSuccess(result.message ?? "Strengths documents uploaded.");
-      router.refresh();
     });
   }
 
@@ -55,22 +85,28 @@ export function CandidateStrengthsUploadCard({
     setSuccess(null);
 
     startReimportTransition(async () => {
-      const response = await fetch("/api/candidates/reimport-strengths", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ candidateId }),
-      });
-      const result = (await response.json()) as { error?: string; message?: string };
+      try {
+        const response = await fetch("/api/candidates/reimport-strengths", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ candidateId }),
+        });
+        const result = await readApiMessage(response);
 
-      if (!response.ok) {
-        setError(result.error ?? "Unable to reimport strengths.");
-        return;
+        if (!response.ok) {
+          setError(result.error ?? "Unable to reimport strengths.");
+          return;
+        }
+
+        setSuccess(result.message ?? "Strengths reimported.");
+        router.refresh();
+      } catch (error) {
+        setError(
+          error instanceof Error ? error.message : "Unable to reimport strengths.",
+        );
       }
-
-      setSuccess(result.message ?? "Strengths reimported.");
-      router.refresh();
     });
   }
 
