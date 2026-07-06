@@ -1,4 +1,3 @@
-import ExcelJS from "exceljs";
 import { ApiRouteError } from "@/lib/api-route";
 import { getFileExtension } from "@/lib/file-parsers";
 import {
@@ -381,7 +380,16 @@ function getExcelCellValueText(value: unknown): string {
 }
 
 async function parseXlsxRows(buffer: Buffer) {
-  const workbook = new ExcelJS.Workbook();
+  const excelJsModule = await import("exceljs").catch(() => null);
+
+  if (!excelJsModule?.default) {
+    throw new ApiRouteError(
+      "The server could not load the XLSX parser. Please try saving the spreadsheet as CSV and upload it again.",
+      500,
+    );
+  }
+
+  const workbook = new excelJsModule.default.Workbook();
 
   try {
     await workbook.xlsx.load(
