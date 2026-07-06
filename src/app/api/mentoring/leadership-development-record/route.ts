@@ -228,6 +228,29 @@ export async function GET(request: Request) {
       mentorId: query.mentorId,
     });
 
+    const [candidateResult, mentorResult] = await Promise.all([
+      admin
+        .from("candidates")
+        .select("full_name")
+        .eq("organization_id", profile.organization_id)
+        .eq("id", query.candidateId)
+        .maybeSingle(),
+      admin
+        .from("profiles")
+        .select("full_name")
+        .eq("organization_id", profile.organization_id)
+        .eq("id", query.mentorId)
+        .maybeSingle(),
+    ]);
+
+    if (candidateResult.error) {
+      throw new ApiRouteError(candidateResult.error.message, 500);
+    }
+
+    if (mentorResult.error) {
+      throw new ApiRouteError(mentorResult.error.message, 500);
+    }
+
     const recordsResult = await admin
       .from("development_records")
       .select(
@@ -322,8 +345,8 @@ export async function GET(request: Request) {
       records: (recordsResult.data ?? []).map((record) =>
         normalizeRecordFromDatabase({
           ...record,
-          candidate_name: profile.full_name === record.mentor_id ? "" : "",
-          primary_mentor: "",
+          candidate_name: candidateResult.data?.full_name ?? "",
+          primary_mentor: mentorResult.data?.full_name ?? "",
           competencies: competenciesByRecordId.get(record.id) ?? [],
           leaders: leadersByRecordId.get(record.id) ?? [],
           feedback: feedbackByRecordId.get(record.id) ?? [],

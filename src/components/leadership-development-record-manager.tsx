@@ -474,6 +474,9 @@ export function LeadershipDevelopmentRecordManager({
 
     const payload: LeadershipDevelopmentRecordPayload = {
       ...formState,
+      candidateName: formState.candidateName || selectedAssignment.candidateName,
+      targetRole: formState.targetRole || selectedAssignment.roleTitle,
+      primaryMentor: formState.primaryMentor || selectedAssignment.mentorName,
       status: nextStatus,
     };
 
