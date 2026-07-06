@@ -1,5 +1,5 @@
 import mammoth from "mammoth";
-import { PdfReader } from "pdfreader";
+import { PDFParse } from "pdf-parse";
 import { ApiRouteError } from "@/lib/api-route";
 
 const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
@@ -26,30 +26,16 @@ function ensureExtractedText(value: string, fileName: string) {
   return normalizedValue;
 }
 
-async function extractPdfTextWithPdfReader(file: File) {
+async function extractPdfTextWithPdfParse(file: File) {
   const fileBuffer = Buffer.from(await file.arrayBuffer());
+  const parser = new PDFParse({ data: fileBuffer });
 
-  const text = await new Promise<string>((resolve, reject) => {
-    const collectedItems: string[] = [];
-
-    new PdfReader().parseBuffer(fileBuffer, (error, item) => {
-      if (error) {
-        reject(new Error(typeof error === "string" ? error : String(error)));
-        return;
-      }
-
-      if (!item) {
-        resolve(collectedItems.join("\n"));
-        return;
-      }
-
-      if (item.text) {
-        collectedItems.push(item.text);
-      }
-    });
-  });
-
-  return ensureExtractedText(text, file.name);
+  try {
+    const result = await parser.getText({ pageJoiner: "" });
+    return ensureExtractedText(result.text, file.name);
+  } finally {
+    await parser.destroy();
+  }
 }
 
 function formatAllowedExtensions(extensions: string[]) {
@@ -100,7 +86,7 @@ export async function extractTextFromUploadedFile(
 
   if (extension === "pdf") {
     try {
-      return await extractPdfTextWithPdfReader(file);
+      return await extractPdfTextWithPdfParse(file);
     } catch (error) {
       console.error("Failed to extract PDF text", {
         fileName: file.name,
