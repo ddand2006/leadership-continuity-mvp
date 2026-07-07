@@ -79,33 +79,33 @@ export function CandidateFlowPanel({
 
   const actions: CandidateFlowAction[] = [
     {
-      title: "Input Interview Scores",
+      title: "Role Context",
       description: selectedCandidate
-        ? "Open this candidate’s interview scoring workspace."
+        ? "Open this candidate workspace and review the active role and mentor context."
+        : "Choose a candidate first to review role context.",
+      href: buildCandidateSectionHref("role-context"),
+      disabled: !selectedCandidate,
+    },
+    {
+      title: "Interview Scores",
+      description: selectedCandidate
+        ? "Open this candidate workspace and enter interview scores."
         : "Choose a candidate first to enter interview scores.",
       href: buildCandidateSectionHref("interview-scores"),
       disabled: !selectedCandidate,
     },
     {
-      title: "View Role Fit & Strengths",
+      title: "Role Fit",
       description: selectedCandidate
-        ? "Review role fit, strengths ranking, and readiness insights."
-        : "Choose a candidate first to review role fit and strengths.",
+        ? "Open this candidate workspace and review role fit and Gallup strengths."
+        : "Choose a candidate first to review role fit.",
       href: buildCandidateSectionHref("role-fit"),
       disabled: !selectedCandidate,
     },
     {
-      title: "Upload & View Strengths Files",
+      title: "Mentor Report",
       description: selectedCandidate
-        ? "Open the Gallup source documents area for this candidate."
-        : "Choose a candidate first to manage strengths files.",
-      href: buildCandidateSectionHref("strengths-files"),
-      disabled: !selectedCandidate,
-    },
-    {
-      title: "Generate Mentor Report",
-      description: selectedCandidate
-        ? "Open the mentor report view for this candidate and role."
+        ? "Open this candidate workspace and review the mentor report."
         : "Choose a candidate first to work with mentor reports.",
       href: buildCandidateSectionHref("mentor-report"),
       disabled: !selectedCandidate,
@@ -121,9 +121,9 @@ export function CandidateFlowPanel({
         Follow one clear candidate workflow
       </h2>
       <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600">
-        Use this flow to move from candidate setup into interview scoring,
-        strengths files, role fit, and mentor reporting without hunting through
-        the Leadership Continuity System.
+        Use this flow to move from candidate setup into role context, interview
+        scoring, role fit, and mentor reporting without hunting through the
+        Leadership Continuity System.
       </p>
 
       {candidates.length === 0 ? (
