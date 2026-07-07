@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import {
+  hasProductAccess,
   loadOrganizationSubscription,
   type OrganizationSubscriptionClient,
+  type SubscriptionProduct,
 } from "@/lib/subscription";
 import { syncOrganizationUserAccessOnLogin } from "@/lib/organization-user-admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -45,6 +47,7 @@ export function createApiErrorResponse(
 export async function requireApiWorkspaceProfile(options?: {
   requireAdmin?: boolean;
   requirePaid?: boolean;
+  product?: SubscriptionProduct;
 }) {
   const supabase = await createSupabaseServerClient();
   let user = null;
@@ -102,9 +105,11 @@ export async function requireApiWorkspaceProfile(options?: {
     profileResult.data.organization_id,
   );
 
-  if (options?.requirePaid !== false && !subscription.hasAccess) {
+  const product = options?.product ?? "leadership_continuity";
+
+  if (options?.requirePaid !== false && !hasProductAccess(subscription, product)) {
     throw new ApiRouteError(
-      "Your Leadership Continuity System access is inactive. Visit /subscribe to restore access.",
+      `Your ${product === "leadership_help" ? "Leadership Help" : "Leadership Continuity System"} access is inactive. Visit /subscribe to restore access.`,
       402,
     );
   }

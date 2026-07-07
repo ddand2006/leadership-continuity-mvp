@@ -1,7 +1,14 @@
 const SUBSCRIPTION_COLUMNS =
-  "subscription_status, subscription_tier, trial_ends_at, billing_contact_email";
+  "subscription_status, subscription_tier, trial_ends_at, billing_contact_email, leadership_continuity_enabled, leadership_continuity_tier, leadership_help_enabled, leadership_help_tier";
 const BILLING_SUPPORT_EMAIL = "billing@leadershipcontinuitysystem.com";
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+export const SUBSCRIPTION_PRODUCTS = [
+  "leadership_continuity",
+  "leadership_help",
+] as const;
+
+export type SubscriptionProduct = (typeof SUBSCRIPTION_PRODUCTS)[number];
 
 export function isPaywallEnabled() {
   return process.env.LCS_PAYWALL_ENABLED === "true";
@@ -19,6 +26,10 @@ export type OrganizationSubscriptionStatus =
 
 type OrganizationSubscriptionLookup = {
   billing_contact_email: string | null;
+  leadership_continuity_enabled: boolean | null;
+  leadership_continuity_tier: string | null;
+  leadership_help_enabled: boolean | null;
+  leadership_help_tier: string | null;
   subscription_status: string | null;
   subscription_tier: string | null;
   trial_ends_at: string | null;
@@ -43,6 +54,13 @@ export type OrganizationSubscriptionState = {
   billingContactEmail: string;
   daysRemaining: number;
   hasAccess: boolean;
+  products: Record<
+    SubscriptionProduct,
+    {
+      enabled: boolean;
+      tier: string;
+    }
+  >;
   isLegacyFallback: boolean;
   isTrialActive: boolean;
   status: OrganizationSubscriptionStatus;
@@ -73,8 +91,37 @@ export function isMissingOrganizationBillingColumnError(error: unknown) {
     combinedMessage.includes("subscription_status") ||
     combinedMessage.includes("subscription_tier") ||
     combinedMessage.includes("trial_ends_at") ||
-    combinedMessage.includes("billing_contact_email")
+    combinedMessage.includes("billing_contact_email") ||
+    combinedMessage.includes("leadership_continuity_enabled") ||
+    combinedMessage.includes("leadership_continuity_tier") ||
+    combinedMessage.includes("leadership_help_enabled") ||
+    combinedMessage.includes("leadership_help_tier")
   );
+}
+
+export function hasProductAccess(
+  subscription: OrganizationSubscriptionState,
+  product: SubscriptionProduct,
+) {
+  return subscription.products[product].enabled;
+}
+
+export function getProductTier(
+  subscription: OrganizationSubscriptionState,
+  product: SubscriptionProduct,
+) {
+  return subscription.products[product].tier;
+}
+
+export function formatSubscriptionProductLabel(product: SubscriptionProduct) {
+  switch (product) {
+    case "leadership_continuity":
+      return "Leadership Continuity";
+    case "leadership_help":
+      return "Leadership Help";
+    default:
+      return "Product";
+  }
 }
 
 export function resolveOrganizationSubscriptionLookup(
@@ -85,6 +132,16 @@ export function resolveOrganizationSubscriptionLookup(
       billingContactEmail: BILLING_SUPPORT_EMAIL,
       daysRemaining: 0,
       hasAccess: true,
+      products: {
+        leadership_continuity: {
+          enabled: true,
+          tier: "organization",
+        },
+        leadership_help: {
+          enabled: true,
+          tier: "organization",
+        },
+      },
       isLegacyFallback: true,
       isTrialActive: false,
       status: "active",
@@ -101,6 +158,16 @@ export function resolveOrganizationSubscriptionLookup(
         billingContactEmail: BILLING_SUPPORT_EMAIL,
         daysRemaining: 0,
         hasAccess: true,
+        products: {
+          leadership_continuity: {
+            enabled: true,
+            tier: "organization",
+          },
+          leadership_help: {
+            enabled: true,
+            tier: "organization",
+          },
+        },
         isLegacyFallback: true,
         isTrialActive: false,
         status: "active",
@@ -124,6 +191,12 @@ export function resolveOrganizationSubscriptionLookup(
     status === "trialing" &&
     Number.isFinite(trialEndsAtTimestamp) &&
     trialEndsAtTimestamp >= now;
+  const continuityEnabled =
+    (status === "active" || isTrialActive) &&
+    Boolean(result.data.leadership_continuity_enabled);
+  const leadershipHelpEnabled =
+    (status === "active" || isTrialActive) &&
+    Boolean(result.data.leadership_help_enabled);
 
   return {
     billingContactEmail:
@@ -131,7 +204,20 @@ export function resolveOrganizationSubscriptionLookup(
     daysRemaining: isTrialActive
       ? Math.max(0, Math.ceil((trialEndsAtTimestamp - now) / MS_PER_DAY))
       : 0,
-    hasAccess: status === "active" || isTrialActive,
+    hasAccess: continuityEnabled || leadershipHelpEnabled,
+    products: {
+      leadership_continuity: {
+        enabled: continuityEnabled,
+        tier:
+          result.data.leadership_continuity_tier?.trim() ||
+          result.data.subscription_tier?.trim() ||
+          "organization",
+      },
+      leadership_help: {
+        enabled: leadershipHelpEnabled,
+        tier: result.data.leadership_help_tier?.trim() || "none",
+      },
+    },
     isLegacyFallback: false,
     isTrialActive,
     status,

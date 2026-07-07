@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { SubscriptionPaywallPanel } from "@/components/subscription-paywall-panel";
 import { requireUser } from "@/lib/auth";
 import {
+  hasProductAccess,
   loadOrganizationSubscription,
   type OrganizationSubscriptionClient,
   type OrganizationSubscriptionState,
@@ -1483,7 +1484,7 @@ async function getDashboardSnapshot(
     organization_industry: organizationResult.data?.industry ?? null,
   };
 
-  if (!subscription.hasAccess) {
+  if (!hasProductAccess(subscription, "leadership_continuity")) {
     return {
       profile,
       subscription,
@@ -1841,7 +1842,8 @@ export default async function DashboardPage({
               setupToken={setupToken}
             />
           </section>
-        ) : snapshot.subscription && !snapshot.subscription.hasAccess ? (
+        ) : snapshot.subscription &&
+          !hasProductAccess(snapshot.subscription, "leadership_continuity") ? (
           <SubscriptionPaywallPanel
             organizationName={snapshot.profile.organization_name}
             subscription={snapshot.subscription}

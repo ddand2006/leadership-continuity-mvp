@@ -33,6 +33,19 @@ type AdministrationPanelProps = {
     suspendedUsers: number;
     pendingInvitations: number;
   };
+  organizations: Array<{
+    id: string;
+    name: string;
+    industry: string | null;
+    subscription_status: string | null;
+    billing_contact_email: string | null;
+    leadership_continuity_enabled: boolean;
+    leadership_continuity_tier: string;
+    leadership_help_enabled: boolean;
+    leadership_help_tier: string;
+  }>;
+  selectedOrganizationId: string;
+  canManageOrganizations: boolean;
 };
 
 type ComposerMode = "create" | "invite" | "edit" | "password";
@@ -107,8 +120,15 @@ function SummaryCard(props: { label: string; value: number; tone: string }) {
 export function AdministrationPanel({
   users,
   summary,
+  organizations,
+  selectedOrganizationId,
+  canManageOrganizations,
 }: AdministrationPanelProps) {
   const router = useRouter();
+  const selectedOrganization =
+    organizations.find((organization) => organization.id === selectedOrganizationId) ??
+    organizations[0] ??
+    null;
   const [nameFilter, setNameFilter] = useState("");
   const [emailFilter, setEmailFilter] = useState("");
   const [candidateFilter, setCandidateFilter] = useState(false);
@@ -124,6 +144,44 @@ export function AdministrationPanel({
   const [formState, setFormState] = useState(defaultFormState());
   const [feedback, setFeedback] = useState<{ error?: string; message?: string; resetLink?: string }>({});
   const [isPending, startTransition] = useTransition();
+  const [organizationFeedback, setOrganizationFeedback] = useState<{
+    error?: string;
+    message?: string;
+  }>({});
+  const [organizationForm, setOrganizationForm] = useState(
+    selectedOrganization
+      ? {
+          organizationName: selectedOrganization.name,
+          industryName: selectedOrganization.industry ?? "",
+          billingContactEmail: selectedOrganization.billing_contact_email ?? "",
+          subscriptionStatus: selectedOrganization.subscription_status ?? "active",
+          leadershipContinuityEnabled:
+            selectedOrganization.leadership_continuity_enabled,
+          leadershipContinuityTier: selectedOrganization.leadership_continuity_tier,
+          leadershipHelpEnabled: selectedOrganization.leadership_help_enabled,
+          leadershipHelpTier: selectedOrganization.leadership_help_tier,
+        }
+      : {
+          organizationName: "",
+          industryName: "",
+          billingContactEmail: "",
+          subscriptionStatus: "active",
+          leadershipContinuityEnabled: true,
+          leadershipContinuityTier: "organization",
+          leadershipHelpEnabled: false,
+          leadershipHelpTier: "none",
+        },
+  );
+  const [newOrganizationForm, setNewOrganizationForm] = useState({
+    organizationName: "",
+    industryName: "",
+    billingContactEmail: "",
+    subscriptionStatus: "active",
+    leadershipContinuityEnabled: true,
+    leadershipContinuityTier: "organization",
+    leadershipHelpEnabled: false,
+    leadershipHelpTier: "none",
+  });
   const toggleFilters: Array<{
     label: string;
     value: boolean;
@@ -226,6 +284,39 @@ export function AdministrationPanel({
     });
   }
 
+  function runOrganizationAction(
+    input: RequestInfo | URL,
+    init: RequestInit,
+    onSuccess: (payload: { message?: string; organizationId?: string }) => void,
+  ) {
+    setOrganizationFeedback({});
+
+    startTransition(async () => {
+      try {
+        const response = await fetch(input, init);
+        const payload = (await response.json()) as {
+          error?: string;
+          message?: string;
+          organizationId?: string;
+        };
+
+        if (!response.ok) {
+          setOrganizationFeedback({
+            error: payload.error ?? "Unable to save organization settings.",
+          });
+          return;
+        }
+
+        onSuccess(payload);
+        router.refresh();
+      } catch {
+        setOrganizationFeedback({
+          error: "Unable to save organization settings right now.",
+        });
+      }
+    });
+  }
+
   function submitUserForm() {
     const payload = {
       firstName: formState.firstName,
@@ -244,7 +335,11 @@ export function AdministrationPanel({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mode: "create", ...payload }),
+          body: JSON.stringify({
+            mode: "create",
+            organizationId: selectedOrganizationId,
+            ...payload,
+          }),
         },
         (result) => {
           setFeedback({ message: result.message });
@@ -262,6 +357,7 @@ export function AdministrationPanel({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             mode: "invite",
+            organizationId: selectedOrganizationId,
             firstName: formState.firstName,
             lastName: formState.lastName,
             email: formState.email,
@@ -286,6 +382,7 @@ export function AdministrationPanel({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             action: "edit",
+            organizationId: selectedOrganizationId,
             userId: selectedUser.id,
             ...payload,
           }),
@@ -304,7 +401,12 @@ export function AdministrationPanel({
       {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "status", userId, status }),
+        body: JSON.stringify({
+          action: "status",
+          organizationId: selectedOrganizationId,
+          userId,
+          status,
+        }),
       },
       (result) => {
         setFeedback({ message: result.message });
@@ -324,6 +426,7 @@ export function AdministrationPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "reset_password",
+          organizationId: selectedOrganizationId,
           userId: selectedUser.id,
           temporaryPassword: formState.temporaryPassword || undefined,
         }),
@@ -340,7 +443,7 @@ export function AdministrationPanel({
 
   function deleteUser(user: AdministrationUser) {
     runAction(
-      `/api/admin/users?userId=${encodeURIComponent(user.id)}`,
+      `/api/admin/users?userId=${encodeURIComponent(user.id)}&organizationId=${encodeURIComponent(selectedOrganizationId)}`,
       { method: "DELETE" },
       (result) => {
         setFeedback({ message: result.message });
@@ -348,8 +451,415 @@ export function AdministrationPanel({
     );
   }
 
+  function submitOrganizationUpdate() {
+    if (!selectedOrganization) {
+      return;
+    }
+
+    runOrganizationAction(
+      "/api/admin/organizations",
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          organizationId: selectedOrganization.id,
+          ...organizationForm,
+        }),
+      },
+      (result) => {
+        setOrganizationFeedback({ message: result.message });
+      },
+    );
+  }
+
+  function createOrganization() {
+    runOrganizationAction(
+      "/api/admin/organizations",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newOrganizationForm),
+      },
+      (result) => {
+        setOrganizationFeedback({ message: result.message });
+        setNewOrganizationForm({
+          organizationName: "",
+          industryName: "",
+          billingContactEmail: "",
+          subscriptionStatus: "active",
+          leadershipContinuityEnabled: true,
+          leadershipContinuityTier: "organization",
+          leadershipHelpEnabled: false,
+          leadershipHelpTier: "none",
+        });
+        if (result.organizationId) {
+          window.location.assign(
+            `/administration?organizationId=${encodeURIComponent(result.organizationId)}`,
+          );
+        }
+      },
+    );
+  }
+
   return (
     <>
+      {selectedOrganization ? (
+        <section className="theme-panel-strong rounded-[2rem] p-8">
+          <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
+            <div>
+              <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
+                Organization Controls
+              </p>
+              <h2 className="mt-3 font-display text-3xl text-slate-900">
+                {selectedOrganization.name}
+              </h2>
+              <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600">
+                Choose the active company, update product access, and control which
+                modules are enabled. System Admin can manage every company from this
+                surface.
+              </p>
+            </div>
+
+            <div className="grid gap-3 rounded-[1.5rem] border border-slate-200/80 bg-white/80 p-4 text-sm text-slate-700 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+              <div>
+                <span className="font-semibold text-slate-950">Industry:</span>{" "}
+                {selectedOrganization.industry || "Not set"}
+              </div>
+              <div>
+                <span className="font-semibold text-slate-950">Continuity:</span>{" "}
+                {selectedOrganization.leadership_continuity_enabled
+                  ? selectedOrganization.leadership_continuity_tier
+                  : "Disabled"}
+              </div>
+              <div>
+                <span className="font-semibold text-slate-950">Leadership Help:</span>{" "}
+                {selectedOrganization.leadership_help_enabled
+                  ? selectedOrganization.leadership_help_tier
+                  : "Disabled"}
+              </div>
+            </div>
+          </div>
+
+          {organizationFeedback.error ? (
+            <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-medium text-rose-700">
+              {organizationFeedback.error}
+            </div>
+          ) : null}
+
+          {organizationFeedback.message ? (
+            <div className="mt-6 rounded-2xl border border-teal-200 bg-teal-50 px-5 py-4 text-sm font-medium text-teal-800">
+              {organizationFeedback.message}
+            </div>
+          ) : null}
+
+          <div className="mt-8 grid gap-6 lg:grid-cols-2">
+            <div className="space-y-4 rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-5">
+              <label className="block">
+                <span className="mb-2 block text-sm font-semibold text-slate-700">
+                  Active organization
+                </span>
+                <select
+                  value={selectedOrganizationId}
+                  onChange={(event) =>
+                    window.location.assign(
+                      `/administration?organizationId=${encodeURIComponent(event.target.value)}`,
+                    )
+                  }
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
+                >
+                  {organizations.map((organization) => (
+                    <option key={organization.id} value={organization.id}>
+                      {organization.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="block">
+                  <span className="mb-2 block text-sm font-semibold text-slate-700">
+                    Organization name
+                  </span>
+                  <input
+                    value={organizationForm.organizationName}
+                    onChange={(event) =>
+                      setOrganizationForm((current) => ({
+                        ...current,
+                        organizationName: event.target.value,
+                      }))
+                    }
+                    disabled={!canManageOrganizations}
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white disabled:cursor-not-allowed disabled:opacity-70"
+                    type="text"
+                  />
+                </label>
+                <label className="block">
+                  <span className="mb-2 block text-sm font-semibold text-slate-700">
+                    Industry
+                  </span>
+                  <input
+                    value={organizationForm.industryName}
+                    onChange={(event) =>
+                      setOrganizationForm((current) => ({
+                        ...current,
+                        industryName: event.target.value,
+                      }))
+                    }
+                    disabled={!canManageOrganizations}
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white disabled:cursor-not-allowed disabled:opacity-70"
+                    type="text"
+                  />
+                </label>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="block">
+                  <span className="mb-2 block text-sm font-semibold text-slate-700">
+                    Billing contact
+                  </span>
+                  <input
+                    value={organizationForm.billingContactEmail}
+                    onChange={(event) =>
+                      setOrganizationForm((current) => ({
+                        ...current,
+                        billingContactEmail: event.target.value,
+                      }))
+                    }
+                    disabled={!canManageOrganizations}
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white disabled:cursor-not-allowed disabled:opacity-70"
+                    type="email"
+                  />
+                </label>
+                <label className="block">
+                  <span className="mb-2 block text-sm font-semibold text-slate-700">
+                    Subscription status
+                  </span>
+                  <select
+                    value={organizationForm.subscriptionStatus}
+                    onChange={(event) =>
+                      setOrganizationForm((current) => ({
+                        ...current,
+                        subscriptionStatus: event.target.value,
+                      }))
+                    }
+                    disabled={!canManageOrganizations}
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    <option value="trialing">Trialing</option>
+                    <option value="active">Active</option>
+                    <option value="past_due">Past due</option>
+                    <option value="canceled">Canceled</option>
+                  </select>
+                </label>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <fieldset className="rounded-[1.25rem] border border-slate-200 bg-white/80 p-4">
+                  <label className="inline-flex items-center gap-3 text-sm font-semibold text-slate-800">
+                    <input
+                      checked={organizationForm.leadershipContinuityEnabled}
+                      onChange={(event) =>
+                        setOrganizationForm((current) => ({
+                          ...current,
+                          leadershipContinuityEnabled: event.target.checked,
+                        }))
+                      }
+                      disabled={!canManageOrganizations}
+                      type="checkbox"
+                    />
+                    Leadership Continuity
+                  </label>
+                  <input
+                    value={organizationForm.leadershipContinuityTier}
+                    onChange={(event) =>
+                      setOrganizationForm((current) => ({
+                        ...current,
+                        leadershipContinuityTier: event.target.value,
+                      }))
+                    }
+                    disabled={!canManageOrganizations}
+                    className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white disabled:cursor-not-allowed disabled:opacity-70"
+                    type="text"
+                    placeholder="organization"
+                  />
+                </fieldset>
+
+                <fieldset className="rounded-[1.25rem] border border-slate-200 bg-white/80 p-4">
+                  <label className="inline-flex items-center gap-3 text-sm font-semibold text-slate-800">
+                    <input
+                      checked={organizationForm.leadershipHelpEnabled}
+                      onChange={(event) =>
+                        setOrganizationForm((current) => ({
+                          ...current,
+                          leadershipHelpEnabled: event.target.checked,
+                        }))
+                      }
+                      disabled={!canManageOrganizations}
+                      type="checkbox"
+                    />
+                    Leadership Help
+                  </label>
+                  <input
+                    value={organizationForm.leadershipHelpTier}
+                    onChange={(event) =>
+                      setOrganizationForm((current) => ({
+                        ...current,
+                        leadershipHelpTier: event.target.value,
+                      }))
+                    }
+                    disabled={!canManageOrganizations}
+                    className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white disabled:cursor-not-allowed disabled:opacity-70"
+                    type="text"
+                    placeholder="none"
+                  />
+                </fieldset>
+              </div>
+
+              {canManageOrganizations ? (
+                <button
+                  type="button"
+                  onClick={submitOrganizationUpdate}
+                  disabled={isPending}
+                  className="interactive-contrast rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-900 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isPending ? "Saving..." : "Save Organization Access"}
+                </button>
+              ) : (
+                <p className="text-sm text-slate-500">
+                  Organization access settings are managed by the system administrator.
+                </p>
+              )}
+            </div>
+
+            {canManageOrganizations ? (
+              <div className="space-y-4 rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-5">
+                <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
+                  Create Company
+                </p>
+                <h3 className="font-display text-2xl text-slate-950">
+                  Set up a new company
+                </h3>
+                <div className="grid gap-4">
+                  <input
+                    value={newOrganizationForm.organizationName}
+                    onChange={(event) =>
+                      setNewOrganizationForm((current) => ({
+                        ...current,
+                        organizationName: event.target.value,
+                      }))
+                    }
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
+                    type="text"
+                    placeholder="Organization name"
+                  />
+                  <input
+                    value={newOrganizationForm.industryName}
+                    onChange={(event) =>
+                      setNewOrganizationForm((current) => ({
+                        ...current,
+                        industryName: event.target.value,
+                      }))
+                    }
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
+                    type="text"
+                    placeholder="Industry"
+                  />
+                  <input
+                    value={newOrganizationForm.billingContactEmail}
+                    onChange={(event) =>
+                      setNewOrganizationForm((current) => ({
+                        ...current,
+                        billingContactEmail: event.target.value,
+                      }))
+                    }
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
+                    type="email"
+                    placeholder="billing@company.com"
+                  />
+                  <select
+                    value={newOrganizationForm.subscriptionStatus}
+                    onChange={(event) =>
+                      setNewOrganizationForm((current) => ({
+                        ...current,
+                        subscriptionStatus: event.target.value,
+                      }))
+                    }
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
+                  >
+                    <option value="trialing">Trialing</option>
+                    <option value="active">Active</option>
+                    <option value="past_due">Past due</option>
+                    <option value="canceled">Canceled</option>
+                  </select>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <fieldset className="rounded-[1.25rem] border border-slate-200 bg-white/80 p-4">
+                    <label className="inline-flex items-center gap-3 text-sm font-semibold text-slate-800">
+                      <input
+                        checked={newOrganizationForm.leadershipContinuityEnabled}
+                        onChange={(event) =>
+                          setNewOrganizationForm((current) => ({
+                            ...current,
+                            leadershipContinuityEnabled: event.target.checked,
+                          }))
+                        }
+                        type="checkbox"
+                      />
+                      Leadership Continuity
+                    </label>
+                    <input
+                      value={newOrganizationForm.leadershipContinuityTier}
+                      onChange={(event) =>
+                        setNewOrganizationForm((current) => ({
+                          ...current,
+                          leadershipContinuityTier: event.target.value,
+                        }))
+                      }
+                      className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
+                      type="text"
+                    />
+                  </fieldset>
+                  <fieldset className="rounded-[1.25rem] border border-slate-200 bg-white/80 p-4">
+                    <label className="inline-flex items-center gap-3 text-sm font-semibold text-slate-800">
+                      <input
+                        checked={newOrganizationForm.leadershipHelpEnabled}
+                        onChange={(event) =>
+                          setNewOrganizationForm((current) => ({
+                            ...current,
+                            leadershipHelpEnabled: event.target.checked,
+                          }))
+                        }
+                        type="checkbox"
+                      />
+                      Leadership Help
+                    </label>
+                    <input
+                      value={newOrganizationForm.leadershipHelpTier}
+                      onChange={(event) =>
+                        setNewOrganizationForm((current) => ({
+                          ...current,
+                          leadershipHelpTier: event.target.value,
+                        }))
+                      }
+                      className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
+                      type="text"
+                    />
+                  </fieldset>
+                </div>
+                <button
+                  type="button"
+                  onClick={createOrganization}
+                  disabled={isPending}
+                  className="interactive-contrast rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-900 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isPending ? "Creating..." : "Create Company"}
+                </button>
+              </div>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <SummaryCard
           label="Active Candidates"

@@ -77,11 +77,7 @@ export function getOrganizationUserLegacyRole(input: {
   isMentor: boolean;
   adminRole: OrganizationUserAdminRole;
 }) {
-  if (input.adminRole === "ceo_admin") {
-    return "system_admin";
-  }
-
-  if (input.adminRole === "manager_admin") {
+  if (input.adminRole === "ceo_admin" || input.adminRole === "manager_admin") {
     return "hospital_admin";
   }
 

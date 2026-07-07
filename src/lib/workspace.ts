@@ -4,8 +4,10 @@ import { requireUser } from "./auth";
 import { syncOrganizationUserAccessOnLogin } from "./organization-user-admin";
 import type { OrganizationUserRecord } from "./organization-users";
 import {
+  hasProductAccess,
   loadOrganizationSubscription,
   type OrganizationSubscriptionClient,
+  type SubscriptionProduct,
 } from "./subscription";
 import { createSupabaseAdminClient } from "./supabase/admin";
 import { createSupabaseServerClient } from "./supabase/server";
@@ -75,14 +77,17 @@ export async function requireWorkspaceProfile() {
   };
 }
 
-export async function requirePaidWorkspaceProfile() {
+export async function requirePaidWorkspaceProfile(options?: {
+  product?: SubscriptionProduct;
+}) {
   const context = await requireWorkspaceProfile();
   const subscription = await loadOrganizationSubscription(
     context.supabase as unknown as OrganizationSubscriptionClient,
     context.profile.organization_id,
   );
+  const product = options?.product ?? "leadership_continuity";
 
-  if (!subscription.hasAccess) {
+  if (!hasProductAccess(subscription, product)) {
     redirect("/subscribe");
   }
 

@@ -7,7 +7,12 @@ import {
   isMentorAppUser,
 } from "@/lib/mentor-access";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { isPaywallEnabled } from "@/lib/subscription";
+import {
+  hasProductAccess,
+  isPaywallEnabled,
+  loadOrganizationSubscription,
+  type OrganizationSubscriptionClient,
+} from "@/lib/subscription";
 
 const resourceNavItems = [
   {
@@ -69,16 +74,19 @@ function getInitials(user: User) {
 export async function AppNav({ pathname }: { pathname: string }) {
   const user = await getCurrentUser();
   let isAdmin = false;
+  let isSystemAdmin = false;
   let isMentor = false;
   let isCandidate = false;
   let isCandidateOnly = false;
+  let hasContinuityAccess = true;
+  let hasLeadershipHelpAccess = true;
 
   if (user) {
     const supabase = await createSupabaseServerClient();
     const [profileResult, accountResult] = await Promise.all([
       supabase
         .from("profiles")
-        .select("id, role")
+        .select("id, role, organization_id")
         .eq("auth_user_id", user.id)
         .maybeSingle(),
       supabase
@@ -97,34 +105,70 @@ export async function AppNav({ pathname }: { pathname: string }) {
     }
 
     isAdmin = profileResult.data ? isAdminAppRole(profileResult.data.role) : false;
+    isSystemAdmin = profileResult.data?.role === "system_admin";
     isMentor =
       profileResult.data && accountResult.data
         ? isMentorAppUser(profileResult.data, accountResult.data)
         : profileResult.data?.role === "mentor";
     isCandidate = isCandidateAppUser(accountResult.data);
     isCandidateOnly = Boolean(user && !isAdmin && !isMentor && isCandidate);
+
+    if (profileResult.data) {
+      const subscription = await loadOrganizationSubscription(
+        supabase as unknown as OrganizationSubscriptionClient,
+        profileResult.data.organization_id,
+      );
+      hasContinuityAccess = hasProductAccess(
+        subscription,
+        "leadership_continuity",
+      );
+      hasLeadershipHelpAccess = hasProductAccess(
+        subscription,
+        "leadership_help",
+      );
+    }
   }
 
   const navItems = user
     ? [
         { href: "/", label: "Home" },
-        ...(isAdmin ? [{ href: "/roles", label: "Roles" }] : []),
-        { href: "/candidates", label: "Candidates" },
-        ...(isAdmin || isMentor || isCandidate
+        ...(hasContinuityAccess && isAdmin ? [{ href: "/roles", label: "Roles" }] : []),
+        ...(hasContinuityAccess ? [{ href: "/candidates", label: "Candidates" }] : []),
+        ...(hasLeadershipHelpAccess
+          ? [{ href: "/leadership-help", label: "Leadership Help" }]
+          : []),
+        ...(hasContinuityAccess && (isAdmin || isMentor || isCandidate)
           ? [{ href: "/mentoring", label: "Mentoring" }]
           : []),
-        ...(isAdmin || isMentor ? [{ href: "/dashboard", label: "Dashboard" }] : []),
-        ...(isAdmin ? [{ href: "/administration", label: "Administration" }] : []),
+        ...(hasContinuityAccess && (isAdmin || isMentor)
+          ? [{ href: "/dashboard", label: "Dashboard" }]
+          : []),
+        ...((hasContinuityAccess && isAdmin) || isSystemAdmin
+          ? [{ href: "/administration", label: "Administration" }]
+          : []),
         ...(isPaywallEnabled() ? [{ href: "/subscribe", label: "Access" }] : []),
       ]
     : [
         { href: "/", label: "Home" },
         ...(isPaywallEnabled() ? [{ href: "/subscribe", label: "Access" }] : []),
       ];
-  const accountLandingHref =
-    isAdmin || isMentor ? "/dashboard" : "/candidates";
+  const accountLandingHref = hasContinuityAccess
+    ? isAdmin || isMentor
+      ? "/dashboard"
+      : "/candidates"
+    : isSystemAdmin
+      ? "/administration"
+    : hasLeadershipHelpAccess
+      ? "/leadership-help"
+      : "/subscribe";
   const accountLandingLabel =
-    isCandidateOnly ? "Open Candidates" : "Open Dashboard";
+    isSystemAdmin && !hasContinuityAccess
+      ? "Open Administration"
+      : hasLeadershipHelpAccess && !hasContinuityAccess
+      ? "Open Leadership Help"
+      : isCandidateOnly
+        ? "Open Candidates"
+        : "Open Dashboard";
 
   return (
     <header className="relative z-10 px-5 pt-4 sm:px-8 lg:px-10">
@@ -219,7 +263,7 @@ export async function AppNav({ pathname }: { pathname: string }) {
               );
             })}
 
-            {isAdmin || isMentor ? (
+            {hasContinuityAccess && (isAdmin || isMentor) ? (
               <details className="group relative">
                 <summary className="flex cursor-pointer list-none items-center gap-2 rounded-full border border-slate-200/80 bg-white/85 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-teal-200 hover:text-teal-900">
                   <span>Resources</span>
