@@ -15,6 +15,7 @@ export function WorkspaceSetupForm(props: {
     props.defaultOrganizationName,
   );
   const [industryName, setIndustryName] = useState(props.defaultIndustryName);
+  const [seedDemoData, setSeedDemoData] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -35,6 +36,7 @@ export function WorkspaceSetupForm(props: {
           fullName,
           organizationName,
           industryName,
+          seedDemoData,
           setupToken: props.setupToken,
         }),
       });
@@ -102,6 +104,23 @@ export function WorkspaceSetupForm(props: {
           required
         />
       </label>
+      <label className="flex items-start gap-3 rounded-[1.5rem] border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700">
+        <input
+          checked={seedDemoData}
+          onChange={(event) => setSeedDemoData(event.target.checked)}
+          type="checkbox"
+          className="mt-1 h-4 w-4 rounded border-slate-300 text-teal-700 focus:ring-teal-500"
+        />
+        <span>
+          <span className="block font-semibold text-slate-900">
+            Include demo data
+          </span>
+          <span className="mt-1 block leading-6 text-slate-600">
+            Adds the sample role, interview panel, and Erin Demo candidate for testing.
+            Leave this off for a real company workspace.
+          </span>
+        </span>
+      </label>
       {errorMessage ? (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-medium text-amber-900">
           {errorMessage}
@@ -114,7 +133,9 @@ export function WorkspaceSetupForm(props: {
       >
         {isSubmitting
           ? "Creating Admin Profile..."
-          : "Create Admin Profile and Seed Demo Data"}
+          : seedDemoData
+            ? "Create Admin Profile With Demo Data"
+            : "Create Admin Profile"}
       </button>
     </form>
   );

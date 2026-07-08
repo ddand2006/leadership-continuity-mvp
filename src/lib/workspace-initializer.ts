@@ -24,10 +24,18 @@ export async function initializeWorkspaceForUser(options: {
   fullName: string;
   organizationName: string;
   industryName: string;
+  seedDemoData?: boolean;
 }) {
   console.log("initializeWorkspace:start");
   const admin = createSupabaseAdminClient();
-  const { userId, email, fullName, organizationName, industryName } = options;
+  const {
+    userId,
+    email,
+    fullName,
+    organizationName,
+    industryName,
+    seedDemoData = false,
+  } = options;
   const trimmedName = fullName.trim();
   const [firstName, ...remainingNameParts] = trimmedName.split(/\s+/);
   const lastName = remainingNameParts.join(" ") || "Admin";
@@ -189,6 +197,11 @@ export async function initializeWorkspaceForUser(options: {
     if (projectsInsertResult.error) {
       throw new Error(projectsInsertResult.error.message);
     }
+  }
+
+  if (!seedDemoData) {
+    console.log("initializeWorkspace:complete_without_demo_data");
+    return "Workspace initialized with your admin profile. No demo candidate data was added.";
   }
 
   let roleId: string;

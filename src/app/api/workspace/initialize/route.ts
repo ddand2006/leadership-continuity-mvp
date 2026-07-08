@@ -10,6 +10,7 @@ export async function POST(request: Request) {
     fullName?: string;
     organizationName?: string;
     industryName?: string;
+    seedDemoData?: boolean;
     setupToken?: string;
   };
 
@@ -57,6 +58,7 @@ export async function POST(request: Request) {
       fullName: body.fullName.trim(),
       organizationName: body.organizationName.trim(),
       industryName: body.industryName.trim(),
+      seedDemoData: body.seedDemoData === true,
     });
 
     revalidatePath("/dashboard");
