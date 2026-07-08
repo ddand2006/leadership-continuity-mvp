@@ -32,7 +32,7 @@ type RoleManagementPanelProps = {
   sharedLibrary: SharedLibraryItem[];
   canGenerateComposite: boolean;
   initialSelectedRoleId?: string | null;
-  mode?: "create" | "import" | "composite";
+  mode?: "create" | "import" | "composite" | "survey";
 };
 
 const MAX_COMPETENCY_UPLOAD_SIZE_BYTES = 50 * 1024 * 1024;
@@ -176,6 +176,22 @@ export function RoleManagementPanel({
   function openCompositePage() {
     const nextParams = new URLSearchParams(searchParams.toString());
     nextParams.set("mode", "composite");
+
+    if (selectedCompetencyRoleId) {
+      nextParams.set("roleId", selectedCompetencyRoleId);
+    } else if (editorRoleId) {
+      nextParams.set("roleId", editorRoleId);
+    } else {
+      nextParams.delete("roleId");
+    }
+
+    const nextQuery = nextParams.toString();
+    router.push(nextQuery ? `${pathname}?${nextQuery}` : pathname);
+  }
+
+  function openSurveyPage() {
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.set("mode", "survey");
 
     if (selectedCompetencyRoleId) {
       nextParams.set("roleId", selectedCompetencyRoleId);
@@ -1145,6 +1161,13 @@ export function RoleManagementPanel({
               className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
             >
               Open Role Composite Page
+            </button>
+            <button
+              type="button"
+              onClick={openSurveyPage}
+              className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              Open Competency Survey
             </button>
           </div>
         ) : null}

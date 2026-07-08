@@ -21,7 +21,14 @@ type RoleFlowPanelProps = {
     hasCompetencies: boolean;
   }[];
   selectedRoleId: string | null;
-  selectedMode: "flow" | "create" | "import" | "composite" | "view" | "resources";
+  selectedMode:
+    | "flow"
+    | "create"
+    | "import"
+    | "composite"
+    | "view"
+    | "resources"
+    | "survey";
 };
 
 const CREATE_NEW_ROLE_VALUE = "__create_new_role__";
@@ -45,7 +52,14 @@ export function RoleFlowPanel({
   const selectedRole = roles.find((role) => role.id === selectedRoleId) ?? null;
 
   function updateRoute(
-    nextMode: "flow" | "create" | "import" | "composite" | "view" | "resources",
+    nextMode:
+      | "flow"
+      | "create"
+      | "import"
+      | "composite"
+      | "view"
+      | "resources"
+      | "survey",
     nextRoleId?: string | null,
   ) {
     const nextParams = new URLSearchParams(searchParams.toString());
@@ -91,6 +105,16 @@ export function RoleFlowPanel({
         ? "Open the printable role view and download-ready narrative layout."
         : "Choose a role first to view its narrative.",
       href: selectedRole ? `/roles/${selectedRole.id}/print` : undefined,
+      disabled: !selectedRole,
+    },
+    {
+      title: "Launch Competency Survey",
+      description: selectedRole
+        ? "Send an external survey to gather what success looks like in this role."
+        : "Choose a role first to launch its survey.",
+      onClick: selectedRole
+        ? () => updateRoute("survey", selectedRole.id)
+        : undefined,
       disabled: !selectedRole,
     },
     {

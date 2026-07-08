@@ -3,12 +3,19 @@ import { RoleFlowPanel } from "@/components/role-flow-panel";
 import { RoleManagementPanel } from "@/components/role-management-panel";
 import { RoleMentorDialog } from "@/components/role-mentor-dialog";
 import { RoleResourcesPanel } from "@/components/role-resources-panel";
+import { RoleSurveyPanel } from "@/components/role-survey-panel";
 import { hasOpenAIEnv } from "@/lib/env";
 import {
   isMissingRoleCharacteristicLibraryTableError,
   normalizeRoleLibraryCharacteristic,
 } from "@/lib/role-characteristic-library";
 import { isAdminAppRole } from "@/lib/mentor-access";
+import {
+  isMissingRoleSurveyTablesError,
+  type RoleSurveyRecipientRecord,
+  type RoleSurveyRecord,
+  type RoleSurveyResponseRecord,
+} from "@/lib/role-competency-surveys";
 import { groupCharacteristicsByCategory } from "@/lib/role-characteristics";
 import { requirePaidWorkspaceProfile } from "@/lib/workspace";
 
@@ -22,6 +29,25 @@ type RolesPageProps = {
 export default async function RolesPage({ searchParams }: RolesPageProps) {
   const { roleId: requestedRoleId, mode: requestedMode } = await searchParams;
   const { profile, supabase } = await requirePaidWorkspaceProfile();
+  const selectedMode:
+    | "flow"
+    | "create"
+    | "import"
+    | "composite"
+    | "view"
+    | "resources"
+    | "survey" =
+    requestedMode === "flow" ||
+    requestedMode === "view" ||
+    requestedMode === "create" ||
+    requestedMode === "import" ||
+    requestedMode === "composite" ||
+    requestedMode === "resources" ||
+    requestedMode === "survey"
+      ? requestedMode
+      : requestedRoleId
+        ? "view"
+        : "flow";
 
   if (!isAdminAppRole(profile.role)) {
     redirect(
@@ -30,6 +56,31 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
   }
 
   const canGenerateComposite = hasOpenAIEnv();
+  const needsCompetencies =
+    selectedMode === "create" ||
+    selectedMode === "import" ||
+    selectedMode === "composite" ||
+    selectedMode === "view" ||
+    selectedMode === "resources";
+  const needsCharacteristics =
+    selectedMode === "flow" ||
+    selectedMode === "create" ||
+    selectedMode === "import" ||
+    selectedMode === "composite" ||
+    selectedMode === "view";
+  const needsSharedLibrary =
+    selectedMode === "create" ||
+    selectedMode === "import" ||
+    selectedMode === "composite";
+  const needsCompositeDocuments =
+    selectedMode === "flow" ||
+    selectedMode === "create" ||
+    selectedMode === "import" ||
+    selectedMode === "composite" ||
+    selectedMode === "view";
+  const needsMentors = selectedMode === "view";
+  const needsRoleMentorAssignments = selectedMode === "view";
+  const needsSurveyRecords = selectedMode === "survey";
   const [
     rolesResult,
     competenciesResult,
@@ -38,6 +89,9 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
     compositeDocumentsResult,
     mentorsResult,
     roleMentorAssignmentsResult,
+    roleSurveysResult,
+    roleSurveyRecipientsResult,
+    roleSurveyResponsesResult,
   ] =
     await Promise.all([
       supabase
@@ -45,40 +99,79 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
         .select("id, title, department, description, status")
         .eq("organization_id", profile.organization_id)
         .order("created_at", { ascending: true }),
-      supabase
-        .from("role_competencies")
-        .select(
-          "id, role_id, name, definition, weight, target_score, behavioral_indicators, red_flags",
-        )
-        .eq("organization_id", profile.organization_id)
-        .order("created_at", { ascending: true }),
-      supabase
-        .from("role_candidate_characteristics")
-        .select("id, role_id, category, characteristic, sort_order")
-        .eq("organization_id", profile.organization_id)
-        .order("sort_order", { ascending: true })
-        .order("created_at", { ascending: true }),
-      supabase
-        .from("role_characteristic_library")
-        .select("id, category, characteristic")
-        .eq("organization_id", profile.organization_id)
-        .order("characteristic", { ascending: true }),
-      supabase
-        .from("role_composite_documents")
-        .select("id, role_id, document_source, file_name, created_at")
-        .eq("organization_id", profile.organization_id)
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("profiles")
-        .select("id, full_name, position_title")
-        .eq("organization_id", profile.organization_id)
-        .eq("role", "mentor")
-        .order("created_at", { ascending: true }),
-      supabase
-        .from("role_mentor_assignments")
-        .select("role_id, mentor_profile_id, status")
-        .eq("organization_id", profile.organization_id)
-        .order("created_at", { ascending: true }),
+      needsCompetencies
+        ? supabase
+            .from("role_competencies")
+            .select(
+              "id, role_id, name, definition, weight, target_score, behavioral_indicators, red_flags",
+            )
+            .eq("organization_id", profile.organization_id)
+            .order("created_at", { ascending: true })
+        : Promise.resolve({ data: [], error: null }),
+      needsCharacteristics
+        ? supabase
+            .from("role_candidate_characteristics")
+            .select("id, role_id, category, characteristic, sort_order")
+            .eq("organization_id", profile.organization_id)
+            .order("sort_order", { ascending: true })
+            .order("created_at", { ascending: true })
+        : Promise.resolve({ data: [], error: null }),
+      needsSharedLibrary
+        ? supabase
+            .from("role_characteristic_library")
+            .select("id, category, characteristic")
+            .eq("organization_id", profile.organization_id)
+            .order("characteristic", { ascending: true })
+        : Promise.resolve({ data: [], error: null }),
+      needsCompositeDocuments
+        ? supabase
+            .from("role_composite_documents")
+            .select("id, role_id, document_source, file_name, created_at")
+            .eq("organization_id", profile.organization_id)
+            .order("created_at", { ascending: false })
+        : Promise.resolve({ data: [], error: null }),
+      needsMentors
+        ? supabase
+            .from("profiles")
+            .select("id, full_name, position_title")
+            .eq("organization_id", profile.organization_id)
+            .eq("role", "mentor")
+            .order("created_at", { ascending: true })
+        : Promise.resolve({ data: [], error: null }),
+      needsRoleMentorAssignments
+        ? supabase
+            .from("role_mentor_assignments")
+            .select("role_id, mentor_profile_id, status")
+            .eq("organization_id", profile.organization_id)
+            .order("created_at", { ascending: true })
+        : Promise.resolve({ data: [], error: null }),
+      needsSurveyRecords
+        ? supabase
+            .from("role_surveys")
+            .select(
+              "id, organization_id, role_id, title, description, intro_message, thank_you_message, status, created_by_profile_id, updated_by_profile_id, launched_at, closed_at, created_at, updated_at",
+            )
+            .eq("organization_id", profile.organization_id)
+            .order("created_at", { ascending: false })
+        : Promise.resolve({ data: [], error: null }),
+      needsSurveyRecords
+        ? supabase
+            .from("role_survey_recipients")
+            .select(
+              "id, organization_id, survey_id, recipient_name, recipient_email, recipient_title, relationship_to_role, access_token, status, invited_by_profile_id, invited_at, opened_at, completed_at, reminder_sent_at, created_at, updated_at",
+            )
+            .eq("organization_id", profile.organization_id)
+            .order("created_at", { ascending: false })
+        : Promise.resolve({ data: [], error: null }),
+      needsSurveyRecords
+        ? supabase
+            .from("role_survey_responses")
+            .select(
+              "id, organization_id, survey_id, recipient_id, response_json, normalized_competencies, submitted_at, created_at, updated_at",
+            )
+            .eq("organization_id", profile.organization_id)
+            .order("submitted_at", { ascending: false })
+        : Promise.resolve({ data: [], error: null }),
     ]);
 
   if (rolesResult.error) {
@@ -110,6 +203,27 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
 
   if (roleMentorAssignmentsResult.error) {
     throw new Error(roleMentorAssignmentsResult.error.message);
+  }
+
+  if (
+    roleSurveysResult.error &&
+    !isMissingRoleSurveyTablesError(roleSurveysResult.error)
+  ) {
+    throw new Error(roleSurveysResult.error.message);
+  }
+
+  if (
+    roleSurveyRecipientsResult.error &&
+    !isMissingRoleSurveyTablesError(roleSurveyRecipientsResult.error)
+  ) {
+    throw new Error(roleSurveyRecipientsResult.error.message);
+  }
+
+  if (
+    roleSurveyResponsesResult.error &&
+    !isMissingRoleSurveyTablesError(roleSurveyResponsesResult.error)
+  ) {
+    throw new Error(roleSurveyResponsesResult.error.message);
   }
 
   const competenciesByRole = new Map<string, typeof competenciesResult.data>();
@@ -219,17 +333,15 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
       ];
     });
   })();
-  const selectedMode: "flow" | "create" | "import" | "composite" | "view" | "resources" =
-    requestedMode === "flow" ||
-    requestedMode === "view" ||
-    requestedMode === "create" ||
-    requestedMode === "import" ||
-    requestedMode === "composite" ||
-    requestedMode === "resources"
-      ? requestedMode
-      : requestedRoleId
-        ? "view"
-        : "flow";
+  const surveyModuleReady =
+    !isMissingRoleSurveyTablesError(roleSurveysResult.error) &&
+    !isMissingRoleSurveyTablesError(roleSurveyRecipientsResult.error) &&
+    !isMissingRoleSurveyTablesError(roleSurveyResponsesResult.error);
+  const roleSurveys = (roleSurveysResult.data ?? []) as RoleSurveyRecord[];
+  const roleSurveyRecipients = (roleSurveyRecipientsResult.data ??
+    []) as RoleSurveyRecipientRecord[];
+  const roleSurveyResponses = (roleSurveyResponsesResult.data ??
+    []) as RoleSurveyResponseRecord[];
   const selectedRoleId =
     requestedRoleId && roles.some((role) => role.id === requestedRoleId)
       ? requestedRoleId
@@ -319,6 +431,35 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                 initialSelectedRoleId={selectedRoleId}
                 canGenerateResources={canGenerateComposite}
               />
+            ) : selectedMode === "survey" ? (
+              surveyModuleReady ? (
+                <RoleSurveyPanel
+                  roles={roles.map((role) => ({
+                    id: role.id,
+                    title: role.title,
+                    department: role.department,
+                  }))}
+                  surveys={roleSurveys}
+                  recipients={roleSurveyRecipients}
+                  responses={roleSurveyResponses}
+                  initialSelectedRoleId={selectedRoleId}
+                />
+              ) : (
+                <section className="rounded-[1.75rem] border border-amber-200 bg-amber-50/90 p-8 text-amber-950 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+                  <p className="text-sm font-semibold tracking-[0.16em] uppercase">
+                    Competency Survey
+                  </p>
+                  <h2 className="mt-3 font-display text-3xl">
+                    The role survey database migration still needs to be applied
+                  </h2>
+                  <p className="mt-4 max-w-3xl text-sm leading-7">
+                    The survey interface is ready, but the survey tables have not
+                    been created in Supabase yet. Once the migration is applied,
+                    you will be able to send competency surveys to any email
+                    address, collect responses, and review recurring themes.
+                  </p>
+                </section>
+              )
             ) : (
               <div className="grid gap-6">
                 {roles.length === 0 ? (

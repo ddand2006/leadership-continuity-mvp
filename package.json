@@ -28,6 +28,7 @@
     "db:seed": "npx supabase db reset"
   },
   "dependencies": {
+    "@napi-rs/canvas": "0.1.80",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.2",
     "docx": "^9.7.1",
