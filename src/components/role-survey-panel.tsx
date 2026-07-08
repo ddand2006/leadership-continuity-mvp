@@ -58,6 +58,19 @@ function buildThemeCounts(responses: RoleSurveyResponseRecord[]) {
     .slice(0, 12);
 }
 
+function buildMailtoLink(options: {
+  to: string;
+  subject: string;
+  body: string;
+}) {
+  const params = new URLSearchParams({
+    subject: options.subject,
+    body: options.body,
+  });
+
+  return `mailto:${encodeURIComponent(options.to)}?${params.toString()}`;
+}
+
 export function RoleSurveyPanel({
   roles,
   surveys,
@@ -185,6 +198,36 @@ export function RoleSurveyPanel({
     void navigator.clipboard.writeText(link).then(() => {
       setCopiedLink(token);
       setTimeout(() => setCopiedLink((current) => (current === token ? null : current)), 2000);
+    });
+  }
+
+  function openSurveyEmailDraft(recipient: RoleSurveyRecipientRecord) {
+    if (!selectedSurvey) {
+      setRecipientError("Save the survey first, then email the survey link.");
+      return;
+    }
+
+    const surveyLink = getSurveyLink(recipient.access_token);
+    const greeting = recipient.recipient_name.trim()
+      ? `Hi ${recipient.recipient_name.trim()},`
+      : "Hello,";
+    const intro = introMessage.trim() || getDefaultRoleSurveyIntroMessage(selectedRole?.title ?? "this role");
+    const closing =
+      thankYouMessage.trim() || getDefaultRoleSurveyThankYouMessage();
+    const body = [
+      greeting,
+      "",
+      intro,
+      "",
+      `Survey link: ${surveyLink}`,
+      "",
+      closing,
+    ].join("\n");
+
+    window.location.href = buildMailtoLink({
+      to: recipient.recipient_email,
+      subject: selectedSurvey.title,
+      body,
     });
   }
 
@@ -600,7 +643,8 @@ export function RoleSurveyPanel({
                         Recipient links
                       </p>
                       <p className="mt-1 text-xs leading-6 text-slate-500">
-                        Copy a live survey link for each respondent.
+                        Copy a live survey link or open a prefilled email for each
+                        respondent.
                       </p>
                     </div>
                     <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
@@ -638,6 +682,13 @@ export function RoleSurveyPanel({
                               <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700">
                                 {getRoleSurveyRecipientStatusLabel(recipient.status)}
                               </span>
+                              <button
+                                type="button"
+                                onClick={() => openSurveyEmailDraft(recipient)}
+                                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                              >
+                                Email Link
+                              </button>
                               <button
                                 type="button"
                                 onClick={() => copySurveyLink(recipient.access_token)}

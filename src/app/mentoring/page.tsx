@@ -49,6 +49,19 @@ export default async function MentoringPage({
   const isCandidate = isCandidateAppUser(account);
   const candidateIdForSelfAccess = account?.candidate_id ?? null;
   const canManageMentorAssignments = isAdmin || isMentor;
+  const allowedSectionIds = new Set([
+    "overview",
+    "preparation-worksheet",
+    "leadership-development-record",
+    "departmental-project",
+    "cross-departmental-project",
+    "readiness-review",
+    ...(canManageMentorAssignments ? ["mentor-assignments"] : []),
+  ]);
+  const selectedSectionId =
+    requestedSection && allowedSectionIds.has(requestedSection)
+      ? requestedSection
+      : "overview";
 
   if (!isAdmin && !isMentor && !isCandidate) {
     redirect(
@@ -56,6 +69,12 @@ export default async function MentoringPage({
     );
   }
 
+  const needsPreparationWorksheets =
+    selectedSectionId === "preparation-worksheet";
+  const needsDepartmentalProjectWorksheets =
+    selectedSectionId === "departmental-project";
+  const needsCrossDepartmentalProjectWorksheets =
+    selectedSectionId === "cross-departmental-project";
   const [
     candidatesResult,
     reportsResult,
@@ -96,28 +115,34 @@ export default async function MentoringPage({
       .select("role_id, mentor_profile_id, status")
       .eq("organization_id", profile.organization_id)
       .order("created_at", { ascending: true }),
-    supabase
-      .from("mentoring_preparation_worksheets")
-      .select(
-        "id, candidate_id, role_id, mentor_profile_id, status, worksheet_date, critical_competencies, mentee_least_prepared, mentee_strongest_area, strengths_help, strengths_distraction_plan, shared_development_focus, desired_improvement, mentor_support_needed, communication_expectations, initial_development_focus, mentor_guidance_notes, updated_at",
-      )
-      .eq("organization_id", profile.organization_id)
-      .eq("worksheet_type", "mentor_mentee_preparation")
-      .order("updated_at", { ascending: false }),
-    supabase
-      .from("mentoring_departmental_project_worksheets")
-      .select(
-        "id, candidate_id, role_id, mentor_profile_id, status, project_timeline, department_need, project_title, project_objective, project_importance, responsible_outcomes, collaborators, leadership_actions_required, leadership_actions_other, competencies_developed, mentor_anticipated_difficulty, mentor_stretch_competencies, mentee_anticipated_difficulty, challenge_process_with_mentor, coaching_areas, figuring_things_out_process, help_threshold, success_measures, post_project_leader_wins, post_project_do_differently, post_project_feedback_received, mentor_evaluation_competencies_developed, strengths_observed, future_development_areas, readiness_signal, updated_at",
-      )
-      .eq("organization_id", profile.organization_id)
-      .order("updated_at", { ascending: false }),
-    supabase
-      .from("mentoring_cross_departmental_project_worksheets")
-      .select(
-        "id, candidate_id, role_id, mentor_profile_id, status, worksheet_date, department_conversations, cross_department_challenge, project_title, project_objective, project_partners, project_timeline, project_learning_goal, shared_themes, alignment_risks, biggest_surprise, leadership_shift, critical_behaviors, hospital_insights, action_commitments, mentor_observed_qualities, mentor_comments, updated_at",
-      )
-      .eq("organization_id", profile.organization_id)
-      .order("updated_at", { ascending: false }),
+    needsPreparationWorksheets
+      ? supabase
+          .from("mentoring_preparation_worksheets")
+          .select(
+            "id, candidate_id, role_id, mentor_profile_id, status, worksheet_date, critical_competencies, mentee_least_prepared, mentee_strongest_area, strengths_help, strengths_distraction_plan, shared_development_focus, desired_improvement, mentor_support_needed, communication_expectations, initial_development_focus, mentor_guidance_notes, updated_at",
+          )
+          .eq("organization_id", profile.organization_id)
+          .eq("worksheet_type", "mentor_mentee_preparation")
+          .order("updated_at", { ascending: false })
+      : Promise.resolve({ data: [], error: null }),
+    needsDepartmentalProjectWorksheets
+      ? supabase
+          .from("mentoring_departmental_project_worksheets")
+          .select(
+            "id, candidate_id, role_id, mentor_profile_id, status, project_timeline, department_need, project_title, project_objective, project_importance, responsible_outcomes, collaborators, leadership_actions_required, leadership_actions_other, competencies_developed, mentor_anticipated_difficulty, mentor_stretch_competencies, mentee_anticipated_difficulty, challenge_process_with_mentor, coaching_areas, figuring_things_out_process, help_threshold, success_measures, post_project_leader_wins, post_project_do_differently, post_project_feedback_received, mentor_evaluation_competencies_developed, strengths_observed, future_development_areas, readiness_signal, updated_at",
+          )
+          .eq("organization_id", profile.organization_id)
+          .order("updated_at", { ascending: false })
+      : Promise.resolve({ data: [], error: null }),
+    needsCrossDepartmentalProjectWorksheets
+      ? supabase
+          .from("mentoring_cross_departmental_project_worksheets")
+          .select(
+            "id, candidate_id, role_id, mentor_profile_id, status, worksheet_date, department_conversations, cross_department_challenge, project_title, project_objective, project_partners, project_timeline, project_learning_goal, shared_themes, alignment_risks, biggest_surprise, leadership_shift, critical_behaviors, hospital_insights, action_commitments, mentor_observed_qualities, mentor_comments, updated_at",
+          )
+          .eq("organization_id", profile.organization_id)
+          .order("updated_at", { ascending: false })
+      : Promise.resolve({ data: [], error: null }),
   ]);
 
   for (const result of [
@@ -169,19 +194,6 @@ export default async function MentoringPage({
     : isMentor
       ? (mentorsResult.data ?? []).filter((mentor) => mentor.id === profile.id)
       : [];
-  const allowedSectionIds = new Set([
-    "overview",
-    "preparation-worksheet",
-    "leadership-development-record",
-    "departmental-project",
-    "cross-departmental-project",
-    "readiness-review",
-    ...(canManageMentorAssignments ? ["mentor-assignments"] : []),
-  ]);
-  const selectedSectionId =
-    requestedSection && allowedSectionIds.has(requestedSection)
-      ? requestedSection
-      : "overview";
   const requestedAssignmentKey =
     requestedCandidateId && requestedRoleId && requestedMentorProfileId
       ? `${requestedCandidateId}:${requestedRoleId}:${requestedMentorProfileId}`

@@ -62,22 +62,24 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
     selectedMode === "composite" ||
     selectedMode === "view" ||
     selectedMode === "resources";
-  const needsCharacteristics =
-    selectedMode === "flow" ||
+  const needsCharacteristicDetails =
     selectedMode === "create" ||
     selectedMode === "import" ||
     selectedMode === "composite" ||
     selectedMode === "view";
+  const needsCharacteristicPresence =
+    selectedMode === "flow" || needsCharacteristicDetails;
   const needsSharedLibrary =
     selectedMode === "create" ||
     selectedMode === "import" ||
     selectedMode === "composite";
-  const needsCompositeDocuments =
-    selectedMode === "flow" ||
+  const needsCompositeDocumentDetails =
     selectedMode === "create" ||
     selectedMode === "import" ||
     selectedMode === "composite" ||
     selectedMode === "view";
+  const needsCompositeDocumentPresence =
+    selectedMode === "flow" || needsCompositeDocumentDetails;
   const needsMentors = selectedMode === "view";
   const needsRoleMentorAssignments = selectedMode === "view";
   const needsSurveyRecords = selectedMode === "survey";
@@ -108,10 +110,14 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
             .eq("organization_id", profile.organization_id)
             .order("created_at", { ascending: true })
         : Promise.resolve({ data: [], error: null }),
-      needsCharacteristics
+      needsCharacteristicPresence
         ? supabase
             .from("role_candidate_characteristics")
-            .select("id, role_id, category, characteristic, sort_order")
+            .select(
+              needsCharacteristicDetails
+                ? "id, role_id, category, characteristic, sort_order"
+                : "role_id",
+            )
             .eq("organization_id", profile.organization_id)
             .order("sort_order", { ascending: true })
             .order("created_at", { ascending: true })
@@ -123,10 +129,14 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
             .eq("organization_id", profile.organization_id)
             .order("characteristic", { ascending: true })
         : Promise.resolve({ data: [], error: null }),
-      needsCompositeDocuments
+      needsCompositeDocumentPresence
         ? supabase
             .from("role_composite_documents")
-            .select("id, role_id, document_source, file_name, created_at")
+            .select(
+              needsCompositeDocumentDetails
+                ? "id, role_id, document_source, file_name, created_at"
+                : "role_id",
+            )
             .eq("organization_id", profile.organization_id)
             .order("created_at", { ascending: false })
         : Promise.resolve({ data: [], error: null }),
@@ -226,32 +236,82 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
     throw new Error(roleSurveyResponsesResult.error.message);
   }
 
-  const competenciesByRole = new Map<string, typeof competenciesResult.data>();
-  const characteristicsByRole = new Map<string, typeof characteristicsResult.data>();
+  const normalizedCompetencies = (competenciesResult.data ?? []) as Array<{
+    id: string;
+    role_id: string;
+    name: string;
+    definition: string;
+    weight: number;
+    target_score: number;
+    behavioral_indicators: unknown;
+    red_flags: unknown;
+  }>;
+  const competenciesByRole = new Map<
+    string,
+    typeof normalizedCompetencies
+  >();
+  const characteristicsByRole = new Map<
+    string,
+    typeof normalizedCharacteristics
+  >();
+  const normalizedCharacteristics = (characteristicsResult.data ?? []) as Array<{
+    id?: string;
+    role_id: string;
+    category?: string;
+    characteristic?: string;
+    sort_order?: number;
+  }>;
+  const normalizedCompositeDocuments = (
+    compositeDocumentsResult.data ?? []
+  ) as Array<{
+    id?: string;
+    role_id: string;
+    document_source?: "generated" | "manual" | null;
+    file_name?: string | null;
+    created_at?: string;
+  }>;
   const compositeDocumentByRole = new Map<
     string,
-    NonNullable<typeof compositeDocumentsResult.data>[number]
+    (typeof normalizedCompositeDocuments)[number]
   >();
   const mentorMap = new Map((mentorsResult.data ?? []).map((mentor) => [mentor.id, mentor]));
   const mentorsByRole = new Map<string, string[]>();
   const primaryMentorIdByRole = new Map<string, string>();
 
-  for (const competency of competenciesResult.data ?? []) {
+  for (const competency of normalizedCompetencies) {
     const current = competenciesByRole.get(competency.role_id) ?? [];
     current.push(competency);
     competenciesByRole.set(competency.role_id, current);
   }
 
-  for (const characteristic of characteristicsResult.data ?? []) {
+  for (const characteristic of normalizedCharacteristics) {
     const current = characteristicsByRole.get(characteristic.role_id) ?? [];
     current.push(characteristic);
     characteristicsByRole.set(characteristic.role_id, current);
   }
 
-  for (const document of compositeDocumentsResult.data ?? []) {
+  for (const document of normalizedCompositeDocuments) {
     if (!compositeDocumentByRole.has(document.role_id)) {
       compositeDocumentByRole.set(document.role_id, document);
     }
+  }
+
+  function getDetailedCharacteristics(roleId: string) {
+    return (characteristicsByRole.get(roleId) ?? []).flatMap((item) => {
+      if (
+        typeof item.category !== "string" ||
+        typeof item.characteristic !== "string"
+      ) {
+        return [];
+      }
+
+      return [
+        {
+          category: item.category,
+          characteristic: item.characteristic,
+        },
+      ];
+    });
   }
 
   for (const assignment of roleMentorAssignmentsResult.data ?? []) {
@@ -404,13 +464,13 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                   compositeDocumentFileName:
                     compositeDocumentByRole.get(role.id)?.file_name ?? null,
                   talents: groupCharacteristicsByCategory(
-                    characteristicsByRole.get(role.id) ?? [],
+                    getDetailedCharacteristics(role.id),
                   ).talents,
                   skills: groupCharacteristicsByCategory(
-                    characteristicsByRole.get(role.id) ?? [],
+                    getDetailedCharacteristics(role.id),
                   ).skills,
                   behaviors: groupCharacteristicsByCategory(
-                    characteristicsByRole.get(role.id) ?? [],
+                    getDetailedCharacteristics(role.id),
                   ).behaviors,
                 }))}
                 sharedLibrary={resolvedSharedLibrary}
@@ -476,7 +536,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                 {visibleRoles.map((role) => {
                   const competencies = competenciesByRole.get(role.id) ?? [];
                   const characteristics = groupCharacteristicsByCategory(
-                    characteristicsByRole.get(role.id) ?? [],
+                    getDetailedCharacteristics(role.id),
                   );
                   const assignedMentors = Array.from(
                     new Set(mentorsByRole.get(role.id) ?? []),

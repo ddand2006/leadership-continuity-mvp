@@ -23,7 +23,10 @@ create table if not exists public.role_survey_recipients (
   recipient_email text not null check (char_length(trim(recipient_email)) > 0),
   recipient_title text,
   relationship_to_role text,
-  access_token text not null unique default encode(gen_random_bytes(24), 'hex'),
+  access_token text not null unique default (
+    replace(gen_random_uuid()::text, '-', '') ||
+    replace(gen_random_uuid()::text, '-', '')
+  ),
   status text not null default 'pending' check (
     status in ('pending', 'opened', 'completed')
   ),
