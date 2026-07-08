@@ -1,6 +1,10 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { requireUser } from "./auth";
+import {
+  canAccessLeadershipHelpPreview,
+  getLeadershipHelpPreviewMessage,
+} from "./leadership-help-preview";
 import { syncOrganizationUserAccessOnLogin } from "./organization-user-admin";
 import type { OrganizationUserRecord } from "./organization-users";
 import {
@@ -89,6 +93,19 @@ export async function requirePaidWorkspaceProfile(options?: {
 
   if (!hasProductAccess(subscription, product)) {
     redirect("/subscribe");
+  }
+
+  if (
+    product === "leadership_help" &&
+    !canAccessLeadershipHelpPreview({
+      email: context.user.email,
+      organizationId: context.profile.organization_id,
+      role: context.profile.role,
+    })
+  ) {
+    redirect(
+      `/dashboard?message=${encodeURIComponent(getLeadershipHelpPreviewMessage())}`,
+    );
   }
 
   return {

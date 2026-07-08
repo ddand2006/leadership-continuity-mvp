@@ -23,11 +23,13 @@ const productDescriptions: Record<SubscriptionProduct, string[]> = {
 };
 
 type SubscriptionPaywallPanelProps = {
+  canOpenLeadershipHelp?: boolean;
   organizationName: string;
   subscription: OrganizationSubscriptionState;
 };
 
 export function SubscriptionPaywallPanel({
+  canOpenLeadershipHelp = true,
   organizationName,
   subscription,
 }: SubscriptionPaywallPanelProps) {
@@ -38,12 +40,12 @@ export function SubscriptionPaywallPanel({
   )}`;
   const returnHref = hasProductAccess(subscription, "leadership_continuity")
     ? "/dashboard"
-    : hasProductAccess(subscription, "leadership_help")
+    : hasProductAccess(subscription, "leadership_help") && canOpenLeadershipHelp
       ? "/leadership-help"
       : "/";
   const returnLabel = hasProductAccess(subscription, "leadership_continuity")
     ? "Return to Dashboard"
-    : hasProductAccess(subscription, "leadership_help")
+    : hasProductAccess(subscription, "leadership_help") && canOpenLeadershipHelp
       ? "Open Leadership Help"
       : "Back to Overview";
 

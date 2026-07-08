@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SubscriptionPaywallPanel } from "@/components/subscription-paywall-panel";
 import { requireUser } from "@/lib/auth";
+import { canAccessLeadershipHelpPreview } from "@/lib/leadership-help-preview";
 import {
   hasProductAccess,
   loadOrganizationSubscription,
@@ -1845,6 +1846,11 @@ export default async function DashboardPage({
         ) : snapshot.subscription &&
           !hasProductAccess(snapshot.subscription, "leadership_continuity") ? (
           <SubscriptionPaywallPanel
+            canOpenLeadershipHelp={canAccessLeadershipHelpPreview({
+              email: user.email,
+              organizationId: snapshot.profile.organization_id,
+              role: snapshot.profile.role,
+            })}
             organizationName={snapshot.profile.organization_name}
             subscription={snapshot.subscription}
           />

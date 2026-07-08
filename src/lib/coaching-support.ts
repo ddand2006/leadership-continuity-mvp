@@ -84,7 +84,7 @@ export function getCoachingChallengeAreaLabel(
     accountability: "Accountability",
     culture_change: "Culture change",
     change_management: "Change management",
-    physician_alignment: "Physician alignment",
+    physician_alignment: "Stakeholder alignment",
     strategic_priorities: "Strategic priorities",
     performance: "Performance",
     other: "Other",

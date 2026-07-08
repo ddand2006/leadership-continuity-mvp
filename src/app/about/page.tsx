@@ -60,7 +60,7 @@ const narrativePoints = [
 const outcomes = [
   "Shared language for what great leadership looks like in each role",
   "Clearer evidence about who is ready now and who needs development",
-  "Mentoring work tied directly to real hospital leadership demands",
+  "Mentoring work tied directly to real organizational leadership demands",
   "A stronger internal bench that keeps knowledge inside the organization",
 ] as const;
 
@@ -102,7 +102,7 @@ export default function AboutPage() {
                 A development process built to raise the next generation of leaders.
               </h1>
               <p className="max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">
-                Leadership Continuity helps a hospital define what leadership success looks like, identify internal talent against that standard, and move promising people into structured mentoring that grows readiness while preserving culture and institutional knowledge.
+                Leadership Continuity helps an organization define what leadership success looks like, identify internal talent against that standard, and move promising people into structured mentoring that grows readiness while preserving culture and institutional knowledge.
               </p>
             </div>
 
@@ -260,7 +260,7 @@ export default function AboutPage() {
                 This process starts by clarifying leadership expectations before a vacancy creates pressure. That alone strengthens the organization because people stop guessing what success looks like in important roles.
               </p>
               <p>
-                From there, the candidate workflow creates a more thoughtful picture of internal talent. Instead of choosing future leaders based on familiarity or urgency, the hospital can compare evidence, strengths, readiness, and developmental gaps in a consistent way.
+                From there, the candidate workflow creates a more thoughtful picture of internal talent. Instead of choosing future leaders based on familiarity or urgency, the organization can compare evidence, strengths, readiness, and developmental gaps in a consistent way.
               </p>
               <p>
                 The mentoring stage turns that insight into action. Emerging leaders are developed in context, with real assignments, mentor conversations, and exposure to cross-functional leadership work.

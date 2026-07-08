@@ -1,6 +1,6 @@
 # Leadership Continuity System MVP
 
-Standalone application for hospital succession planning, mentoring, strengths-based development, and leadership readiness reporting.
+Standalone application for organization-wide succession planning, mentoring, strengths-based development, and leadership readiness reporting.
 
 This codebase is intentionally separate from `jobbora-platform`. It has its own frontend, its own database design, and should live in its own GitHub repository and deployment pipeline.
 
@@ -31,9 +31,14 @@ SUPABASE_SERVICE_ROLE_KEY=
 SUPABASE_SECRET_KEY=
 OPENAI_API_KEY=
 APP_URL=http://localhost:3000
+LEADERSHIP_HELP_PREVIEW_MODE=false
+LEADERSHIP_HELP_PREVIEW_EMAILS=
+LEADERSHIP_HELP_PREVIEW_ORGANIZATION_IDS=
 ```
 
 You can use either the current publishable/secret keys or the legacy anon/service-role keys. The app will accept both so it can connect cleanly to newer Supabase projects.
+
+When `LEADERSHIP_HELP_PREVIEW_MODE=true`, Leadership Help is hidden from everyone except `system_admin` plus any allowlisted preview admins. Use `LEADERSHIP_HELP_PREVIEW_EMAILS` for specific admin emails and `LEADERSHIP_HELP_PREVIEW_ORGANIZATION_IDS` if you want to allow a full pilot organization.
 
 ## Local Development
 

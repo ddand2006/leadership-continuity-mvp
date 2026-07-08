@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
 import { getCurrentUser } from "@/lib/auth";
+import { canAccessLeadershipHelpPreview } from "@/lib/leadership-help-preview";
 import {
   isAdminAppRole,
   isCandidateAppUser,
@@ -80,6 +81,7 @@ export async function AppNav({ pathname }: { pathname: string }) {
   let isCandidateOnly = false;
   let hasContinuityAccess = true;
   let hasLeadershipHelpAccess = true;
+  let hasLeadershipHelpPreviewAccess = false;
 
   if (user) {
     const supabase = await createSupabaseServerClient();
@@ -126,6 +128,11 @@ export async function AppNav({ pathname }: { pathname: string }) {
         subscription,
         "leadership_help",
       );
+      hasLeadershipHelpPreviewAccess = canAccessLeadershipHelpPreview({
+        email: user.email,
+        organizationId: profileResult.data.organization_id,
+        role: profileResult.data.role,
+      });
     }
   }
 
@@ -134,7 +141,7 @@ export async function AppNav({ pathname }: { pathname: string }) {
         { href: "/", label: "Home" },
         ...(hasContinuityAccess && isAdmin ? [{ href: "/roles", label: "Roles" }] : []),
         ...(hasContinuityAccess ? [{ href: "/candidates", label: "Candidates" }] : []),
-        ...(hasLeadershipHelpAccess
+        ...(hasLeadershipHelpAccess && hasLeadershipHelpPreviewAccess
           ? [{ href: "/leadership-help", label: "Leadership Help" }]
           : []),
         ...(hasContinuityAccess && (isAdmin || isMentor || isCandidate)
@@ -158,13 +165,15 @@ export async function AppNav({ pathname }: { pathname: string }) {
       : "/candidates"
     : isSystemAdmin
       ? "/administration"
-    : hasLeadershipHelpAccess
+    : hasLeadershipHelpAccess && hasLeadershipHelpPreviewAccess
       ? "/leadership-help"
       : "/subscribe";
   const accountLandingLabel =
     isSystemAdmin && !hasContinuityAccess
       ? "Open Administration"
-      : hasLeadershipHelpAccess && !hasContinuityAccess
+      : hasLeadershipHelpAccess &&
+          hasLeadershipHelpPreviewAccess &&
+          !hasContinuityAccess
       ? "Open Leadership Help"
       : isCandidateOnly
         ? "Open Candidates"

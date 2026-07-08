@@ -460,7 +460,7 @@ export default async function MentoringPage({
               biggestSurprise: worksheet.biggest_surprise ?? "",
               leadershipShift: worksheet.leadership_shift ?? "",
               criticalBehaviors: worksheet.critical_behaviors ?? "",
-              hospitalInsights: worksheet.hospital_insights ?? "",
+              organizationInsights: worksheet.hospital_insights ?? "",
               actionCommitments: Array.isArray(worksheet.action_commitments)
                 ? worksheet.action_commitments.map((item) =>
                     typeof item === "string" ? item : "",

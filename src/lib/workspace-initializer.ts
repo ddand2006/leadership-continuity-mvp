@@ -330,7 +330,7 @@ export async function initializeWorkspaceForUser(options: {
       .insert({
         organization_id: organizationId,
         full_name: "Erin Demo",
-        current_title: "Director of Med-Surg Services",
+        current_title: "Director of Operations",
         target_role_id: roleId,
         mentor_profile_id: adminProfileId,
         status: "active",

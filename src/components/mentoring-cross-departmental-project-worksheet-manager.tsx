@@ -897,9 +897,9 @@ export function MentoringCrossDepartmentalProjectWorksheetManager({
                   What insights could help the organization moving forward?
                 </span>
                 <textarea
-                  value={formState.hospitalInsights}
+                  value={formState.organizationInsights}
                   onChange={(event) =>
-                    updateField("hospitalInsights", event.target.value)
+                    updateField("organizationInsights", event.target.value)
                   }
                   className="min-h-28 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
                 />

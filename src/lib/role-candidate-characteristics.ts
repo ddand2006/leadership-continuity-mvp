@@ -121,7 +121,7 @@ const skillMatchers = [
   /\bequivelant experience\b/,
   /\bequivalent experience\b/,
   /\bai skills\b/,
-  /\boperations in healthcare\b/,
+  /\boperations\b/,
 ];
 
 function matchesAny(value: string, matchers: RegExp[]) {

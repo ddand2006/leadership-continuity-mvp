@@ -72,7 +72,7 @@ export async function POST(request: Request) {
           biggest_surprise: payload.biggestSurprise || null,
           leadership_shift: payload.leadershipShift || null,
           critical_behaviors: payload.criticalBehaviors || null,
-          hospital_insights: payload.hospitalInsights || null,
+          hospital_insights: payload.organizationInsights || null,
           action_commitments: payload.actionCommitments,
           mentor_observed_qualities: payload.mentorObservedQualities,
           mentor_comments: payload.mentorComments || null,

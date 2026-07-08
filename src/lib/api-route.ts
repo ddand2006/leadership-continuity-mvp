@@ -5,6 +5,10 @@ import {
   type OrganizationSubscriptionClient,
   type SubscriptionProduct,
 } from "@/lib/subscription";
+import {
+  canAccessLeadershipHelpPreview,
+  getLeadershipHelpPreviewMessage,
+} from "@/lib/leadership-help-preview";
 import { syncOrganizationUserAccessOnLogin } from "@/lib/organization-user-admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -112,6 +116,17 @@ export async function requireApiWorkspaceProfile(options?: {
       `Your ${product === "leadership_help" ? "Leadership Help" : "Leadership Continuity System"} access is inactive. Visit /subscribe to restore access.`,
       402,
     );
+  }
+
+  if (
+    product === "leadership_help" &&
+    !canAccessLeadershipHelpPreview({
+      email: user.email,
+      organizationId: profileResult.data.organization_id,
+      role: profileResult.data.role,
+    })
+  ) {
+    throw new ApiRouteError(getLeadershipHelpPreviewMessage(), 403);
   }
 
   if (options?.requireAdmin && !ADMIN_ROLES.has(profileResult.data.role)) {
