@@ -595,6 +595,107 @@ export default async function CandidateDetailPage({
               ),
             },
             {
+              id: "strengths-files",
+              label: "Strengths Files",
+              summary:
+                "Upload Gallup documents, review archived source files, and confirm whether readable strengths text is on record.",
+              content: (
+                <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+                  {canManageStrengths ? (
+                    <CandidateStrengthsUploadCard
+                      candidateId={candidate.id}
+                      candidateName={candidate.full_name}
+                      importedStrengthCount={importedStrengthCount}
+                      readableDocumentCount={readableSourceDocumentCount}
+                      sourceDocumentCount={sourceDocuments.length}
+                      topStrengthNames={topStrengthNames}
+                    />
+                  ) : (
+                    <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+                      <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
+                        Strengths Documents
+                      </p>
+                      <h2 className="mt-3 font-display text-3xl text-slate-900">
+                        Gallup files are managed by organization administrators
+                      </h2>
+                      <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600">
+                        Archived Gallup documents remain visible here, but only
+                        organization administrators can upload new strengths files or
+                        reimport them into this candidate record.
+                      </p>
+                    </section>
+                  )}
+
+                  <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+                    <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
+                      Archived Files
+                    </p>
+                    <h2 className="mt-3 font-display text-3xl text-slate-900">
+                      Keep the Gallup source documents in view
+                    </h2>
+                    <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600">
+                      Every uploaded Gallup file stays attached to this candidate so
+                      strengths can be reimported later if a stronger text-based
+                      report becomes available.
+                    </p>
+
+                    <div className="mt-6 grid gap-4">
+                      {sourceDocuments.length > 0 ? (
+                        sourceDocuments.map((document) => (
+                          <article
+                            key={document.id}
+                            className="rounded-3xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-700"
+                          >
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                              <p className="font-semibold text-slate-900">
+                                {document.file_name}
+                              </p>
+                              <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold tracking-[0.14em] text-slate-600 uppercase">
+                                {(document.extracted_text ?? "").trim().length > 0
+                                  ? "Readable text"
+                                  : "Archive only"}
+                              </span>
+                            </div>
+                            <div className="mt-3 grid gap-2 text-sm text-slate-600">
+                              <p>
+                                {document.file_extension?.toUpperCase() ?? "File"}{" "}
+                                {document.file_size_bytes
+                                  ? `• ${formatFileSize(document.file_size_bytes)}`
+                                  : ""}
+                              </p>
+                              <p>
+                                Added{" "}
+                                {new Intl.DateTimeFormat("en-US", {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                }).format(new Date(document.created_at))}
+                              </p>
+                            </div>
+                            {document.signedUrl ? (
+                              <div className="mt-4">
+                                <Link
+                                  href={document.signedUrl}
+                                  target="_blank"
+                                  className="text-sm font-semibold text-teal-800 transition hover:text-teal-900"
+                                >
+                                  Open archived file
+                                </Link>
+                              </div>
+                            ) : null}
+                          </article>
+                        ))
+                      ) : (
+                        <article className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-5 text-sm leading-7 text-slate-600">
+                          No Gallup files are attached to this candidate yet.
+                        </article>
+                      )}
+                    </div>
+                  </section>
+                </section>
+              ),
+            },
+            {
               id: "role-fit",
               label: "Role Fit",
               summary:
