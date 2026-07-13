@@ -156,6 +156,13 @@ export function RoleManagementPanel({
     skills: sharedLibraryItems.filter((item) => item.category === "skill"),
     behaviors: sharedLibraryItems.filter((item) => item.category === "behavior"),
   };
+  const saveRoleButtonLabel = isCreatePending
+    ? selectedEditorRole
+      ? "Saving role..."
+      : "Creating role..."
+    : selectedEditorRole
+      ? "Save Role Changes"
+      : "Create Role";
 
   function openCompetencyImport() {
     const nextParams = new URLSearchParams(searchParams.toString());
@@ -834,6 +841,16 @@ export function RoleManagementPanel({
                 </select>
               </label>
 
+              <div className="flex flex-wrap gap-3">
+                <button
+                  className="interactive-contrast rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-900 disabled:cursor-not-allowed disabled:bg-slate-300"
+                  type="submit"
+                  disabled={isCreatePending}
+                >
+                  {saveRoleButtonLabel}
+                </button>
+              </div>
+
               <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
                 <p className="text-sm font-semibold tracking-[0.14em] text-slate-500 uppercase">
                   Competency Options
@@ -1021,13 +1038,7 @@ export function RoleManagementPanel({
                   type="submit"
                   disabled={isCreatePending}
                 >
-                  {isCreatePending
-                    ? selectedEditorRole
-                      ? "Saving role..."
-                      : "Creating role..."
-                    : selectedEditorRole
-                      ? "Save Role Changes"
-                      : "Create Role"}
+                  {saveRoleButtonLabel}
                 </button>
                 {selectedEditorRole ? (
                   <button
