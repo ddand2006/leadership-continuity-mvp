@@ -41,12 +41,12 @@ export function SubscriptionPaywallPanel({
   const returnHref = hasProductAccess(subscription, "leadership_continuity")
     ? "/dashboard"
     : hasProductAccess(subscription, "leadership_help") && canOpenLeadershipHelp
-      ? "/leadership-help"
+      ? "/personal-development"
       : "/";
   const returnLabel = hasProductAccess(subscription, "leadership_continuity")
     ? "Return to Dashboard"
     : hasProductAccess(subscription, "leadership_help") && canOpenLeadershipHelp
-      ? "Open Leadership Help"
+      ? "Open Personal Development"
       : "Back to Overview";
 
   return (
@@ -65,11 +65,11 @@ export function SubscriptionPaywallPanel({
           <h1 className="font-display text-4xl leading-tight text-slate-900 sm:text-5xl">
             {subscription.hasAccess
               ? `Product access is configured for ${organizationName}`
-              : `Unlock Leadership Continuity and Leadership Help for ${organizationName}`}
+              : `Unlock Leadership Continuity and Personal Development for ${organizationName}`}
           </h1>
           <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">
             {subscription.hasAccess
-              ? "This organization can be granted Leadership Continuity, Leadership Help, or both. Use this page as the billing checkpoint for the shared platform."
+              ? "This organization can be granted Leadership Continuity, Personal Development, or both. Use this page as the billing checkpoint for the shared platform."
               : "This workspace is outside its active trial or paid access window. Renew access before your team can work in the licensed products again."}
           </p>
 

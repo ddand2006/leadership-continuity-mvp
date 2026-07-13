@@ -1,11 +1,11 @@
-import mammoth from "mammoth";
-import { PDFParse } from "pdf-parse";
+import { createRequire } from "node:module";
 import { ApiRouteError } from "@/lib/api-route";
 import { assertAcceptedFileType, getFileExtension } from "@/lib/upload-file-utils";
 
 export { assertAcceptedFileType, getFileExtension } from "@/lib/upload-file-utils";
 
 const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
+const require = createRequire(import.meta.url);
 
 function normalizeExtractedText(value: string) {
   return value.replace(/\u0000/g, "").replace(/\r/g, "").trim();
@@ -26,6 +26,7 @@ function ensureExtractedText(value: string, fileName: string) {
 
 async function extractPdfTextWithPdfParse(file: File) {
   const fileBuffer = Buffer.from(await file.arrayBuffer());
+  const { PDFParse } = require("pdf-parse") as typeof import("pdf-parse");
   const parser = new PDFParse({ data: fileBuffer });
 
   try {
@@ -60,6 +61,7 @@ export async function extractTextFromUploadedFile(
 
   if (extension === "docx") {
     const fileBuffer = Buffer.from(await file.arrayBuffer());
+    const mammoth = require("mammoth") as typeof import("mammoth");
     const result = await mammoth.extractRawText({
       buffer: fileBuffer,
     });

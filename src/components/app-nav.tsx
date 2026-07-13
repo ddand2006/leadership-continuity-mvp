@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
+import { AppNavLinks } from "@/components/app-nav-links";
 import { getCurrentUser } from "@/lib/auth";
 import { canAccessLeadershipHelpPreview } from "@/lib/leadership-help-preview";
 import {
@@ -19,28 +20,27 @@ const resourceNavItems = [
   {
     href: "/about",
     label: "The System",
+    matchPath: "/about",
   },
   {
     href: "/mentoring?section=preparation-worksheet",
     label: "Preparation Worksheet",
+    matchPath: "/mentoring",
+    matchSection: "preparation-worksheet",
   },
   {
     href: "/mentoring?section=departmental-project",
     label: "Departmental Project",
+    matchPath: "/mentoring",
+    matchSection: "departmental-project",
   },
   {
     href: "/mentoring?section=cross-departmental-project",
     label: "Cross-Departmental Project",
+    matchPath: "/mentoring",
+    matchSection: "cross-departmental-project",
   },
 ];
-
-function isActivePath(pathname: string, href: string) {
-  if (href === "/") {
-    return pathname === "/";
-  }
-
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
 
 function getDisplayName(user: User) {
   const metadataName =
@@ -72,7 +72,7 @@ function getInitials(user: User) {
     .join("");
 }
 
-export async function AppNav({ pathname }: { pathname: string }) {
+export async function AppNav({ pathname: _pathname }: { pathname: string }) {
   const user = await getCurrentUser();
   let isAdmin = false;
   let isSystemAdmin = false;
@@ -142,7 +142,7 @@ export async function AppNav({ pathname }: { pathname: string }) {
         ...(hasContinuityAccess && isAdmin ? [{ href: "/roles", label: "Roles" }] : []),
         ...(hasContinuityAccess ? [{ href: "/candidates", label: "Candidates" }] : []),
         ...(hasLeadershipHelpAccess && hasLeadershipHelpPreviewAccess
-          ? [{ href: "/leadership-help", label: "Leadership Help" }]
+          ? [{ href: "/personal-development", label: "Personal Development" }]
           : []),
         ...(hasContinuityAccess && (isAdmin || isMentor || isCandidate)
           ? [{ href: "/mentoring", label: "Mentoring" }]
@@ -166,7 +166,7 @@ export async function AppNav({ pathname }: { pathname: string }) {
     : isSystemAdmin
       ? "/administration"
     : hasLeadershipHelpAccess && hasLeadershipHelpPreviewAccess
-      ? "/leadership-help"
+      ? "/personal-development"
       : "/subscribe";
   const accountLandingLabel =
     isSystemAdmin && !hasContinuityAccess
@@ -174,7 +174,7 @@ export async function AppNav({ pathname }: { pathname: string }) {
       : hasLeadershipHelpAccess &&
           hasLeadershipHelpPreviewAccess &&
           !hasContinuityAccess
-      ? "Open Leadership Help"
+      ? "Open Personal Development"
       : isCandidateOnly
         ? "Open Candidates"
         : "Open Dashboard";
@@ -253,53 +253,11 @@ export async function AppNav({ pathname }: { pathname: string }) {
             )}
           </div>
 
-          <nav className="mt-4 flex flex-wrap gap-2">
-            {navItems.map((item) => {
-              const isActive = isActivePath(pathname, item.href);
-
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
-                    isActive
-                      ? "interactive-contrast border-slate-950 bg-slate-950 text-white shadow-[0_18px_40px_rgba(15,23,42,0.18)]"
-                      : "border-slate-200/80 bg-white/85 text-slate-700 hover:-translate-y-0.5 hover:border-teal-200 hover:text-teal-900"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-
-            {hasContinuityAccess && (isAdmin || isMentor) ? (
-              <details className="group relative">
-                <summary className="flex cursor-pointer list-none items-center gap-2 rounded-full border border-slate-200/80 bg-white/85 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-teal-200 hover:text-teal-900">
-                  <span>Resources</span>
-                  <span
-                    aria-hidden="true"
-                    className="text-slate-400 transition group-open:rotate-180"
-                  >
-                    ▾
-                  </span>
-                </summary>
-
-                <div className="absolute left-0 top-[calc(100%+0.75rem)] z-20 hidden min-w-72 overflow-hidden rounded-[1.5rem] border border-white/80 bg-white/95 shadow-[0_30px_90px_rgba(15,23,42,0.16)] backdrop-blur group-open:block">
-                  <div className="grid gap-2 p-3">
-                    {resourceNavItems.map((item) => (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        className="rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
-                      >
-                        {item.label}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              </details>
-            ) : null}
-          </nav>
+          <AppNavLinks
+            navItems={navItems}
+            resourceNavItems={resourceNavItems}
+            showResources={hasContinuityAccess && (isAdmin || isMentor)}
+          />
         </div>
       </div>
     </header>

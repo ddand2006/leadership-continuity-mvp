@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import {
   createDefaultRoleSurveyTitle,
   getDefaultRoleSurveyIntroMessage,
@@ -23,6 +23,7 @@ type RoleSurveyPanelProps = {
   recipients: RoleSurveyRecipientRecord[];
   responses: RoleSurveyResponseRecord[];
   initialSelectedRoleId?: string | null;
+  isEmailDeliveryEnabled?: boolean;
 };
 
 function formatDate(value: string) {
@@ -58,37 +59,41 @@ function buildThemeCounts(responses: RoleSurveyResponseRecord[]) {
     .slice(0, 12);
 }
 
-function buildMailtoLink(options: {
-  to: string;
-  subject: string;
-  body: string;
-}) {
-  const params = new URLSearchParams({
-    subject: options.subject,
-    body: options.body,
-  });
-
-  return `mailto:${encodeURIComponent(options.to)}?${params.toString()}`;
-}
-
 export function RoleSurveyPanel({
   roles,
   surveys,
   recipients,
   responses,
   initialSelectedRoleId = null,
+  isEmailDeliveryEnabled = false,
 }: RoleSurveyPanelProps) {
   const router = useRouter();
-  const [selectedRoleId, setSelectedRoleId] = useState(
-    initialSelectedRoleId ?? roles[0]?.id ?? "",
-  );
-  const [selectedSurveyId, setSelectedSurveyId] = useState("");
+  const initialRoleId = initialSelectedRoleId ?? roles[0]?.id ?? "";
+  const initialRole = roles.find((role) => role.id === initialRoleId) ?? null;
+  const initialSurveysForRole = surveys
+    .filter((survey) => survey.role_id === initialRoleId)
+    .sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    );
+  const initialSurvey = initialSurveysForRole[0] ?? null;
+  const [selectedRoleId, setSelectedRoleId] = useState(initialRoleId);
+  const [selectedSurveyId, setSelectedSurveyId] = useState(initialSurvey?.id ?? "");
   const [isCreatingNewSurvey, setIsCreatingNewSurvey] = useState(false);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [introMessage, setIntroMessage] = useState("");
-  const [thankYouMessage, setThankYouMessage] = useState("");
-  const [status, setStatus] = useState<"draft" | "active" | "closed">("draft");
+  const [title, setTitle] = useState(
+    initialSurvey?.title ?? createDefaultRoleSurveyTitle(initialRole?.title ?? "Role"),
+  );
+  const [description, setDescription] = useState(initialSurvey?.description ?? "");
+  const [introMessage, setIntroMessage] = useState(
+    initialSurvey?.intro_message ??
+      getDefaultRoleSurveyIntroMessage(initialRole?.title ?? "this role"),
+  );
+  const [thankYouMessage, setThankYouMessage] = useState(
+    initialSurvey?.thank_you_message ?? getDefaultRoleSurveyThankYouMessage(),
+  );
+  const [status, setStatus] = useState<"draft" | "active" | "closed">(
+    initialSurvey?.status ?? "draft",
+  );
   const [recipientName, setRecipientName] = useState("");
   const [recipientEmail, setRecipientEmail] = useState("");
   const [recipientTitle, setRecipientTitle] = useState("");
@@ -98,8 +103,10 @@ export function RoleSurveyPanel({
   const [recipientError, setRecipientError] = useState<string | null>(null);
   const [recipientSuccess, setRecipientSuccess] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
+  const [activeEmailRecipientId, setActiveEmailRecipientId] = useState<string | null>(null);
   const [isSurveyPending, startSurveyTransition] = useTransition();
   const [isRecipientPending, startRecipientTransition] = useTransition();
+  const [isEmailPending, startEmailTransition] = useTransition();
 
   const selectedRole = roles.find((role) => role.id === selectedRoleId) ?? null;
   const surveysForRole = useMemo(
@@ -125,26 +132,23 @@ export function RoleSurveyPanel({
   );
   const recurringThemes = buildThemeCounts(responsesForSurvey);
 
-  useEffect(() => {
-    const nextSurvey = surveysForRole[0] ?? null;
-    setIsCreatingNewSurvey(false);
-    setSelectedSurveyId(nextSurvey?.id ?? "");
-  }, [selectedRoleId, surveysForRole]);
-
-  useEffect(() => {
-    if (selectedSurvey) {
-      setTitle(selectedSurvey.title);
-      setDescription(selectedSurvey.description ?? "");
-      setIntroMessage(selectedSurvey.intro_message ?? "");
-      setThankYouMessage(selectedSurvey.thank_you_message ?? "");
-      setStatus(selectedSurvey.status);
+  function applySurveyFormState(options: {
+    role: RoleSurveyPanelProps["roles"][number] | null;
+    survey: RoleSurveyRecord | null;
+  }) {
+    if (options.survey) {
+      setTitle(options.survey.title);
+      setDescription(options.survey.description ?? "");
+      setIntroMessage(options.survey.intro_message ?? "");
+      setThankYouMessage(options.survey.thank_you_message ?? "");
+      setStatus(options.survey.status);
       return;
     }
 
-    if (selectedRole) {
-      setTitle(createDefaultRoleSurveyTitle(selectedRole.title));
+    if (options.role) {
+      setTitle(createDefaultRoleSurveyTitle(options.role.title));
       setDescription("");
-      setIntroMessage(getDefaultRoleSurveyIntroMessage(selectedRole.title));
+      setIntroMessage(getDefaultRoleSurveyIntroMessage(options.role.title));
       setThankYouMessage(getDefaultRoleSurveyThankYouMessage());
       setStatus("draft");
       return;
@@ -155,7 +159,7 @@ export function RoleSurveyPanel({
     setIntroMessage("");
     setThankYouMessage("");
     setStatus("draft");
-  }, [selectedRole, selectedSurvey]);
+  }
 
   function resetRecipientFields() {
     setRecipientName("");
@@ -169,14 +173,10 @@ export function RoleSurveyPanel({
     setSelectedSurveyId("");
     setSurveyError(null);
     setSurveySuccess(null);
-
-    if (selectedRole) {
-      setTitle(createDefaultRoleSurveyTitle(selectedRole.title));
-      setDescription("");
-      setIntroMessage(getDefaultRoleSurveyIntroMessage(selectedRole.title));
-      setThankYouMessage(getDefaultRoleSurveyThankYouMessage());
-      setStatus("draft");
-    }
+    applySurveyFormState({
+      role: selectedRole,
+      survey: null,
+    });
   }
 
   function getSurveyLink(token: string) {
@@ -198,36 +198,6 @@ export function RoleSurveyPanel({
     void navigator.clipboard.writeText(link).then(() => {
       setCopiedLink(token);
       setTimeout(() => setCopiedLink((current) => (current === token ? null : current)), 2000);
-    });
-  }
-
-  function openSurveyEmailDraft(recipient: RoleSurveyRecipientRecord) {
-    if (!selectedSurvey) {
-      setRecipientError("Save the survey first, then email the survey link.");
-      return;
-    }
-
-    const surveyLink = getSurveyLink(recipient.access_token);
-    const greeting = recipient.recipient_name.trim()
-      ? `Hi ${recipient.recipient_name.trim()},`
-      : "Hello,";
-    const intro = introMessage.trim() || getDefaultRoleSurveyIntroMessage(selectedRole?.title ?? "this role");
-    const closing =
-      thankYouMessage.trim() || getDefaultRoleSurveyThankYouMessage();
-    const body = [
-      greeting,
-      "",
-      intro,
-      "",
-      `Survey link: ${surveyLink}`,
-      "",
-      closing,
-    ].join("\n");
-
-    window.location.href = buildMailtoLink({
-      to: recipient.recipient_email,
-      subject: selectedSurvey.title,
-      body,
     });
   }
 
@@ -260,6 +230,7 @@ export function RoleSurveyPanel({
       const payload = (await response.json().catch(() => ({}))) as {
         error?: string;
         message?: string;
+        surveyId?: string;
       };
 
       if (!response.ok) {
@@ -269,6 +240,7 @@ export function RoleSurveyPanel({
 
       setSurveySuccess(payload.message ?? "Survey saved.");
       setIsCreatingNewSurvey(false);
+      setSelectedSurveyId(payload.surveyId ?? selectedSurvey?.id ?? "");
       router.refresh();
     });
   }
@@ -313,6 +285,68 @@ export function RoleSurveyPanel({
     });
   }
 
+  function handleSendSurveyEmail(recipient: RoleSurveyRecipientRecord) {
+    setRecipientError(null);
+    setRecipientSuccess(null);
+    setActiveEmailRecipientId(recipient.id);
+
+    startEmailTransition(async () => {
+      const response = await fetch(
+        `/api/role-surveys/recipients/${recipient.id}/send`,
+        {
+          method: "POST",
+        },
+      );
+
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        message?: string;
+      };
+
+      if (!response.ok) {
+        setRecipientError(payload.error ?? "Unable to send the survey email.");
+        setActiveEmailRecipientId(null);
+        return;
+      }
+
+      setRecipientSuccess(payload.message ?? "Survey email sent.");
+      setActiveEmailRecipientId(null);
+      router.refresh();
+    });
+  }
+
+  function handleRoleChange(nextRoleId: string) {
+    const nextRole = roles.find((role) => role.id === nextRoleId) ?? null;
+    const nextSurveys = surveys
+      .filter((survey) => survey.role_id === nextRoleId)
+      .sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      );
+    const nextSurvey = nextSurveys[0] ?? null;
+
+    setSelectedRoleId(nextRoleId);
+    setIsCreatingNewSurvey(false);
+    setSelectedSurveyId(nextSurvey?.id ?? "");
+    setSurveyError(null);
+    setSurveySuccess(null);
+    applySurveyFormState({
+      role: nextRole,
+      survey: nextSurvey,
+    });
+  }
+
+  function handleSelectSurvey(survey: RoleSurveyRecord) {
+    setIsCreatingNewSurvey(false);
+    setSelectedSurveyId(survey.id);
+    setSurveyError(null);
+    setSurveySuccess(null);
+    applySurveyFormState({
+      role: selectedRole,
+      survey,
+    });
+  }
+
   if (roles.length === 0) {
     return (
       <section className="rounded-[1.75rem] border border-dashed border-slate-300 bg-white p-8 text-sm leading-7 text-slate-600">
@@ -346,7 +380,7 @@ export function RoleSurveyPanel({
               <select
                 className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-700 focus:bg-white"
                 value={selectedRoleId}
-                onChange={(event) => setSelectedRoleId(event.currentTarget.value)}
+                onChange={(event) => handleRoleChange(event.currentTarget.value)}
               >
                 {roles.map((role) => (
                   <option key={role.id} value={role.id}>
@@ -393,10 +427,7 @@ export function RoleSurveyPanel({
                       <button
                         key={survey.id}
                         type="button"
-                        onClick={() => {
-                          setIsCreatingNewSurvey(false);
-                          setSelectedSurveyId(survey.id);
-                        }}
+                        onClick={() => handleSelectSurvey(survey)}
                         className={`rounded-2xl border px-4 py-4 text-left transition ${
                           selectedSurvey?.id === survey.id
                             ? "border-teal-700 bg-teal-50"
@@ -560,7 +591,7 @@ export function RoleSurveyPanel({
 
                 <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5">
                   <p className="text-sm font-semibold text-slate-900">
-                    Add recipient
+                    Add recipient (Minimum of 5 Individuals)
                   </p>
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
                     <label className="block">
@@ -643,8 +674,8 @@ export function RoleSurveyPanel({
                         Recipient links
                       </p>
                       <p className="mt-1 text-xs leading-6 text-slate-500">
-                        Copy a live survey link or open a prefilled email for each
-                        respondent.
+                        Send the live survey link through Resend or copy it
+                        yourself for each respondent.
                       </p>
                     </div>
                     <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
@@ -684,10 +715,16 @@ export function RoleSurveyPanel({
                               </span>
                               <button
                                 type="button"
-                                onClick={() => openSurveyEmailDraft(recipient)}
-                                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                                onClick={() => handleSendSurveyEmail(recipient)}
+                                disabled={!isEmailDeliveryEnabled || isEmailPending}
+                                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
                               >
-                                Email Link
+                                {!isEmailDeliveryEnabled
+                                  ? "Email Not Configured"
+                                  : isEmailPending &&
+                                      activeEmailRecipientId === recipient.id
+                                    ? "Sending..."
+                                    : "Send Email"}
                               </button>
                               <button
                                 type="button"

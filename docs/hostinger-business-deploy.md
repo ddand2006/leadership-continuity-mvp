@@ -45,13 +45,58 @@ SUPABASE_SECRET_KEY=
 OPENAI_API_KEY=
 APP_URL=https://leadercontinuity.com
 OPENAI_MODEL=gpt-5.5
+LCS_PAYWALL_ENABLED=true
+LEADERSHIP_HELP_PREVIEW_MODE=true
+LEADERSHIP_HELP_PREVIEW_EMAILS=
+LEADERSHIP_HELP_PREVIEW_ORGANIZATION_IDS=
 ```
 
 Notes:
 
 - The app accepts either the newer Supabase publishable/secret pair or the legacy anon/service-role pair.
 - `APP_URL` must match the final production domain because auth callbacks use it.
+- `LCS_PAYWALL_ENABLED=true` is required if you want Personal Development and Leadership Continuity to respect product access instead of defaulting open.
+- `LEADERSHIP_HELP_PREVIEW_MODE=true` is the recommended safe-launch setting for Personal Development right now.
+- Use `LEADERSHIP_HELP_PREVIEW_EMAILS` to allow selected preview admins by email. Use `LEADERSHIP_HELP_PREVIEW_ORGANIZATION_IDS` only if you want to allow a full pilot organization.
 - Do not paste local-only values into the repo. Set them only in Hostinger and Supabase.
+
+## Safe Launch Recommendation
+
+Recommended first production launch for Personal Development:
+
+- keep `LCS_PAYWALL_ENABLED=true`
+- keep `LEADERSHIP_HELP_PREVIEW_MODE=true`
+- allow only selected preview admins through `LEADERSHIP_HELP_PREVIEW_EMAILS`
+- set `leadership_help_enabled=true` only for the pilot organization records you want active
+
+This gives you:
+
+- normal shared login through Supabase Auth
+- separate product gating for Personal Development
+- preview-only visibility for selected admins
+- manual control over which organizations can open the module
+
+This does **not** yet give you:
+
+- a separate standalone login system for Personal Development
+- self-serve billing checkout
+- automatic subscription provisioning after payment
+
+## Manual Product Activation
+
+Billing checkout is still manual in this MVP.
+
+To activate Personal Development for a pilot organization before self-serve billing exists:
+
+1. Sign in as a `system_admin`.
+2. Open the Administration workspace.
+3. Update the target organization so these fields are set:
+   - `subscription_status=active` or `trialing`
+   - `leadership_help_enabled=true`
+   - `leadership_help_tier` to the tier label you want to show
+4. Leave `leadership_continuity_enabled` set according to whether that organization should also have the main product.
+
+Those updates are handled through the organization admin API in `src/app/api/admin/organizations/route.ts`.
 
 ## Supabase production setup
 
@@ -96,6 +141,8 @@ Recommended deployment sequence:
    - roles
    - candidates
    - mentoring
+   - Personal Development as an allowlisted preview admin
+   - Personal Development denied for a normal non-preview user
 
 ## Post-deploy smoke test
 
@@ -107,6 +154,8 @@ After the first deploy, verify:
 - role pages load
 - candidate pages load
 - mentoring pages load
+- Personal Development opens only for preview admins in enabled pilot organizations
+- non-preview users do not see the Personal Development nav item and are blocked from direct URLs
 - OpenAI-backed actions work with the production key
 
 ## Known app behavior relevant to deployment

@@ -56,6 +56,25 @@ export function hasOpenAIEnv() {
   return Boolean(process.env.OPENAI_API_KEY);
 }
 
+export function getResendEnv() {
+  return {
+    RESEND_API_KEY: nonEmptyString.parse(process.env.RESEND_API_KEY),
+    RESEND_FROM_EMAIL: z
+      .string()
+      .trim()
+      .email()
+      .parse(process.env.RESEND_FROM_EMAIL),
+    RESEND_FROM_NAME:
+      process.env.RESEND_FROM_NAME && process.env.RESEND_FROM_NAME.trim()
+        ? process.env.RESEND_FROM_NAME.trim()
+        : null,
+  };
+}
+
+export function hasResendEnv() {
+  return Boolean(process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL);
+}
+
 export function getServerEnv() {
   return {
     ...getSupabaseAdminEnv(),

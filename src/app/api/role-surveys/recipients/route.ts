@@ -106,7 +106,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({
-      message: "Recipient added. You can now send or copy the survey link.",
+      message: "Recipient added. You can now send the survey email or copy the link.",
       recipientId: insertResult.data.id,
     });
   } catch (error) {

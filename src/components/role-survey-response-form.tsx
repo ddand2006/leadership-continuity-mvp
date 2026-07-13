@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import {
   roleSurveyQuestionDefinitions,
   type RoleSurveyQuestionKey,
@@ -22,12 +22,7 @@ type RoleSurveyResponseFormProps = {
 const emptyResponsePayload: RoleSurveyResponsePayload = {
   essential_knowledge: "",
   critical_skills: "",
-  personality_traits: "",
-  relationship_style: "",
   organizational_presence: "",
-  cross_department_collaboration: "",
-  signals_of_success: "",
-  common_derailers: "",
   development_priorities: "",
 };
 
@@ -54,23 +49,23 @@ export function RoleSurveyResponseForm({
     useState<RoleSurveyResponsePayload>(emptyResponsePayload);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [hasMarkedOpen, setHasMarkedOpen] = useState(false);
+  const hasMarkedOpenRef = useRef(false);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     if (
-      hasMarkedOpen ||
+      hasMarkedOpenRef.current ||
       surveyStatus !== "active" ||
       recipientStatus === "completed"
     ) {
       return;
     }
 
-    setHasMarkedOpen(true);
+    hasMarkedOpenRef.current = true;
     void fetch(`/api/role-surveys/respond/${token}`, {
       method: "PATCH",
     }).catch(() => null);
-  }, [hasMarkedOpen, recipientStatus, surveyStatus, token]);
+  }, [recipientStatus, surveyStatus, token]);
 
   if (recipientStatus === "completed") {
     return (
@@ -168,9 +163,6 @@ export function RoleSurveyResponseForm({
       <p className="mt-4 text-sm leading-7 text-slate-600">
         {introMessage ||
           `Please share what success really looks like in ${roleTitle}. Your input will help define the competencies and behaviors that matter most.`}
-      </p>
-      <p className="mt-4 text-sm font-semibold text-slate-700">
-        Responding as: {recipientName}
       </p>
 
       <div className="mt-8 grid gap-6">

@@ -139,3 +139,51 @@ export async function generateRoleCompositeFromIdealCompetencies(options: {
 
   return normalizeRoleComposite(response.output_parsed);
 }
+
+export async function generateRoleCompositeFromRoleProfile(options: {
+  title: string;
+  department: string | null;
+  description: string;
+  organizationalContext?: string | null;
+}) {
+  const openAIEnv = getOpenAIEnv();
+  const openai = createOpenAIClient();
+  const response = await openai.responses.parse({
+    model: openAIEnv.OPENAI_MODEL,
+    input: [
+      {
+        role: "system",
+        content:
+          "You are an expert organizational leadership architect. Generate a practical leadership role composite from the supplied role context. Create 4 to 7 role competencies. Each competency must include a strong definition, a positive weight, a target_score between 1 and 5, 3 to 6 behavioral indicators, and 3 to 6 red flags. Keep the description grounded in the supplied role and organizational context, and write with executive-level clarity.",
+      },
+      {
+        role: "user",
+        content: serializeModelInput({
+          role: {
+            title: options.title,
+            department: options.department,
+            description: options.description,
+            organizational_context: options.organizationalContext ?? null,
+          },
+          instructions: {
+            title: "Return the same role title unless the supplied title is clearly incomplete.",
+            department: "Use the supplied department when available.",
+            description:
+              "Summarize the role in 2 to 5 sentences using the supplied role description and organizational context.",
+            competencies:
+              "Infer the strongest 4 to 7 leadership competencies from the supplied role context alone.",
+          },
+        }),
+      },
+    ],
+    text: {
+      format: zodTextFormat(roleCompositeSchema, "generated_role_composite"),
+    },
+  });
+
+  if (!response.output_parsed) {
+    throw new Error("OpenAI returned no generated role composite.");
+  }
+
+  return normalizeRoleComposite(response.output_parsed);
+}

@@ -4,7 +4,8 @@ import { RoleManagementPanel } from "@/components/role-management-panel";
 import { RoleMentorDialog } from "@/components/role-mentor-dialog";
 import { RoleResourcesPanel } from "@/components/role-resources-panel";
 import { RoleSurveyPanel } from "@/components/role-survey-panel";
-import { hasOpenAIEnv } from "@/lib/env";
+import { RoleWorkspaceMenu } from "@/components/role-workspace-menu";
+import { hasOpenAIEnv, hasResendEnv } from "@/lib/env";
 import {
   isMissingRoleCharacteristicLibraryTableError,
   normalizeRoleLibraryCharacteristic,
@@ -28,6 +29,7 @@ type RolesPageProps = {
 
 export default async function RolesPage({ searchParams }: RolesPageProps) {
   const { roleId: requestedRoleId, mode: requestedMode } = await searchParams;
+  const isEmailDeliveryEnabled = hasResendEnv();
   const { profile, supabase } = await requirePaidWorkspaceProfile();
   const selectedMode:
     | "flow"
@@ -409,26 +411,104 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
   const visibleRoles = selectedRoleId
     ? roles.filter((role) => role.id === selectedRoleId)
     : roles;
+  const isRoleWorkspaceMode = selectedRoleId !== null && selectedMode !== "flow";
+  const selectedRole = visibleRoles[0] ?? null;
+  const selectedRoleMentors = selectedRole
+    ? Array.from(new Set(mentorsByRole.get(selectedRole.id) ?? []))
+    : [];
+  const selectedRoleCompetencyCount = selectedRole
+    ? (competenciesByRole.get(selectedRole.id) ?? []).length
+    : 0;
+  const selectedRoleCharacteristicCount = selectedRole
+    ? (characteristicsByRole.get(selectedRole.id) ?? []).length
+    : 0;
+  const selectedRoleCompositeDocument = selectedRole
+    ? compositeDocumentByRole.get(selectedRole.id) ?? null
+    : null;
+  const selectedRoleDetailItems = selectedRole
+    ? [
+        `Department: ${selectedRole.department ?? "Not entered"}`,
+        `Status: ${selectedRole.status}`,
+        `Ideal candidate traits: ${selectedRoleCharacteristicCount}`,
+        `Structured competencies: ${selectedRoleCompetencyCount}`,
+        `Mentors: ${
+          selectedRoleMentors.length > 0
+            ? selectedRoleMentors.join(", ")
+            : "Not assigned yet"
+        }`,
+        `Composite: ${
+          selectedRoleCompositeDocument?.file_name ??
+          (selectedRoleCompositeDocument?.document_source === "generated"
+            ? "Generated and ready"
+            : "Not created yet")
+        }`,
+      ]
+    : [];
+  const roleWorkspaceSections = selectedRoleId
+    ? [
+        {
+          id: "view",
+          label: "Overview",
+          href: `/roles?roleId=${selectedRoleId}&mode=view`,
+        },
+        {
+          id: "create",
+          label: "Role Setup",
+          href: `/roles?roleId=${selectedRoleId}&mode=create`,
+        },
+        {
+          id: "import",
+          label: "Competencies",
+          href: `/roles?roleId=${selectedRoleId}&mode=import`,
+        },
+        {
+          id: "composite",
+          label: "Composite",
+          href: `/roles?roleId=${selectedRoleId}&mode=composite`,
+        },
+        {
+          id: "resources",
+          label: "Interview Resources",
+          href: `/roles?roleId=${selectedRoleId}&mode=resources`,
+        },
+        {
+          id: "survey",
+          label: "Competency Survey",
+          href: `/roles?roleId=${selectedRoleId}&mode=survey`,
+        },
+      ]
+    : [];
+  const roleOptionsForPanels = isRoleWorkspaceMode ? visibleRoles : roles;
 
   return (
     <main className="app-page">
       <div className="mx-auto flex w-full max-w-[1380px] flex-col gap-8 px-6 py-12 sm:px-10 lg:px-12">
-        <section className="theme-panel-strong rounded-[2rem] p-8">
-          <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">
-            Role Composite Builder
-          </p>
-          <h1 className="mt-3 font-display text-5xl leading-tight text-slate-900">
-            Build Roles for Development
-          </h1>
-          <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">
-            Add roles and define the competencies that matter most for success,
-            and we will help you build a composite and supporting documents to
-            identify the right people to develop. This is the beginning of a
-            more intentional process to strengthen your leadership bench, guide
-            mentoring, and build the next generation of leaders in your
-            organization.
-          </p>
-        </section>
+        {isRoleWorkspaceMode && selectedRole ? (
+          <RoleWorkspaceMenu
+            roleName={selectedRole.title}
+            detailItems={selectedRoleDetailItems}
+            sections={roleWorkspaceSections}
+            activeSectionId={selectedMode}
+            backHref="/roles?mode=flow"
+          />
+        ) : (
+          <section className="theme-panel-strong rounded-[2rem] p-8">
+            <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">
+              Role Composite Builder
+            </p>
+            <h1 className="mt-3 font-display text-5xl leading-tight text-slate-900">
+              Build Roles for Development
+            </h1>
+            <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">
+              Add roles and define the competencies that matter most for success,
+              and we will help you build a composite and supporting documents to
+              identify the right people to develop. This is the beginning of a
+              more intentional process to strengthen your leadership bench, guide
+              mentoring, and build the next generation of leaders in your
+              organization.
+            </p>
+          </section>
+        )}
 
         <section className="grid gap-6">
           <div className="grid gap-6">
@@ -449,7 +529,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
               selectedMode === "import" ||
               selectedMode === "composite" ? (
               <RoleManagementPanel
-                roles={roles.map((role) => ({
+                roles={roleOptionsForPanels.map((role) => ({
                   id: role.id,
                   title: role.title,
                   department: role.department,
@@ -480,7 +560,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
               />
             ) : selectedMode === "resources" ? (
               <RoleResourcesPanel
-                roles={roles.map((role) => ({
+                roles={roleOptionsForPanels.map((role) => ({
                   id: role.id,
                   title: role.title,
                   department: role.department,
@@ -494,7 +574,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
             ) : selectedMode === "survey" ? (
               surveyModuleReady ? (
                 <RoleSurveyPanel
-                  roles={roles.map((role) => ({
+                  roles={roleOptionsForPanels.map((role) => ({
                     id: role.id,
                     title: role.title,
                     department: role.department,
@@ -503,6 +583,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                   recipients={roleSurveyRecipients}
                   responses={roleSurveyResponses}
                   initialSelectedRoleId={selectedRoleId}
+                  isEmailDeliveryEnabled={isEmailDeliveryEnabled}
                 />
               ) : (
                 <section className="rounded-[1.75rem] border border-amber-200 bg-amber-50/90 p-8 text-amber-950 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">

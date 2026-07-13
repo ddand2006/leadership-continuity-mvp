@@ -1,5 +1,5 @@
 import { ApiRouteError } from "@/lib/api-route";
-import { getOpenAIEnv } from "@/lib/env";
+import { getOpenAIEnv, hasOpenAIEnv } from "@/lib/env";
 import { createOpenAIClient, serializeModelInput } from "@/lib/openai";
 import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
@@ -99,6 +99,7 @@ function extractStrengthsFromText(
   return orderedThemes.map((theme, index) => ({
     ...theme,
     rank: index + 1,
+    notes: null,
   }));
 }
 
@@ -172,6 +173,22 @@ export async function analyzeStrengthsDocuments({
 }) {
   const combinedText = documents.map((document) => document.text).join("\n\n");
   const heuristicRankings = extractStrengthsFromText(combinedText, themes);
+
+  if (!hasOpenAIEnv()) {
+    if (heuristicRankings.length < 5) {
+      throw new ApiRouteError(
+        "Could not detect enough CliftonStrengths themes from the uploaded documents. Upload the Gallup ALL_34, Signature Theme, or Top 5 report PDFs.",
+        400,
+      );
+    }
+
+    return {
+      candidateName,
+      importSummary: null,
+      rankings: heuristicRankings,
+    };
+  }
+
   const openAIEnv = getOpenAIEnv();
   const openai = createOpenAIClient();
   const response = await openai.responses.parse({

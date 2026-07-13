@@ -118,7 +118,7 @@ export function formatSubscriptionProductLabel(product: SubscriptionProduct) {
     case "leadership_continuity":
       return "Leadership Continuity";
     case "leadership_help":
-      return "Leadership Help";
+      return "Personal Development";
     default:
       return "Product";
   }

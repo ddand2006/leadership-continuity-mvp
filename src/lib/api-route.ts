@@ -113,7 +113,7 @@ export async function requireApiWorkspaceProfile(options?: {
 
   if (options?.requirePaid !== false && !hasProductAccess(subscription, product)) {
     throw new ApiRouteError(
-      `Your ${product === "leadership_help" ? "Leadership Help" : "Leadership Continuity System"} access is inactive. Visit /subscribe to restore access.`,
+      `Your ${product === "leadership_help" ? "Personal Development" : "Leadership Continuity System"} access is inactive. Visit /subscribe to restore access.`,
       402,
     );
   }

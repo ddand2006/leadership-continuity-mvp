@@ -50,5 +50,5 @@ export function canAccessLeadershipHelpPreview(
 }
 
 export function getLeadershipHelpPreviewMessage() {
-  return "Leadership Help is currently limited to selected preview admins.";
+  return "Personal Development is currently limited to selected preview admins.";
 }

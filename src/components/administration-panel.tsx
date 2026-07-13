@@ -532,7 +532,7 @@ export function AdministrationPanel({
                   : "Disabled"}
               </div>
               <div>
-                <span className="font-semibold text-slate-950">Leadership Help:</span>{" "}
+                <span className="font-semibold text-slate-950">Personal Development:</span>{" "}
                 {selectedOrganization.leadership_help_enabled
                   ? selectedOrganization.leadership_help_tier
                   : "Disabled"}
@@ -697,7 +697,7 @@ export function AdministrationPanel({
                       disabled={!canManageOrganizations}
                       type="checkbox"
                     />
-                    Leadership Help
+                    Personal Development
                   </label>
                   <input
                     value={organizationForm.leadershipHelpTier}
@@ -831,7 +831,7 @@ export function AdministrationPanel({
                         }
                         type="checkbox"
                       />
-                      Leadership Help
+                      Personal Development
                     </label>
                     <input
                       value={newOrganizationForm.leadershipHelpTier}

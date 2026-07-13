@@ -16,12 +16,7 @@ export const roleSurveyRecipientStatusSchema = z.enum(
 export const ROLE_SURVEY_QUESTION_KEYS = [
   "essential_knowledge",
   "critical_skills",
-  "personality_traits",
-  "relationship_style",
   "organizational_presence",
-  "cross_department_collaboration",
-  "signals_of_success",
-  "common_derailers",
   "development_priorities",
 ] as const;
 
@@ -37,75 +32,35 @@ export type RoleSurveyQuestionDefinition = {
 export const roleSurveyQuestionDefinitions: RoleSurveyQuestionDefinition[] = [
   {
     key: "essential_knowledge",
-    shortLabel: "Essential knowledge",
+    shortLabel: "Knowledge and judgment",
     prompt:
-      "What does someone in this role need to know to do the job well and make sound decisions?",
+      "What does someone in this role need to know to do the job well and make strong decisions?",
     helpText:
-      "Think about technical knowledge, judgment, regulations, business context, and how the work really gets done.",
+      "Include technical knowledge, judgment, business context, regulations, and the realities of how the work gets done.",
   },
   {
     key: "critical_skills",
-    shortLabel: "Critical skills",
+    shortLabel: "Skills and capabilities",
     prompt:
-      "What skills or capabilities are most important for performing this role successfully?",
+      "What skills or capabilities matter most for succeeding in this role?",
     helpText:
-      "Include leadership, operational, communication, financial, strategic, or people-development skills.",
-  },
-  {
-    key: "personality_traits",
-    shortLabel: "Personality traits",
-    prompt:
-      "What personality traits, tendencies, or natural styles seem most important for success in this role?",
-    helpText:
-      "Examples might include calm under pressure, curiosity, decisiveness, humility, empathy, or follow-through.",
-  },
-  {
-    key: "relationship_style",
-    shortLabel: "Relationship style",
-    prompt:
-      "How should someone in this role work with other people day to day?",
-    helpText:
-      "Describe how they handle conflict, coaching, accountability, listening, trust-building, and difficult conversations.",
+      "Think about leadership, operational, communication, strategic, financial, and people-development skills.",
   },
   {
     key: "organizational_presence",
-    shortLabel: "Organizational presence",
+    shortLabel: "Leadership presence and relationships",
     prompt:
-      "What is this leader like around the organization when they are performing at a high level?",
+      "How should someone in this role show up with people across the organization when they are operating at a high level?",
     helpText:
-      "Describe the tone they set, how others experience them, and how they show up in meetings, crises, and routine work.",
-  },
-  {
-    key: "cross_department_collaboration",
-    shortLabel: "Cross-department work",
-    prompt:
-      "How should this role interact with other departments, teams, or stakeholders across the organization?",
-    helpText:
-      "Call out collaboration patterns, influence, follow-up, diplomacy, and what healthy partnership looks like.",
-  },
-  {
-    key: "signals_of_success",
-    shortLabel: "Signals of success",
-    prompt:
-      "What are the clearest signs that someone is succeeding in this role?",
-    helpText:
-      "List behaviors, outcomes, or reputation markers that would make you say, 'Yes, this person is thriving here.'",
-  },
-  {
-    key: "common_derailers",
-    shortLabel: "Common derailers",
-    prompt:
-      "What habits, blind spots, or behaviors most often cause people to struggle in this role?",
-    helpText:
-      "Name the red flags, failure patterns, or risks that should be watched closely during selection and development.",
+      "Describe traits, communication style, collaboration, accountability, influence, and how others experience this leader day to day.",
   },
   {
     key: "development_priorities",
-    shortLabel: "Development priorities",
+    shortLabel: "Success factors and watchouts",
     prompt:
-      "If you were helping someone grow into this role, where would you focus first?",
+      "What most clearly signals success in this role, and what common blind spots or development priorities should we watch for?",
     helpText:
-      "Share the capabilities or mindset shifts that most accelerate readiness for this position.",
+      "Include outcomes, behaviors, red flags, and the biggest areas to develop when preparing someone for the role.",
   },
 ];
 
@@ -114,12 +69,7 @@ const responseAnswerSchema = z.string().trim().min(1).max(6000);
 export const roleSurveyResponsePayloadSchema = z.object({
   essential_knowledge: responseAnswerSchema,
   critical_skills: responseAnswerSchema,
-  personality_traits: responseAnswerSchema,
-  relationship_style: responseAnswerSchema,
   organizational_presence: responseAnswerSchema,
-  cross_department_collaboration: responseAnswerSchema,
-  signals_of_success: responseAnswerSchema,
-  common_derailers: responseAnswerSchema,
   development_priorities: responseAnswerSchema,
 });
 
@@ -307,14 +257,7 @@ export function parseRoleSurveyResponsePayload(
   return {
     essential_knowledge: sanitizeAppText(parsed.data.essential_knowledge),
     critical_skills: sanitizeAppText(parsed.data.critical_skills),
-    personality_traits: sanitizeAppText(parsed.data.personality_traits),
-    relationship_style: sanitizeAppText(parsed.data.relationship_style),
     organizational_presence: sanitizeAppText(parsed.data.organizational_presence),
-    cross_department_collaboration: sanitizeAppText(
-      parsed.data.cross_department_collaboration,
-    ),
-    signals_of_success: sanitizeAppText(parsed.data.signals_of_success),
-    common_derailers: sanitizeAppText(parsed.data.common_derailers),
     development_priorities: sanitizeAppText(parsed.data.development_priorities),
   };
 }

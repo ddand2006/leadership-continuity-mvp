@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   experimental: {
     proxyClientMaxBodySize: "50mb",
   },
+  serverExternalPackages: ["mammoth", "pdf-parse"],
   turbopack: {
     ignoreIssue: [
       {

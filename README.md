@@ -31,6 +31,10 @@ SUPABASE_SERVICE_ROLE_KEY=
 SUPABASE_SECRET_KEY=
 OPENAI_API_KEY=
 APP_URL=http://localhost:3000
+LCS_PAYWALL_ENABLED=false
+RESEND_API_KEY=
+RESEND_FROM_EMAIL=
+RESEND_FROM_NAME=
 LEADERSHIP_HELP_PREVIEW_MODE=false
 LEADERSHIP_HELP_PREVIEW_EMAILS=
 LEADERSHIP_HELP_PREVIEW_ORGANIZATION_IDS=
@@ -38,7 +42,19 @@ LEADERSHIP_HELP_PREVIEW_ORGANIZATION_IDS=
 
 You can use either the current publishable/secret keys or the legacy anon/service-role keys. The app will accept both so it can connect cleanly to newer Supabase projects.
 
-When `LEADERSHIP_HELP_PREVIEW_MODE=true`, Leadership Help is hidden from everyone except `system_admin` plus any allowlisted preview admins. Use `LEADERSHIP_HELP_PREVIEW_EMAILS` for specific admin emails and `LEADERSHIP_HELP_PREVIEW_ORGANIZATION_IDS` if you want to allow a full pilot organization.
+To send role survey invitations through Resend, also add:
+
+```bash
+RESEND_API_KEY=
+RESEND_FROM_EMAIL=surveys@your-subdomain.example.com
+RESEND_FROM_NAME=Leadership Continuity System
+```
+
+Use a verified Resend sending subdomain rather than your main mailbox identity.
+
+When `LEADERSHIP_HELP_PREVIEW_MODE=true`, Personal Development is hidden from everyone except `system_admin` plus any allowlisted preview admins. Use `LEADERSHIP_HELP_PREVIEW_EMAILS` for specific admin emails and `LEADERSHIP_HELP_PREVIEW_ORGANIZATION_IDS` if you want to allow a full pilot organization.
+
+When `LCS_PAYWALL_ENABLED=true`, Leadership Continuity and Personal Development both enforce organization product access from the subscription columns on `organizations`. Billing checkout is not wired yet, so product access is still activated manually through the administration flow or direct database updates.
 
 ## Local Development
 

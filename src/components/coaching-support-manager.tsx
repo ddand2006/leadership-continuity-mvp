@@ -328,7 +328,7 @@ export function CoachingSupportManager({
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="max-w-3xl">
             <p className="text-sm font-semibold tracking-[0.16em] text-[#24512f] uppercase">
-              Leadership Help
+              Personal Development
             </p>
             <h2 className="mt-3 font-display text-3xl text-[#14361d]">
               Develop in your current role and get help with a real challenge
@@ -345,7 +345,7 @@ export function CoachingSupportManager({
             <ul className="mt-3 grid gap-2 leading-7">
               <li>1. Enter the leadership challenge.</li>
               <li>2. Choose AI, human coaching, or both.</li>
-              <li>3. Save the request inside Leadership Help.</li>
+              <li>3. Save the request inside Personal Development.</li>
             </ul>
           </div>
         </div>
@@ -484,7 +484,7 @@ export function CoachingSupportManager({
               type="submit"
               disabled={isPending}
             >
-              {isPending ? "Submitting..." : "Submit Leadership Help Request"}
+              {isPending ? "Submitting..." : "Submit Personal Development Request"}
             </button>
             {error ? <p className="text-sm text-rose-700">{error}</p> : null}
             {success ? <p className="text-sm text-teal-700">{success}</p> : null}
@@ -500,8 +500,8 @@ export function CoachingSupportManager({
             </p>
             <h3 className="mt-2 font-display text-2xl text-slate-950">
               {canReviewQueue
-                ? "Review leadership help requests across the organization"
-                : "Review your leadership help history"}
+                ? "Review personal development requests across the organization"
+                : "Review your personal development history"}
             </h3>
           </div>
           <div className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
@@ -520,7 +520,7 @@ export function CoachingSupportManager({
         ) : (
           <article className="rounded-[1.5rem] border border-dashed border-slate-300 bg-white/75 px-6 py-6 text-sm leading-7 text-slate-600">
             No coaching requests are on record yet. Submit the first leadership challenge
-            above to start building this coaching module.
+            above to start building this personal development module.
           </article>
         )}
       </div>
