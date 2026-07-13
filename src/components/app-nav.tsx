@@ -72,7 +72,7 @@ function getInitials(user: User) {
     .join("");
 }
 
-export async function AppNav({ pathname: _pathname }: { pathname: string }) {
+export async function AppNav({ pathname }: { pathname: string }) {
   const user = await getCurrentUser();
   let isAdmin = false;
   let isSystemAdmin = false;
@@ -254,6 +254,7 @@ export async function AppNav({ pathname: _pathname }: { pathname: string }) {
           </div>
 
           <AppNavLinks
+            initialPathname={pathname}
             navItems={navItems}
             resourceNavItems={resourceNavItems}
             showResources={hasContinuityAccess && (isAdmin || isMentor)}

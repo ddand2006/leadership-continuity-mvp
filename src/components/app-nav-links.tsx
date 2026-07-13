@@ -27,17 +27,19 @@ function isActiveNavItem(pathname: string, item: NavItem) {
 }
 
 export function AppNavLinks({
+  initialPathname,
   navItems,
   resourceNavItems,
   showResources,
 }: {
+  initialPathname: string;
   navItems: NavItem[];
   resourceNavItems: ResourceNavItem[];
   showResources: boolean;
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const currentPath = pathname ?? "";
+  const currentPath = pathname ?? initialPathname;
   const currentSection = searchParams.get("section");
   const resourcesIsActive = resourceNavItems.some((item) => {
     if (currentPath !== item.matchPath) {
