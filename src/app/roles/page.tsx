@@ -62,29 +62,36 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
     selectedMode === "create" ||
     selectedMode === "import" ||
     selectedMode === "composite" ||
+    selectedMode === "survey" ||
     selectedMode === "view" ||
     selectedMode === "resources";
   const needsCharacteristicDetails =
     selectedMode === "create" ||
     selectedMode === "import" ||
     selectedMode === "composite" ||
+    selectedMode === "survey" ||
     selectedMode === "view";
   const needsCharacteristicPresence =
     selectedMode === "flow" || needsCharacteristicDetails;
   const needsSharedLibrary =
     selectedMode === "create" ||
     selectedMode === "import" ||
-    selectedMode === "composite";
+    selectedMode === "composite" ||
+    selectedMode === "survey";
   const needsCompositeDocumentDetails =
     selectedMode === "create" ||
     selectedMode === "import" ||
     selectedMode === "composite" ||
+    selectedMode === "survey" ||
     selectedMode === "view";
   const needsCompositeDocumentPresence =
     selectedMode === "flow" || needsCompositeDocumentDetails;
   const needsMentors = selectedMode === "view";
   const needsRoleMentorAssignments = selectedMode === "view";
-  const needsSurveyRecords = selectedMode === "survey";
+  const needsSurveyRecords =
+    selectedMode === "import" ||
+    selectedMode === "composite" ||
+    selectedMode === "survey";
   const [
     rolesResult,
     competenciesResult,
@@ -444,6 +451,14 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
         }`,
       ]
     : [];
+  const activeWorkspaceSectionId =
+    selectedMode === "import" ||
+    selectedMode === "composite" ||
+    selectedMode === "survey"
+      ? "workflow"
+      : selectedMode === "resources"
+        ? "interview"
+        : selectedMode;
   const roleWorkspaceSections = selectedRoleId
     ? [
         {
@@ -457,24 +472,14 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
           href: `/roles?roleId=${selectedRoleId}&mode=create`,
         },
         {
-          id: "import",
-          label: "Competencies",
+          id: "workflow",
+          label: "Role Workflow",
           href: `/roles?roleId=${selectedRoleId}&mode=import`,
         },
         {
-          id: "composite",
-          label: "Composite",
-          href: `/roles?roleId=${selectedRoleId}&mode=composite`,
-        },
-        {
-          id: "resources",
-          label: "Interview Resources",
+          id: "interview",
+          label: "Narrative & Interview",
           href: `/roles?roleId=${selectedRoleId}&mode=resources`,
-        },
-        {
-          id: "survey",
-          label: "Competency Survey",
-          href: `/roles?roleId=${selectedRoleId}&mode=survey`,
         },
       ]
     : [];
@@ -488,7 +493,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
             roleName={selectedRole.title}
             detailItems={selectedRoleDetailItems}
             sections={roleWorkspaceSections}
-            activeSectionId={selectedMode}
+            activeSectionId={activeWorkspaceSectionId}
             backHref="/roles?mode=flow"
           />
         ) : (
@@ -525,9 +530,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                 selectedRoleId={selectedRoleId}
                 selectedMode={selectedMode}
               />
-            ) : selectedMode === "create" ||
-              selectedMode === "import" ||
-              selectedMode === "composite" ? (
+            ) : selectedMode === "create" ? (
               <RoleManagementPanel
                 roles={roleOptionsForPanels.map((role) => ({
                   id: role.id,
@@ -556,8 +559,106 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                 sharedLibrary={resolvedSharedLibrary}
                 canGenerateComposite={canGenerateComposite}
                 initialSelectedRoleId={selectedRoleId}
-                mode={selectedMode}
+                mode="create"
               />
+            ) : selectedMode === "import" ||
+              selectedMode === "composite" ||
+              selectedMode === "survey" ? (
+              <>
+                <RoleManagementPanel
+                  roles={roleOptionsForPanels.map((role) => ({
+                    id: role.id,
+                    title: role.title,
+                    department: role.department,
+                    description: role.description,
+                    status: role.status as "draft" | "active",
+                    primaryMentorProfileId: primaryMentorIdByRole.get(role.id) ?? null,
+                    idealCompetencyCount:
+                      (characteristicsByRole.get(role.id) ?? []).length,
+                    roleCompositeCount: (competenciesByRole.get(role.id) ?? []).length,
+                    compositeDocumentSource:
+                      compositeDocumentByRole.get(role.id)?.document_source ?? null,
+                    compositeDocumentFileName:
+                      compositeDocumentByRole.get(role.id)?.file_name ?? null,
+                    talents: groupCharacteristicsByCategory(
+                      getDetailedCharacteristics(role.id),
+                    ).talents,
+                    skills: groupCharacteristicsByCategory(
+                      getDetailedCharacteristics(role.id),
+                    ).skills,
+                    behaviors: groupCharacteristicsByCategory(
+                      getDetailedCharacteristics(role.id),
+                    ).behaviors,
+                  }))}
+                  sharedLibrary={resolvedSharedLibrary}
+                  canGenerateComposite={canGenerateComposite}
+                  initialSelectedRoleId={selectedRoleId}
+                  mode="import"
+                />
+                <RoleManagementPanel
+                  roles={roleOptionsForPanels.map((role) => ({
+                    id: role.id,
+                    title: role.title,
+                    department: role.department,
+                    description: role.description,
+                    status: role.status as "draft" | "active",
+                    primaryMentorProfileId: primaryMentorIdByRole.get(role.id) ?? null,
+                    idealCompetencyCount:
+                      (characteristicsByRole.get(role.id) ?? []).length,
+                    roleCompositeCount: (competenciesByRole.get(role.id) ?? []).length,
+                    compositeDocumentSource:
+                      compositeDocumentByRole.get(role.id)?.document_source ?? null,
+                    compositeDocumentFileName:
+                      compositeDocumentByRole.get(role.id)?.file_name ?? null,
+                    talents: groupCharacteristicsByCategory(
+                      getDetailedCharacteristics(role.id),
+                    ).talents,
+                    skills: groupCharacteristicsByCategory(
+                      getDetailedCharacteristics(role.id),
+                    ).skills,
+                    behaviors: groupCharacteristicsByCategory(
+                      getDetailedCharacteristics(role.id),
+                    ).behaviors,
+                  }))}
+                  sharedLibrary={resolvedSharedLibrary}
+                  canGenerateComposite={canGenerateComposite}
+                  initialSelectedRoleId={selectedRoleId}
+                  mode="composite"
+                />
+                {surveyModuleReady ? (
+                  <RoleSurveyPanel
+                    roles={roleOptionsForPanels.map((role) => ({
+                      id: role.id,
+                      title: role.title,
+                      department: role.department,
+                    }))}
+                    surveys={roleSurveys}
+                    recipients={roleSurveyRecipients}
+                    responses={roleSurveyResponses}
+                    initialSelectedRoleId={selectedRoleId}
+                    isEmailDeliveryEnabled={isEmailDeliveryEnabled}
+                    sectionId="role-survey-tools"
+                  />
+                ) : (
+                  <section
+                    id="role-survey-tools"
+                    className="rounded-[1.75rem] border border-amber-200 bg-amber-50/90 p-8 text-amber-950 shadow-[0_20px_60px_rgba(15,23,42,0.06)]"
+                  >
+                    <p className="text-sm font-semibold tracking-[0.16em] uppercase">
+                      Competency Survey
+                    </p>
+                    <h2 className="mt-3 font-display text-3xl">
+                      The role survey database migration still needs to be applied
+                    </h2>
+                    <p className="mt-4 max-w-3xl text-sm leading-7">
+                      The survey interface is ready, but the survey tables have not
+                      been created in Supabase yet. Once the migration is applied,
+                      you will be able to send competency surveys to any email
+                      address, collect responses, and review recurring themes.
+                    </p>
+                  </section>
+                )}
+              </>
             ) : selectedMode === "resources" ? (
               <RoleResourcesPanel
                 roles={roleOptionsForPanels.map((role) => ({
@@ -566,41 +667,11 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                   department: role.department,
                   description: role.description,
                   competencyCount: (competenciesByRole.get(role.id) ?? []).length,
-                  hasComposite: (competenciesByRole.get(role.id) ?? []).length > 0,
+                  hasCompositeDocument: compositeDocumentByRole.has(role.id),
                 }))}
                 initialSelectedRoleId={selectedRoleId}
                 canGenerateResources={canGenerateComposite}
               />
-            ) : selectedMode === "survey" ? (
-              surveyModuleReady ? (
-                <RoleSurveyPanel
-                  roles={roleOptionsForPanels.map((role) => ({
-                    id: role.id,
-                    title: role.title,
-                    department: role.department,
-                  }))}
-                  surveys={roleSurveys}
-                  recipients={roleSurveyRecipients}
-                  responses={roleSurveyResponses}
-                  initialSelectedRoleId={selectedRoleId}
-                  isEmailDeliveryEnabled={isEmailDeliveryEnabled}
-                />
-              ) : (
-                <section className="rounded-[1.75rem] border border-amber-200 bg-amber-50/90 p-8 text-amber-950 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
-                  <p className="text-sm font-semibold tracking-[0.16em] uppercase">
-                    Competency Survey
-                  </p>
-                  <h2 className="mt-3 font-display text-3xl">
-                    The role survey database migration still needs to be applied
-                  </h2>
-                  <p className="mt-4 max-w-3xl text-sm leading-7">
-                    The survey interface is ready, but the survey tables have not
-                    been created in Supabase yet. Once the migration is applied,
-                    you will be able to send competency surveys to any email
-                    address, collect responses, and review recurring themes.
-                  </p>
-                </section>
-              )
             ) : (
               <div className="grid gap-6">
                 {roles.length === 0 ? (

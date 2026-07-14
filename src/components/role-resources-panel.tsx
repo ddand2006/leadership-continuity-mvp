@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 
 type RoleResourcesPanelProps = {
@@ -9,7 +10,7 @@ type RoleResourcesPanelProps = {
     department: string | null;
     description: string | null;
     competencyCount: number;
-    hasComposite: boolean;
+    hasCompositeDocument: boolean;
   }[];
   initialSelectedRoleId?: string | null;
   canGenerateResources: boolean;
@@ -112,16 +113,17 @@ export function RoleResourcesPanel({
     <section className="grid gap-6">
       <div className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
         <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
-          Role Resources
+          Narrative and Interview Tools
         </p>
         <h2 className="mt-3 font-display text-3xl text-slate-900">
-          Generate interview questions and scorecards from a role
+          Keep the printable narrative and interview resources together
         </h2>
         <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600">
-          Choose a role, then use its competencies and composite to generate
-          behavioral interview resources. These materials are designed to help
-          interviewers identify whether candidates actually demonstrate the
-          behaviors, judgment, and leadership profile required for the role.
+          Choose a role, open its printable narrative, and use the same role
+          data to generate behavioral interview resources. These materials are
+          designed to help interviewers identify whether candidates actually
+          demonstrate the behaviors, judgment, and leadership profile required
+          for the role.
         </p>
 
         <div className="mt-6 grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
@@ -164,10 +166,30 @@ export function RoleResourcesPanel({
                     {selectedRole.competencyCount === 1 ? "" : "s"}
                   </span>
                   <span className="rounded-full bg-teal-100 px-3 py-1 text-teal-900">
-                    {selectedRole.hasComposite
-                      ? "Composite ready"
-                      : "Composite still needed"}
+                    {selectedRole.hasCompositeDocument
+                      ? "Composite document ready"
+                      : "Composite document still needed"}
                   </span>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <Link
+                    href={`/roles/${selectedRole.id}/print`}
+                    className="rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                  >
+                    Open Printable Role Narrative
+                  </Link>
+                  {selectedRole.hasCompositeDocument ? (
+                    <a
+                      href={`/api/roles/${selectedRole.id}/composite-docx`}
+                      className="rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                    >
+                      Download Composite (Word)
+                    </a>
+                  ) : (
+                    <span className="rounded-full border border-slate-200 bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-500">
+                      Generate the composite first to download the Word version
+                    </span>
+                  )}
                 </div>
               </div>
             ) : null}
@@ -213,16 +235,16 @@ export function RoleResourcesPanel({
             </p>
             <div className="mt-5 grid gap-3 text-sm leading-7 text-[#24512f]">
               <article className="emerald-soft-surface rounded-2xl border px-4 py-4">
+                Open the printable role narrative and keep it paired with the
+                interview tools for the same role.
+              </article>
+              <article className="emerald-soft-surface rounded-2xl border px-4 py-4">
                 Generate behavioral interview questions that tie directly to the
                 role competencies and composite.
               </article>
               <article className="emerald-soft-surface rounded-2xl border px-4 py-4">
                 Download a Word interview scorecard with sections, questions,
                 scoring lines, and notes prompts for interviewers.
-              </article>
-              <article className="emerald-soft-surface rounded-2xl border px-4 py-4">
-                Build a reusable interview resource library role by role as the
-                leadership continuity system expands.
               </article>
             </div>
           </div>

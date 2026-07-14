@@ -78,9 +78,11 @@ export function RoleFlowPanel({
 
   const actions: FlowAction[] = [
     {
-      title: "Input Competencies",
+      title: "Competencies, Survey, and Composite",
       description: selectedRole
-        ? "Open the competencies and composites workflow for this role."
+        ? selectedRole.hasCompositeDocument
+          ? "Open one workflow for competencies, survey launch, and composite maintenance."
+          : "Open one workflow to attach competencies, launch the survey, and build the composite."
         : "Choose a role first to attach competencies.",
       onClick: selectedRole
         ? () => updateRoute("import", selectedRole.id)
@@ -88,40 +90,10 @@ export function RoleFlowPanel({
       disabled: !selectedRole,
     },
     {
-      title: "Create and Download Composite",
+      title: "Narrative and Interview Tools",
       description: selectedRole
-        ? selectedRole.hasCompositeDocument
-          ? "Open the composite workflow to download or maintain the Word document."
-          : "Open the composite workflow to generate the role composite."
-        : "Choose a role first to create its composite.",
-      onClick: selectedRole
-        ? () => updateRoute("composite", selectedRole.id)
-        : undefined,
-      disabled: !selectedRole,
-    },
-    {
-      title: "View and Download Role Narrative",
-      description: selectedRole
-        ? "Open the printable role view and download-ready narrative layout."
-        : "Choose a role first to view its narrative.",
-      href: selectedRole ? `/roles/${selectedRole.id}/print` : undefined,
-      disabled: !selectedRole,
-    },
-    {
-      title: "Launch Competency Survey",
-      description: selectedRole
-        ? "Send an external survey to gather what success looks like in this role."
-        : "Choose a role first to launch its survey.",
-      onClick: selectedRole
-        ? () => updateRoute("survey", selectedRole.id)
-        : undefined,
-      disabled: !selectedRole,
-    },
-    {
-      title: "Interview Questions and Scorecard",
-      description: selectedRole
-        ? "Generate role-based interview questions and a scorecard."
-        : "Choose a role first to open interview resources.",
+        ? "Open the printable role narrative and interview question tools together."
+        : "Choose a role first to open its narrative and interview tools.",
       onClick: selectedRole
         ? () => updateRoute("resources", selectedRole.id)
         : undefined,
@@ -138,9 +110,9 @@ export function RoleFlowPanel({
         Follow one clear role workflow
       </h2>
       <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600">
-        Use this flow to move from role setup into competencies, composites,
-        printable role narrative, and interview tools without jumping around the
-        page.
+        Use this flow to move from role setup into competencies, survey,
+        composite work, printable role narrative, and interview tools without
+        jumping around the page.
       </p>
 
       {roles.length === 0 ? (

@@ -24,6 +24,7 @@ type RoleSurveyPanelProps = {
   responses: RoleSurveyResponseRecord[];
   initialSelectedRoleId?: string | null;
   isEmailDeliveryEnabled?: boolean;
+  sectionId?: string;
 };
 
 function formatDate(value: string) {
@@ -66,6 +67,7 @@ export function RoleSurveyPanel({
   responses,
   initialSelectedRoleId = null,
   isEmailDeliveryEnabled = false,
+  sectionId,
 }: RoleSurveyPanelProps) {
   const router = useRouter();
   const initialRoleId = initialSelectedRoleId ?? roles[0]?.id ?? "";
@@ -357,7 +359,7 @@ export function RoleSurveyPanel({
   }
 
   return (
-    <section className="grid gap-6">
+    <section id={sectionId} className="grid gap-6">
       <div className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
         <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
           Competency Survey
