@@ -1,7 +1,7 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   getAdminRoleLabel,
@@ -49,6 +49,11 @@ type AdministrationPanelProps = {
 };
 
 type ComposerMode = "create" | "invite" | "edit" | "password";
+type SummaryFilterKey =
+  | "active-candidates"
+  | "active-mentors"
+  | "suspended-users"
+  | "pending-invitations";
 
 const adminRoleOptions: {
   value: OrganizationUserAdminRole;
@@ -108,12 +113,28 @@ function defaultFormState(user?: AdministrationUser) {
   };
 }
 
-function SummaryCard(props: { label: string; value: number; tone: string }) {
+function SummaryCard(props: {
+  label: string;
+  value: number;
+  tone: string;
+  isActive?: boolean;
+  onClick?: () => void;
+}) {
   return (
-    <article className={`rounded-[1.75rem] border p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] ${props.tone}`}>
+    <button
+      type="button"
+      onClick={props.onClick}
+      aria-pressed={props.isActive}
+      className={`w-full rounded-[1.75rem] border p-6 text-left shadow-[0_20px_60px_rgba(15,23,42,0.06)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_70px_rgba(15,23,42,0.1)] focus:outline-none focus:ring-2 focus:ring-teal-500/60 ${
+        props.tone
+      } ${props.isActive ? "ring-2 ring-slate-900/15" : ""}`}
+    >
       <p className="text-sm font-semibold tracking-[0.16em] uppercase">{props.label}</p>
       <p className="mt-4 font-display text-4xl">{props.value}</p>
-    </article>
+      <p className="mt-3 text-xs font-semibold uppercase tracking-[0.14em] opacity-70">
+        View list
+      </p>
+    </button>
   );
 }
 
@@ -182,6 +203,7 @@ export function AdministrationPanel({
     leadershipHelpEnabled: false,
     leadershipHelpTier: "none",
   });
+  const filtersSectionRef = useRef<HTMLElement | null>(null);
   const toggleFilters: Array<{
     label: string;
     value: boolean;
@@ -234,6 +256,72 @@ export function AdministrationPanel({
       matchesStatus
     );
   });
+
+  const activeSummaryFilter: SummaryFilterKey | null =
+    candidateFilter &&
+    activeFilter &&
+    !mentorFilter &&
+    !ceoAdminFilter &&
+    !managerAdminFilter &&
+    !invitedFilter &&
+    !suspendedFilter &&
+    !archivedFilter &&
+    nameFilter.trim().length === 0 &&
+    emailFilter.trim().length === 0
+      ? "active-candidates"
+      : mentorFilter &&
+          activeFilter &&
+          !candidateFilter &&
+          !ceoAdminFilter &&
+          !managerAdminFilter &&
+          !invitedFilter &&
+          !suspendedFilter &&
+          !archivedFilter &&
+          nameFilter.trim().length === 0 &&
+          emailFilter.trim().length === 0
+        ? "active-mentors"
+        : suspendedFilter &&
+            !candidateFilter &&
+            !mentorFilter &&
+            !ceoAdminFilter &&
+            !managerAdminFilter &&
+            !activeFilter &&
+            !invitedFilter &&
+            !archivedFilter &&
+            nameFilter.trim().length === 0 &&
+            emailFilter.trim().length === 0
+          ? "suspended-users"
+          : invitedFilter &&
+              !candidateFilter &&
+              !mentorFilter &&
+              !ceoAdminFilter &&
+              !managerAdminFilter &&
+              !activeFilter &&
+              !suspendedFilter &&
+              !archivedFilter &&
+              nameFilter.trim().length === 0 &&
+              emailFilter.trim().length === 0
+            ? "pending-invitations"
+            : null;
+
+  function activateSummaryFilter(filter: SummaryFilterKey) {
+    setNameFilter("");
+    setEmailFilter("");
+    setCandidateFilter(filter === "active-candidates");
+    setMentorFilter(filter === "active-mentors");
+    setCeoAdminFilter(false);
+    setManagerAdminFilter(false);
+    setActiveFilter(
+      filter === "active-candidates" || filter === "active-mentors",
+    );
+    setInvitedFilter(filter === "pending-invitations");
+    setSuspendedFilter(filter === "suspended-users");
+    setArchivedFilter(false);
+    filtersSectionRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }
 
   function openComposer(mode: ComposerMode, user?: AdministrationUser) {
     setComposerMode(mode);
@@ -865,25 +953,36 @@ export function AdministrationPanel({
           label="Active Candidates"
           value={summary.activeCandidates}
           tone="border-teal-200 bg-teal-50/85 text-teal-900"
+          isActive={activeSummaryFilter === "active-candidates"}
+          onClick={() => activateSummaryFilter("active-candidates")}
         />
         <SummaryCard
           label="Active Mentors"
           value={summary.activeMentors}
           tone="border-sky-200 bg-sky-50/85 text-sky-900"
+          isActive={activeSummaryFilter === "active-mentors"}
+          onClick={() => activateSummaryFilter("active-mentors")}
         />
         <SummaryCard
           label="Suspended Users"
           value={summary.suspendedUsers}
           tone="border-rose-200 bg-rose-50/85 text-rose-900"
+          isActive={activeSummaryFilter === "suspended-users"}
+          onClick={() => activateSummaryFilter("suspended-users")}
         />
         <SummaryCard
           label="Pending Invitations"
           value={summary.pendingInvitations}
           tone="border-amber-200 bg-amber-50/85 text-amber-900"
+          isActive={activeSummaryFilter === "pending-invitations"}
+          onClick={() => activateSummaryFilter("pending-invitations")}
         />
       </section>
 
-      <section className="theme-panel-strong rounded-[2rem] p-8">
+      <section
+        ref={filtersSectionRef}
+        className="theme-panel-strong rounded-[2rem] p-8"
+      >
         <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">

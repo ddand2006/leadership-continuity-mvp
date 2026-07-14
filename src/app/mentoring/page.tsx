@@ -766,6 +766,12 @@ export default async function MentoringPage({
   const selectedMentoringSection =
     mentoringSections.find((section) => section.id === selectedSectionId) ??
     mentoringSections[0];
+  const workspaceMenuSections = mentoringSections.filter(
+    (section) =>
+      section.id !== "preparation-worksheet" &&
+      section.id !== "departmental-project" &&
+      section.id !== "cross-departmental-project",
+  );
 
   return (
     <main className="app-page">
@@ -833,7 +839,7 @@ export default async function MentoringPage({
             key={selectedSectionId}
             detailItems={mentoringWorkspaceDetailItems}
             initialSectionId={selectedSectionId}
-            sections={mentoringSections}
+            sections={workspaceMenuSections}
           />
         )}
       </div>
