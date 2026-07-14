@@ -363,6 +363,91 @@ export default async function PrintRoleCompositePage({
               </div>
             ) : null}
           </section>
+
+          <section className="mt-8">
+            <p className="text-sm font-semibold tracking-[0.14em] text-slate-500 uppercase">
+              Ideal Candidate Competencies
+            </p>
+            <div className="mt-4 grid gap-4 md:grid-cols-3">
+              {[
+                { title: "Talents", items: characteristics.talents },
+                { title: "Skills", items: characteristics.skills },
+                { title: "Behaviors", items: characteristics.behaviors },
+              ].map((group) => (
+                <article
+                  key={group.title}
+                  className="rounded-3xl border border-slate-200 bg-slate-50 p-5"
+                >
+                  <p className="text-lg font-semibold text-slate-900">
+                    {group.title}
+                  </p>
+                  <ul className="mt-4 space-y-2 text-sm leading-7 text-slate-700">
+                    {group.items.length > 0 ? (
+                      group.items.map((item) => <li key={item}>• {item}</li>)
+                    ) : (
+                      <li>No {group.title.toLowerCase()} attached yet.</li>
+                    )}
+                  </ul>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section className="mt-10">
+            <p className="text-sm font-semibold tracking-[0.14em] text-slate-500 uppercase">
+              Composite Competency Areas
+            </p>
+            <div className="mt-4 grid gap-5">
+              {(competenciesResult.data ?? []).length > 0 ? (
+                (competenciesResult.data ?? []).map((competency) => (
+                  <article
+                    key={competency.id}
+                    className="rounded-3xl border border-slate-200 bg-slate-50 p-6"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <h3 className="text-2xl font-semibold text-slate-900">
+                        {competency.name}
+                      </h3>
+                      <div className="text-right text-sm font-semibold text-slate-600">
+                        <p>Target {competency.target_score.toFixed(2)}</p>
+                        <p>Weight {competency.weight.toFixed(2)}</p>
+                      </div>
+                    </div>
+                    <p className="mt-4 text-sm leading-7 text-slate-700">
+                      {competency.definition}
+                    </p>
+                    <div className="mt-5 grid gap-4 md:grid-cols-2">
+                      <div className="rounded-2xl bg-white px-4 py-4 text-sm text-slate-700">
+                        <p className="font-semibold text-slate-900">
+                          Behavioral Indicators
+                        </p>
+                        <ul className="mt-3 space-y-2 leading-7">
+                          {((competency.behavioral_indicators as string[]) ?? []).map(
+                            (item) => (
+                              <li key={item}>• {item}</li>
+                            ),
+                          )}
+                        </ul>
+                      </div>
+                      <div className="rounded-2xl bg-white px-4 py-4 text-sm text-slate-700">
+                        <p className="font-semibold text-slate-900">Red Flags</p>
+                        <ul className="mt-3 space-y-2 leading-7">
+                          {((competency.red_flags as string[]) ?? []).map((item) => (
+                            <li key={item}>• {item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </article>
+                ))
+              ) : (
+                <article className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm leading-7 text-slate-600">
+                  No generated composite sections exist for this role yet. Add
+                  competencies and generate the composite first.
+                </article>
+              )}
+            </div>
+          </section>
         </section>
       </div>
     </main>
