@@ -247,7 +247,7 @@ export function RoleResourcesPanel({
                     href={`/roles/${selectedRole.id}/print`}
                     className="rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
                   >
-                    Open Printable Role Narrative
+                    Open Role Narrative
                   </Link>
                   {selectedRole.hasStructuredComposite ||
                   selectedRole.hasCompositeDocument ? (
