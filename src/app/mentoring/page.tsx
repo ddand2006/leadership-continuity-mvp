@@ -589,7 +589,7 @@ export default async function MentoringPage({
       ? [
           {
             id: "mentor-assignments",
-            label: "Mentor Assignments",
+            label: "My Mentoring Assignments",
             content: (
               <>
                 {(isAdmin || visibleRoleOptions.length > 0) ? (
