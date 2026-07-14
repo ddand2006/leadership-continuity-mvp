@@ -614,7 +614,7 @@ export function LeadershipDevelopmentRecordManager({
             <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-5">
               <label className="block">
                 <span className="mb-2 block text-sm font-semibold text-slate-700">
-                  Record
+                  Review Past Record, or Create New Record
                 </span>
                 <select
                   value={selectedRecordId}
@@ -713,53 +713,8 @@ export function LeadershipDevelopmentRecordManager({
                 ),
               },
               {
-                id: "development-focus" as const,
-                title: "2. Development Focus",
-                body: (
-                  <div className="grid gap-5">
-                    <div>
-                      <p className="text-sm font-semibold text-slate-700">Growth Areas</p>
-                      <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                        {LEADERSHIP_DEVELOPMENT_GROWTH_AREAS.map((growthArea) => {
-                          const isActive = formState.growthAreas.includes(growthArea);
-
-                          return (
-                            <button
-                              key={growthArea}
-                              type="button"
-                              onClick={() => toggleGrowthArea(growthArea)}
-                              className={`rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition ${
-                                isActive
-                                  ? "border-teal-900 bg-teal-900 text-white"
-                                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                              }`}
-                            >
-                              {growthArea}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                    <label className="block">
-                      <span className="mb-2 block text-sm font-semibold text-slate-700">
-                        Why was this development experience assigned?
-                      </span>
-                      <textarea
-                        value={formState.assignmentReason}
-                        onChange={(event) => updateRecord("assignmentReason", event.target.value)}
-                        maxLength={1000}
-                        className="min-h-28 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
-                      />
-                      <p className="mt-2 text-xs text-slate-500">
-                        {formState.assignmentReason.length} / 1000 characters
-                      </p>
-                    </label>
-                  </div>
-                ),
-              },
-              {
                 id: "development-experience" as const,
-                title: "3. Development Experience",
+                title: "2. Develop the Experience",
                 body: (
                   <div className="grid gap-5">
                     <label className="block">
@@ -860,6 +815,51 @@ export function LeadershipDevelopmentRecordManager({
                         </article>
                       ))}
                     </div>
+                  </div>
+                ),
+              },
+              {
+                id: "development-focus" as const,
+                title: "3. Development Focus",
+                body: (
+                  <div className="grid gap-5">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-700">Growth Areas</p>
+                      <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                        {LEADERSHIP_DEVELOPMENT_GROWTH_AREAS.map((growthArea) => {
+                          const isActive = formState.growthAreas.includes(growthArea);
+
+                          return (
+                            <button
+                              key={growthArea}
+                              type="button"
+                              onClick={() => toggleGrowthArea(growthArea)}
+                              className={`rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition ${
+                                isActive
+                                  ? "border-teal-900 bg-teal-900 text-white"
+                                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                              }`}
+                            >
+                              {growthArea}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <label className="block">
+                      <span className="mb-2 block text-sm font-semibold text-slate-700">
+                        Why was this development experience assigned?
+                      </span>
+                      <textarea
+                        value={formState.assignmentReason}
+                        onChange={(event) => updateRecord("assignmentReason", event.target.value)}
+                        maxLength={1000}
+                        className="min-h-28 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
+                      />
+                      <p className="mt-2 text-xs text-slate-500">
+                        {formState.assignmentReason.length} / 1000 characters
+                      </p>
+                    </label>
                   </div>
                 ),
               },
