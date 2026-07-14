@@ -4,6 +4,10 @@ import { PrintCompositeActions } from "@/components/print-composite-actions";
 import { PrintCompositePageClient } from "@/components/print-composite-page-client";
 import { isAdminAppRole } from "@/lib/mentor-access";
 import { groupCharacteristicsByCategory } from "@/lib/role-characteristics";
+import {
+  extractRoleCompositeDocumentText,
+  splitRoleCompositeNarrative,
+} from "@/lib/role-composite-documents";
 import { requirePaidWorkspaceProfile } from "@/lib/workspace";
 
 type PrintRoleCompositePageProps = {
@@ -28,6 +32,7 @@ export default async function PrintRoleCompositePage({
     roleResult,
     characteristicsResult,
     competenciesResult,
+    compositeDocumentResult,
     assignmentsResult,
     mentorsResult,
   ] = await Promise.all([
@@ -53,6 +58,12 @@ export default async function PrintRoleCompositePage({
       .eq("role_id", roleId)
       .order("created_at", { ascending: true }),
     supabase
+      .from("role_composite_documents")
+      .select("file_name, storage_bucket, storage_path")
+      .eq("organization_id", profile.organization_id)
+      .eq("role_id", roleId)
+      .maybeSingle(),
+    supabase
       .from("role_mentor_assignments")
       .select("mentor_profile_id, status")
       .eq("organization_id", profile.organization_id)
@@ -64,11 +75,17 @@ export default async function PrintRoleCompositePage({
       .eq("role", "mentor"),
   ]);
 
-  if (roleResult.error || characteristicsResult.error || competenciesResult.error) {
+  if (
+    roleResult.error ||
+    characteristicsResult.error ||
+    competenciesResult.error ||
+    compositeDocumentResult.error
+  ) {
     throw new Error(
       roleResult.error?.message ??
         characteristicsResult.error?.message ??
         competenciesResult.error?.message ??
+        compositeDocumentResult.error?.message ??
         "Unable to load the printable role composite.",
     );
   }
@@ -89,6 +106,28 @@ export default async function PrintRoleCompositePage({
   const characteristics = groupCharacteristicsByCategory(
     characteristicsResult.data ?? [],
   );
+  let compositeNarrativeParagraphs: string[] = [];
+
+  if (compositeDocumentResult.data?.storage_bucket && compositeDocumentResult.data.storage_path) {
+    const storageResult = await supabase.storage
+      .from(compositeDocumentResult.data.storage_bucket)
+      .download(compositeDocumentResult.data.storage_path);
+
+    if (!storageResult.error) {
+      const compositeBuffer = Buffer.from(await storageResult.data.arrayBuffer());
+      const extractedCompositeText = await extractRoleCompositeDocumentText({
+        buffer: compositeBuffer,
+        fileName: compositeDocumentResult.data.file_name ?? "role-composite.docx",
+      });
+      compositeNarrativeParagraphs = splitRoleCompositeNarrative(extractedCompositeText);
+    } else {
+      console.error("Unable to load stored role composite document for printable view", {
+        roleId,
+        storagePath: compositeDocumentResult.data.storage_path,
+        error: storageResult.error,
+      });
+    }
+  }
   const mentorMap = new Map(
     (mentorsResult.data ?? []).map((mentor) => [mentor.id, mentor]),
   );
@@ -161,6 +200,30 @@ export default async function PrintRoleCompositePage({
               {role.status}
             </div>
           </div>
+
+          <section className="mt-8">
+            <p className="text-sm font-semibold tracking-[0.14em] text-slate-500 uppercase">
+              Role Narrative
+            </p>
+            {compositeNarrativeParagraphs.length > 0 ? (
+              <div className="mt-4 rounded-3xl border border-slate-200 bg-slate-50 p-6 text-sm leading-7 text-slate-700">
+                {compositeNarrativeParagraphs.map((paragraph, index) => (
+                  <p
+                    key={`${role.id}-narrative-${index}`}
+                    className={index === 0 ? "" : "mt-4"}
+                  >
+                    {paragraph}
+                  </p>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-4 rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm leading-7 text-slate-600">
+                No stored composite narrative was found for this role yet. The
+                sections below are being shown from the saved role competencies
+                and ideal candidate competencies.
+              </div>
+            )}
+          </section>
 
           <section className="mt-8">
             <p className="text-sm font-semibold tracking-[0.14em] text-slate-500 uppercase">

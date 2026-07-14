@@ -10,6 +10,7 @@ type RoleResourcesPanelProps = {
     department: string | null;
     description: string | null;
     competencyCount: number;
+    hasStructuredComposite: boolean;
     hasCompositeDocument: boolean;
   }[];
   initialSelectedRoleId?: string | null;
@@ -42,6 +43,9 @@ export function RoleResourcesPanel({
   const [isDownloadPending, startDownloadTransition] = useTransition();
 
   const selectedRole = roles.find((role) => role.id === selectedRoleId) ?? null;
+  const selectedRoleHasNarrativeData = Boolean(
+    selectedRole?.hasCompositeDocument || selectedRole?.hasStructuredComposite,
+  );
 
   function handleGeneratePreview() {
     if (!selectedRoleId) {
@@ -168,9 +172,18 @@ export function RoleResourcesPanel({
                   <span className="rounded-full bg-teal-100 px-3 py-1 text-teal-900">
                     {selectedRole.hasCompositeDocument
                       ? "Composite document ready"
+                      : selectedRole.hasStructuredComposite
+                        ? "Structured composite ready"
                       : "Composite document still needed"}
                   </span>
                 </div>
+                <p className="mt-3 text-sm leading-7 text-slate-600">
+                  {selectedRole.hasCompositeDocument
+                    ? "The saved composite document will be used as the narrative source, and the structured competencies stay available for interview question generation."
+                    : selectedRole.hasStructuredComposite
+                      ? "The structured competencies are already in the system, so the printable narrative can still be built from the saved role model even before a Word composite is on file."
+                      : "This role still needs a generated composite so the narrative and interview tools have a structured role model to work from."}
+                </p>
                 <div className="mt-4 flex flex-wrap gap-3">
                   <Link
                     href={`/roles/${selectedRole.id}/print`}
@@ -187,7 +200,9 @@ export function RoleResourcesPanel({
                     </a>
                   ) : (
                     <span className="rounded-full border border-slate-200 bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-500">
-                      Generate the composite first to download the Word version
+                      {selectedRole.hasStructuredComposite
+                        ? "Generate or upload the Word composite to download it here"
+                        : "Generate the composite first to download the Word version"}
                     </span>
                   )}
                 </div>
@@ -198,7 +213,12 @@ export function RoleResourcesPanel({
               <button
                 type="button"
                 onClick={handleGeneratePreview}
-                disabled={!canGenerateResources || isPreviewPending || !selectedRoleId}
+                disabled={
+                  !canGenerateResources ||
+                  isPreviewPending ||
+                  !selectedRoleId ||
+                  !selectedRoleHasNarrativeData
+                }
                 className="interactive-contrast rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-900 disabled:cursor-not-allowed disabled:bg-slate-300"
               >
                 {isPreviewPending
@@ -208,7 +228,12 @@ export function RoleResourcesPanel({
               <button
                 type="button"
                 onClick={handleDownloadDocx}
-                disabled={!canGenerateResources || isDownloadPending || !selectedRoleId}
+                disabled={
+                  !canGenerateResources ||
+                  isDownloadPending ||
+                  !selectedRoleId ||
+                  !selectedRoleHasNarrativeData
+                }
                 className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
               >
                 {isDownloadPending
@@ -226,6 +251,12 @@ export function RoleResourcesPanel({
             {error ? <p className="text-sm text-rose-700">{error}</p> : null}
             {downloadError ? (
               <p className="text-sm text-rose-700">{downloadError}</p>
+            ) : null}
+            {selectedRole && !selectedRoleHasNarrativeData ? (
+              <p className="text-sm text-slate-600">
+                Generate the role composite first so this workspace has the
+                competency model needed for narrative and interview resources.
+              </p>
             ) : null}
           </div>
 

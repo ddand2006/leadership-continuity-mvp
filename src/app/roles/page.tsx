@@ -681,6 +681,8 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                   department: role.department,
                   description: role.description,
                   competencyCount: (competenciesByRole.get(role.id) ?? []).length,
+                  hasStructuredComposite:
+                    (competenciesByRole.get(role.id) ?? []).length > 0,
                   hasCompositeDocument: compositeDocumentByRole.has(role.id),
                 }))}
                 initialSelectedRoleId={selectedRoleId}

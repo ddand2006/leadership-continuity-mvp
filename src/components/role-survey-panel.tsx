@@ -82,6 +82,7 @@ export function RoleSurveyPanel({
   const [selectedRoleId, setSelectedRoleId] = useState(initialRoleId);
   const [selectedSurveyId, setSelectedSurveyId] = useState(initialSurvey?.id ?? "");
   const [isCreatingNewSurvey, setIsCreatingNewSurvey] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [title, setTitle] = useState(
     initialSurvey?.title ?? createDefaultRoleSurveyTitle(initialRole?.title ?? "Role"),
   );
@@ -172,6 +173,7 @@ export function RoleSurveyPanel({
 
   function handleCreateNewSurvey() {
     setIsCreatingNewSurvey(true);
+    setIsSettingsOpen(true);
     setSelectedSurveyId("");
     setSurveyError(null);
     setSurveySuccess(null);
@@ -464,94 +466,117 @@ export function RoleSurveyPanel({
 
           <div className="grid gap-6">
             <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
-              <p className="text-sm font-semibold text-slate-900">
-                {selectedSurvey ? "Survey settings" : "Create survey"}
-              </p>
-              <div className="mt-4 grid gap-4">
-                <label className="block">
-                  <span className="mb-2 block text-sm font-semibold text-slate-700">
-                    Survey title
-                  </span>
-                  <input
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-700"
-                    type="text"
-                    value={title}
-                    onChange={(event) => setTitle(event.currentTarget.value)}
-                  />
-                </label>
-
-                <label className="block">
-                  <span className="mb-2 block text-sm font-semibold text-slate-700">
-                    Description
-                  </span>
-                  <textarea
-                    className="min-h-24 w-full rounded-[1.25rem] border border-slate-200 bg-white px-4 py-3 text-sm leading-7 text-slate-900 outline-none transition focus:border-teal-700"
-                    value={description}
-                    onChange={(event) => setDescription(event.currentTarget.value)}
-                    placeholder="Add context for admins reviewing this survey later."
-                  />
-                </label>
-
-                <label className="block">
-                  <span className="mb-2 block text-sm font-semibold text-slate-700">
-                    Intro message
-                  </span>
-                  <textarea
-                    className="min-h-28 w-full rounded-[1.25rem] border border-slate-200 bg-white px-4 py-3 text-sm leading-7 text-slate-900 outline-none transition focus:border-teal-700"
-                    value={introMessage}
-                    onChange={(event) => setIntroMessage(event.currentTarget.value)}
-                  />
-                </label>
-
-                <label className="block">
-                  <span className="mb-2 block text-sm font-semibold text-slate-700">
-                    Thank-you message
-                  </span>
-                  <textarea
-                    className="min-h-24 w-full rounded-[1.25rem] border border-slate-200 bg-white px-4 py-3 text-sm leading-7 text-slate-900 outline-none transition focus:border-teal-700"
-                    value={thankYouMessage}
-                    onChange={(event) =>
-                      setThankYouMessage(event.currentTarget.value)
-                    }
-                  />
-                </label>
-
-                <label className="block">
-                  <span className="mb-2 block text-sm font-semibold text-slate-700">
-                    Status
-                  </span>
-                  <select
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-700"
-                    value={status}
-                    onChange={(event) =>
-                      setStatus(
-                        event.currentTarget.value as "draft" | "active" | "closed",
-                      )
-                    }
-                  >
-                    <option value="draft">Draft</option>
-                    <option value="active">Active</option>
-                    <option value="closed">Closed</option>
-                  </select>
-                </label>
-
-                <div className="flex flex-wrap items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={handleSaveSurvey}
-                    disabled={isSurveyPending}
-                    className="interactive-contrast rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-900 disabled:cursor-not-allowed disabled:bg-slate-300"
-                  >
-                    {isSurveyPending ? "Saving..." : selectedSurvey ? "Save Survey" : "Create Survey"}
-                  </button>
-                  {surveyError ? (
-                    <p className="text-sm text-rose-700">{surveyError}</p>
-                  ) : null}
-                  {surveySuccess ? (
-                    <p className="text-sm text-teal-700">{surveySuccess}</p>
-                  ) : null}
+              <button
+                type="button"
+                onClick={() => setIsSettingsOpen((current) => !current)}
+                aria-expanded={isSettingsOpen}
+                aria-controls="role-survey-settings-panel"
+                className="flex w-full items-start justify-between gap-4 text-left"
+              >
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">
+                    {selectedSurvey ? "Survey settings" : "Create survey"}
+                  </p>
+                  <p className="mt-1 text-xs leading-6 text-slate-500">
+                    {selectedSurvey
+                      ? "Open to update the title, messages, and response status for this survey."
+                      : "Open to set the survey title, messages, and launch status before sending it out."}
+                  </p>
                 </div>
-              </div>
+                <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  {isSettingsOpen ? "Collapse" : "Expand"}
+                </span>
+              </button>
+              {isSettingsOpen ? (
+                <div
+                  id="role-survey-settings-panel"
+                  className="mt-5 grid gap-4 border-t border-slate-200 pt-5"
+                >
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-semibold text-slate-700">
+                      Survey title
+                    </span>
+                    <input
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-700"
+                      type="text"
+                      value={title}
+                      onChange={(event) => setTitle(event.currentTarget.value)}
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-semibold text-slate-700">
+                      Description
+                    </span>
+                    <textarea
+                      className="min-h-24 w-full rounded-[1.25rem] border border-slate-200 bg-white px-4 py-3 text-sm leading-7 text-slate-900 outline-none transition focus:border-teal-700"
+                      value={description}
+                      onChange={(event) => setDescription(event.currentTarget.value)}
+                      placeholder="Add context for admins reviewing this survey later."
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-semibold text-slate-700">
+                      Intro message
+                    </span>
+                    <textarea
+                      className="min-h-28 w-full rounded-[1.25rem] border border-slate-200 bg-white px-4 py-3 text-sm leading-7 text-slate-900 outline-none transition focus:border-teal-700"
+                      value={introMessage}
+                      onChange={(event) => setIntroMessage(event.currentTarget.value)}
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-semibold text-slate-700">
+                      Thank-you message
+                    </span>
+                    <textarea
+                      className="min-h-24 w-full rounded-[1.25rem] border border-slate-200 bg-white px-4 py-3 text-sm leading-7 text-slate-900 outline-none transition focus:border-teal-700"
+                      value={thankYouMessage}
+                      onChange={(event) =>
+                        setThankYouMessage(event.currentTarget.value)
+                      }
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-semibold text-slate-700">
+                      Status
+                    </span>
+                    <select
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-700"
+                      value={status}
+                      onChange={(event) =>
+                        setStatus(
+                          event.currentTarget.value as "draft" | "active" | "closed",
+                        )
+                      }
+                    >
+                      <option value="draft">Draft</option>
+                      <option value="active">Active</option>
+                      <option value="closed">Closed</option>
+                    </select>
+                  </label>
+
+                  <div className="flex flex-wrap items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={handleSaveSurvey}
+                      disabled={isSurveyPending}
+                      className="interactive-contrast rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-900 disabled:cursor-not-allowed disabled:bg-slate-300"
+                    >
+                      {isSurveyPending ? "Saving..." : selectedSurvey ? "Save Survey" : "Create Survey"}
+                    </button>
+                    {surveyError ? (
+                      <p className="text-sm text-rose-700">{surveyError}</p>
+                    ) : null}
+                    {surveySuccess ? (
+                      <p className="text-sm text-teal-700">{surveySuccess}</p>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             {selectedSurvey ? (
