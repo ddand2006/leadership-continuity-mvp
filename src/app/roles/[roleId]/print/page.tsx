@@ -8,6 +8,7 @@ import {
   extractRoleCompositeDocumentText,
   splitRoleCompositeNarrative,
 } from "@/lib/role-composite-documents";
+import { resolvePrintableRoleNarrative } from "@/lib/role-printable-narrative";
 import { requirePaidWorkspaceProfile } from "@/lib/workspace";
 
 type PrintRoleCompositePageProps = {
@@ -15,130 +16,6 @@ type PrintRoleCompositePageProps = {
     roleId: string;
   }>;
 };
-
-function joinNarrativeList(items: string[], maxItems = 4) {
-  const uniqueItems = Array.from(
-    new Set(items.map((item) => item.trim()).filter(Boolean)),
-  );
-
-  if (uniqueItems.length === 0) {
-    return "";
-  }
-
-  if (uniqueItems.length === 1) {
-    return uniqueItems[0];
-  }
-
-  const visibleItems = uniqueItems.slice(0, maxItems);
-  const remainingCount = uniqueItems.length - visibleItems.length;
-  const itemsToJoin =
-    remainingCount > 0
-      ? [...visibleItems, `${remainingCount} more`]
-      : visibleItems;
-
-  if (itemsToJoin.length === 2) {
-    return `${itemsToJoin[0]} and ${itemsToJoin[1]}`;
-  }
-
-  return `${itemsToJoin.slice(0, -1).join(", ")}, and ${itemsToJoin.at(-1)}`;
-}
-
-function joinNarrativeClauses(clauses: string[]) {
-  if (clauses.length === 0) {
-    return "";
-  }
-
-  if (clauses.length === 1) {
-    return clauses[0];
-  }
-
-  if (clauses.length === 2) {
-    return `${clauses[0]} and ${clauses[1]}`;
-  }
-
-  return `${clauses.slice(0, -1).join(", ")}, and ${clauses.at(-1)}`;
-}
-
-function buildRoleNarrative(options: {
-  roleTitle: string;
-  roleDescription: string | null;
-  idealCompetencies: {
-    talents: string[];
-    skills: string[];
-    behaviors: string[];
-  };
-  roleCompetencies: Array<{
-    name: string;
-    definition: string;
-  }>;
-  assignedMentors: string[];
-}) {
-  const paragraphs: string[] = [];
-  const trimmedDescription = options.roleDescription?.trim();
-
-  if (trimmedDescription) {
-    paragraphs.push(trimmedDescription);
-  }
-
-  const idealCompetencyClauses: string[] = [];
-
-  if (options.idealCompetencies.talents.length > 0) {
-    idealCompetencyClauses.push(
-      `natural talents such as ${joinNarrativeList(options.idealCompetencies.talents)}`,
-    );
-  }
-
-  if (options.idealCompetencies.skills.length > 0) {
-    idealCompetencyClauses.push(
-      `practical skills like ${joinNarrativeList(options.idealCompetencies.skills)}`,
-    );
-  }
-
-  if (options.idealCompetencies.behaviors.length > 0) {
-    idealCompetencyClauses.push(
-      `observable behaviors including ${joinNarrativeList(options.idealCompetencies.behaviors)}`,
-    );
-  }
-
-  if (idealCompetencyClauses.length > 0) {
-    paragraphs.push(
-      `The strongest profile for ${options.roleTitle} combines ${joinNarrativeClauses(idealCompetencyClauses)}.`,
-    );
-  }
-
-  if (options.roleCompetencies.length > 0) {
-    const competencyNames = options.roleCompetencies.map((competency) => competency.name);
-    const competencyDefinitions = options.roleCompetencies
-      .map((competency) => competency.definition?.trim())
-      .filter(Boolean);
-
-    paragraphs.push(
-      `Success in this role shows up through ${joinNarrativeList(competencyNames, 5)}.`,
-    );
-
-    if (competencyDefinitions.length > 0) {
-      paragraphs.push(
-        competencyDefinitions
-          .slice(0, 3)
-          .join(" "),
-      );
-    }
-  }
-
-  if (options.assignedMentors.length > 0) {
-    paragraphs.push(
-      `Current mentor alignment for this role includes ${joinNarrativeList(options.assignedMentors, 3)}.`,
-    );
-  }
-
-  if (paragraphs.length === 0) {
-    paragraphs.push(
-      `A printable narrative has not been generated for ${options.roleTitle} yet.`,
-    );
-  }
-
-  return paragraphs;
-}
 
 export default async function PrintRoleCompositePage({
   params,
@@ -274,20 +151,24 @@ export default async function PrintRoleCompositePage({
         }),
     ),
   );
-  const fallbackNarrativeParagraphs = buildRoleNarrative({
+  const printableNarrative = resolvePrintableRoleNarrative({
     roleTitle: role.title,
+    roleDepartment: role.department,
     roleDescription: role.description,
+    roleStatus: role.status,
     idealCompetencies: characteristics,
     roleCompetencies: (competenciesResult.data ?? []).map((competency) => ({
       name: competency.name,
       definition: competency.definition,
+      target_score: competency.target_score,
+      weight: competency.weight,
+      behavioral_indicators:
+        (competency.behavioral_indicators as string[] | null) ?? [],
+      red_flags: (competency.red_flags as string[] | null) ?? [],
     })),
     assignedMentors,
+    compositeNarrativeParagraphs,
   });
-  const narrativeParagraphs =
-    compositeNarrativeParagraphs.length > 0
-      ? compositeNarrativeParagraphs
-      : fallbackNarrativeParagraphs;
 
   return (
     <main className="min-h-screen bg-white text-slate-900">
@@ -346,7 +227,7 @@ export default async function PrintRoleCompositePage({
               Role Narrative
             </p>
             <div className="mt-4 rounded-3xl border border-slate-200 bg-slate-50 p-6 text-sm leading-7 text-slate-700">
-              {narrativeParagraphs.map((paragraph, index) => (
+              {printableNarrative.narrativeParagraphs.map((paragraph, index) => (
                 <p
                   key={`${role.id}-narrative-${index}`}
                   className={index === 0 ? "" : "mt-4"}

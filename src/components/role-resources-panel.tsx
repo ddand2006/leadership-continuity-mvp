@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 type RoleResourcesPanelProps = {
@@ -36,7 +35,6 @@ export function RoleResourcesPanel({
   initialSelectedRoleId = null,
   canGenerateResources,
 }: RoleResourcesPanelProps) {
-  const router = useRouter();
   const [selectedRoleId, setSelectedRoleId] = useState(initialSelectedRoleId ?? "");
   const [preview, setPreview] = useState<InterviewScorecardPreview | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -54,8 +52,8 @@ export function RoleResourcesPanel({
     selectedRole?.hasCompositeDocument || selectedRole?.hasStructuredComposite,
   );
 
-  async function downloadCompositeDocument(roleId: string, roleTitle: string) {
-    const response = await fetch(`/api/roles/${roleId}/composite-docx`, {
+  async function downloadPrintableNarrativeDocument(roleId: string, roleTitle: string) {
+    const response = await fetch(`/api/roles/${roleId}/printable-narrative-docx`, {
       method: "GET",
     });
 
@@ -75,7 +73,7 @@ export function RoleResourcesPanel({
     link.download = `${roleTitle
       .replace(/[^a-zA-Z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "")
-      .toLowerCase()}-role-composite.docx`;
+      .toLowerCase()}-printable-role-narrative.docx`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -150,7 +148,7 @@ export function RoleResourcesPanel({
     });
   }
 
-  function handleGenerateOrDownloadCompositeDocument() {
+  function handleGeneratePrintableNarrativeDocument() {
     if (!selectedRoleId || !selectedRole) {
       setCompositeDocumentError("Choose a role first.");
       return;
@@ -162,39 +160,7 @@ export function RoleResourcesPanel({
 
     startCompositeDocumentTransition(async () => {
       try {
-        if (selectedRole.hasCompositeDocument) {
-          await downloadCompositeDocument(selectedRole.id, selectedRole.title);
-          return;
-        }
-
-        const response = await fetch("/api/roles/generate-composite", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            roleId: selectedRole.id,
-          }),
-        });
-        const payload = (await response.json().catch(() => ({}))) as {
-          error?: string;
-        };
-
-        if (!response.ok) {
-          if (response.status === 409) {
-            router.refresh();
-            await downloadCompositeDocument(selectedRole.id, selectedRole.title);
-            return;
-          }
-
-          setCompositeDocumentError(
-            payload.error ?? "Unable to create the printable Word narrative.",
-          );
-          return;
-        }
-
-        router.refresh();
-        await downloadCompositeDocument(selectedRole.id, selectedRole.title);
+        await downloadPrintableNarrativeDocument(selectedRole.id, selectedRole.title);
       } catch (downloadCompositeError) {
         setCompositeDocumentError(
           downloadCompositeError instanceof Error
@@ -271,9 +237,9 @@ export function RoleResourcesPanel({
                 </div>
                 <p className="mt-3 text-sm leading-7 text-slate-600">
                   {selectedRole.hasCompositeDocument
-                    ? "The printable role narrative now opens on its own, and the saved Word composite stays available as the downloadable print version."
+                    ? "The printable role narrative opens here, and the Word export is generated from that same narrative and competency detail. The source composite still stays in the composite workflow."
                     : selectedRole.hasStructuredComposite
-                      ? "The printable role narrative can open from the saved role model now, and you can generate the Word-ready version from that same role data when needed."
+                      ? "The printable role narrative can open from the saved role model now, and the Word export is generated from the same full narrative, competencies, and role detail. Composite creation and maintenance still happen in the composite workflow."
                       : "This role still needs a generated composite so the narrative and interview tools have a structured role model to work from."}
                 </p>
                 <div className="mt-4 flex flex-wrap gap-3">
@@ -287,21 +253,19 @@ export function RoleResourcesPanel({
                   selectedRole.hasCompositeDocument ? (
                     <button
                       type="button"
-                      onClick={handleGenerateOrDownloadCompositeDocument}
+                      onClick={handleGeneratePrintableNarrativeDocument}
                       disabled={isCompositeDocumentPending}
                       className="rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                     >
                       {isCompositeDocumentPending
-                        ? selectedRole.hasCompositeDocument
-                          ? "Preparing Word Narrative..."
-                          : "Generating Word Narrative..."
+                        ? "Preparing Word Narrative..."
                         : selectedRole.hasCompositeDocument
                           ? "Download Printable Narrative (Word)"
                           : "Generate Printable Narrative (Word)"}
                     </button>
                   ) : (
                     <span className="rounded-full border border-slate-200 bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-500">
-                      Generate the composite first to download the Word version
+                      Generate the composite first so the printable narrative can be created from it
                     </span>
                   )}
                 </div>
