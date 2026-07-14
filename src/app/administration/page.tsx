@@ -127,7 +127,7 @@ export default async function AdministrationPage({
           <div className="mt-8 flex flex-wrap gap-3">
             {[
               { id: "organization-controls", label: "Organization Controls" },
-              { id: "user-access", label: "User Access" },
+              { id: "user-access", label: "Give Access" },
               { id: "assign-mentors", label: "Assign Mentors" },
             ].map((tab) => {
               const isActive =
