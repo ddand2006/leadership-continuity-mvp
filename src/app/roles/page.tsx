@@ -595,36 +595,13 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                   initialSelectedRoleId={selectedRoleId}
                   mode="import"
                 />
-                <RoleManagementPanel
-                  roles={roleOptionsForPanels.map((role) => ({
-                    id: role.id,
-                    title: role.title,
-                    department: role.department,
-                    description: role.description,
-                    status: role.status as "draft" | "active",
-                    primaryMentorProfileId: primaryMentorIdByRole.get(role.id) ?? null,
-                    idealCompetencyCount:
-                      (characteristicsByRole.get(role.id) ?? []).length,
-                    roleCompositeCount: (competenciesByRole.get(role.id) ?? []).length,
-                    compositeDocumentSource:
-                      compositeDocumentByRole.get(role.id)?.document_source ?? null,
-                    compositeDocumentFileName:
-                      compositeDocumentByRole.get(role.id)?.file_name ?? null,
-                    talents: groupCharacteristicsByCategory(
-                      getDetailedCharacteristics(role.id),
-                    ).talents,
-                    skills: groupCharacteristicsByCategory(
-                      getDetailedCharacteristics(role.id),
-                    ).skills,
-                    behaviors: groupCharacteristicsByCategory(
-                      getDetailedCharacteristics(role.id),
-                    ).behaviors,
-                  }))}
-                  sharedLibrary={resolvedSharedLibrary}
-                  canGenerateComposite={canGenerateComposite}
-                  initialSelectedRoleId={selectedRoleId}
-                  mode="composite"
-                />
+                <div className="flex items-center gap-4 px-2 text-slate-400 sm:px-8">
+                  <div className="h-px flex-1 bg-slate-200" />
+                  <span className="text-sm font-semibold uppercase tracking-[0.2em]">
+                    or
+                  </span>
+                  <div className="h-px flex-1 bg-slate-200" />
+                </div>
                 {surveyModuleReady ? (
                   <RoleSurveyPanel
                     roles={roleOptionsForPanels.map((role) => ({
@@ -658,6 +635,43 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                     </p>
                   </section>
                 )}
+                <div className="flex items-center gap-4 px-2 text-slate-400 sm:px-8">
+                  <div className="h-px flex-1 bg-slate-200" />
+                  <span className="text-sm font-semibold uppercase tracking-[0.2em]">
+                    then
+                  </span>
+                  <div className="h-px flex-1 bg-slate-200" />
+                </div>
+                <RoleManagementPanel
+                  roles={roleOptionsForPanels.map((role) => ({
+                    id: role.id,
+                    title: role.title,
+                    department: role.department,
+                    description: role.description,
+                    status: role.status as "draft" | "active",
+                    primaryMentorProfileId: primaryMentorIdByRole.get(role.id) ?? null,
+                    idealCompetencyCount:
+                      (characteristicsByRole.get(role.id) ?? []).length,
+                    roleCompositeCount: (competenciesByRole.get(role.id) ?? []).length,
+                    compositeDocumentSource:
+                      compositeDocumentByRole.get(role.id)?.document_source ?? null,
+                    compositeDocumentFileName:
+                      compositeDocumentByRole.get(role.id)?.file_name ?? null,
+                    talents: groupCharacteristicsByCategory(
+                      getDetailedCharacteristics(role.id),
+                    ).talents,
+                    skills: groupCharacteristicsByCategory(
+                      getDetailedCharacteristics(role.id),
+                    ).skills,
+                    behaviors: groupCharacteristicsByCategory(
+                      getDetailedCharacteristics(role.id),
+                    ).behaviors,
+                  }))}
+                  sharedLibrary={resolvedSharedLibrary}
+                  canGenerateComposite={canGenerateComposite}
+                  initialSelectedRoleId={selectedRoleId}
+                  mode="composite"
+                />
               </>
             ) : selectedMode === "resources" ? (
               <RoleResourcesPanel
