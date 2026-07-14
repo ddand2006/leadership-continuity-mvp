@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 type RoleResourcesPanelProps = {
@@ -35,17 +36,51 @@ export function RoleResourcesPanel({
   initialSelectedRoleId = null,
   canGenerateResources,
 }: RoleResourcesPanelProps) {
+  const router = useRouter();
   const [selectedRoleId, setSelectedRoleId] = useState(initialSelectedRoleId ?? "");
   const [preview, setPreview] = useState<InterviewScorecardPreview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [compositeDocumentError, setCompositeDocumentError] = useState<string | null>(
+    null,
+  );
   const [isPreviewPending, startPreviewTransition] = useTransition();
   const [isDownloadPending, startDownloadTransition] = useTransition();
+  const [isCompositeDocumentPending, startCompositeDocumentTransition] =
+    useTransition();
 
   const selectedRole = roles.find((role) => role.id === selectedRoleId) ?? null;
   const selectedRoleHasNarrativeData = Boolean(
     selectedRole?.hasCompositeDocument || selectedRole?.hasStructuredComposite,
   );
+
+  async function downloadCompositeDocument(roleId: string, roleTitle: string) {
+    const response = await fetch(`/api/roles/${roleId}/composite-docx`, {
+      method: "GET",
+    });
+
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+      };
+      throw new Error(
+        payload.error ?? "Unable to download the printable Word narrative.",
+      );
+    }
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${roleTitle
+      .replace(/[^a-zA-Z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .toLowerCase()}-role-composite.docx`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
 
   function handleGeneratePreview() {
     if (!selectedRoleId) {
@@ -55,6 +90,7 @@ export function RoleResourcesPanel({
 
     setError(null);
     setDownloadError(null);
+    setCompositeDocumentError(null);
 
     startPreviewTransition(async () => {
       const response = await fetch(`/api/roles/${selectedRoleId}/interview-scorecard`);
@@ -83,6 +119,7 @@ export function RoleResourcesPanel({
 
     setDownloadError(null);
     setError(null);
+    setCompositeDocumentError(null);
 
     startDownloadTransition(async () => {
       const response = await fetch(
@@ -110,6 +147,61 @@ export function RoleResourcesPanel({
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
+    });
+  }
+
+  function handleGenerateOrDownloadCompositeDocument() {
+    if (!selectedRoleId || !selectedRole) {
+      setCompositeDocumentError("Choose a role first.");
+      return;
+    }
+
+    setCompositeDocumentError(null);
+    setError(null);
+    setDownloadError(null);
+
+    startCompositeDocumentTransition(async () => {
+      try {
+        if (selectedRole.hasCompositeDocument) {
+          await downloadCompositeDocument(selectedRole.id, selectedRole.title);
+          return;
+        }
+
+        const response = await fetch("/api/roles/generate-composite", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            roleId: selectedRole.id,
+          }),
+        });
+        const payload = (await response.json().catch(() => ({}))) as {
+          error?: string;
+        };
+
+        if (!response.ok) {
+          if (response.status === 409) {
+            router.refresh();
+            await downloadCompositeDocument(selectedRole.id, selectedRole.title);
+            return;
+          }
+
+          setCompositeDocumentError(
+            payload.error ?? "Unable to create the printable Word narrative.",
+          );
+          return;
+        }
+
+        router.refresh();
+        await downloadCompositeDocument(selectedRole.id, selectedRole.title);
+      } catch (downloadCompositeError) {
+        setCompositeDocumentError(
+          downloadCompositeError instanceof Error
+            ? downloadCompositeError.message
+            : "Unable to prepare the printable Word narrative.",
+        );
+      }
     });
   }
 
@@ -179,9 +271,9 @@ export function RoleResourcesPanel({
                 </div>
                 <p className="mt-3 text-sm leading-7 text-slate-600">
                   {selectedRole.hasCompositeDocument
-                    ? "The saved composite document will be used as the narrative source, and the structured competencies stay available for interview question generation."
+                    ? "The printable role narrative now opens on its own, and the saved Word composite stays available as the downloadable print version."
                     : selectedRole.hasStructuredComposite
-                      ? "The structured competencies are already in the system, so the printable narrative can still be built from the saved role model even before a Word composite is on file."
+                      ? "The printable role narrative can open from the saved role model now, and you can generate the Word-ready version from that same role data when needed."
                       : "This role still needs a generated composite so the narrative and interview tools have a structured role model to work from."}
                 </p>
                 <div className="mt-4 flex flex-wrap gap-3">
@@ -191,18 +283,25 @@ export function RoleResourcesPanel({
                   >
                     Open Printable Role Narrative
                   </Link>
-                  {selectedRole.hasCompositeDocument ? (
-                    <a
-                      href={`/api/roles/${selectedRole.id}/composite-docx`}
-                      className="rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                  {selectedRole.hasStructuredComposite ||
+                  selectedRole.hasCompositeDocument ? (
+                    <button
+                      type="button"
+                      onClick={handleGenerateOrDownloadCompositeDocument}
+                      disabled={isCompositeDocumentPending}
+                      className="rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                     >
-                      Download Composite (Word)
-                    </a>
+                      {isCompositeDocumentPending
+                        ? selectedRole.hasCompositeDocument
+                          ? "Preparing Word Narrative..."
+                          : "Generating Word Narrative..."
+                        : selectedRole.hasCompositeDocument
+                          ? "Download Printable Narrative (Word)"
+                          : "Generate Printable Narrative (Word)"}
+                    </button>
                   ) : (
                     <span className="rounded-full border border-slate-200 bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-500">
-                      {selectedRole.hasStructuredComposite
-                        ? "Generate or upload the Word composite to download it here"
-                        : "Generate the composite first to download the Word version"}
+                      Generate the composite first to download the Word version
                     </span>
                   )}
                 </div>
@@ -251,6 +350,9 @@ export function RoleResourcesPanel({
             {error ? <p className="text-sm text-rose-700">{error}</p> : null}
             {downloadError ? (
               <p className="text-sm text-rose-700">{downloadError}</p>
+            ) : null}
+            {compositeDocumentError ? (
+              <p className="text-sm text-rose-700">{compositeDocumentError}</p>
             ) : null}
             {selectedRole && !selectedRoleHasNarrativeData ? (
               <p className="text-sm text-slate-600">

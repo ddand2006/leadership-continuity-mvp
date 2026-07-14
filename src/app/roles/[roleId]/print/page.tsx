@@ -4,10 +4,6 @@ import { PrintCompositeActions } from "@/components/print-composite-actions";
 import { PrintCompositePageClient } from "@/components/print-composite-page-client";
 import { isAdminAppRole } from "@/lib/mentor-access";
 import { groupCharacteristicsByCategory } from "@/lib/role-characteristics";
-import {
-  extractRoleCompositeDocumentText,
-  splitRoleCompositeNarrative,
-} from "@/lib/role-composite-documents";
 import { requirePaidWorkspaceProfile } from "@/lib/workspace";
 
 type PrintRoleCompositePageProps = {
@@ -15,6 +11,130 @@ type PrintRoleCompositePageProps = {
     roleId: string;
   }>;
 };
+
+function joinNarrativeList(items: string[], maxItems = 4) {
+  const uniqueItems = Array.from(
+    new Set(items.map((item) => item.trim()).filter(Boolean)),
+  );
+
+  if (uniqueItems.length === 0) {
+    return "";
+  }
+
+  if (uniqueItems.length === 1) {
+    return uniqueItems[0];
+  }
+
+  const visibleItems = uniqueItems.slice(0, maxItems);
+  const remainingCount = uniqueItems.length - visibleItems.length;
+  const itemsToJoin =
+    remainingCount > 0
+      ? [...visibleItems, `${remainingCount} more`]
+      : visibleItems;
+
+  if (itemsToJoin.length === 2) {
+    return `${itemsToJoin[0]} and ${itemsToJoin[1]}`;
+  }
+
+  return `${itemsToJoin.slice(0, -1).join(", ")}, and ${itemsToJoin.at(-1)}`;
+}
+
+function joinNarrativeClauses(clauses: string[]) {
+  if (clauses.length === 0) {
+    return "";
+  }
+
+  if (clauses.length === 1) {
+    return clauses[0];
+  }
+
+  if (clauses.length === 2) {
+    return `${clauses[0]} and ${clauses[1]}`;
+  }
+
+  return `${clauses.slice(0, -1).join(", ")}, and ${clauses.at(-1)}`;
+}
+
+function buildRoleNarrative(options: {
+  roleTitle: string;
+  roleDescription: string | null;
+  idealCompetencies: {
+    talents: string[];
+    skills: string[];
+    behaviors: string[];
+  };
+  roleCompetencies: Array<{
+    name: string;
+    definition: string;
+  }>;
+  assignedMentors: string[];
+}) {
+  const paragraphs: string[] = [];
+  const trimmedDescription = options.roleDescription?.trim();
+
+  if (trimmedDescription) {
+    paragraphs.push(trimmedDescription);
+  }
+
+  const idealCompetencyClauses: string[] = [];
+
+  if (options.idealCompetencies.talents.length > 0) {
+    idealCompetencyClauses.push(
+      `natural talents such as ${joinNarrativeList(options.idealCompetencies.talents)}`,
+    );
+  }
+
+  if (options.idealCompetencies.skills.length > 0) {
+    idealCompetencyClauses.push(
+      `practical skills like ${joinNarrativeList(options.idealCompetencies.skills)}`,
+    );
+  }
+
+  if (options.idealCompetencies.behaviors.length > 0) {
+    idealCompetencyClauses.push(
+      `observable behaviors including ${joinNarrativeList(options.idealCompetencies.behaviors)}`,
+    );
+  }
+
+  if (idealCompetencyClauses.length > 0) {
+    paragraphs.push(
+      `The strongest profile for ${options.roleTitle} combines ${joinNarrativeClauses(idealCompetencyClauses)}.`,
+    );
+  }
+
+  if (options.roleCompetencies.length > 0) {
+    const competencyNames = options.roleCompetencies.map((competency) => competency.name);
+    const competencyDefinitions = options.roleCompetencies
+      .map((competency) => competency.definition?.trim())
+      .filter(Boolean);
+
+    paragraphs.push(
+      `Success in this role shows up through ${joinNarrativeList(competencyNames, 5)}.`,
+    );
+
+    if (competencyDefinitions.length > 0) {
+      paragraphs.push(
+        competencyDefinitions
+          .slice(0, 3)
+          .join(" "),
+      );
+    }
+  }
+
+  if (options.assignedMentors.length > 0) {
+    paragraphs.push(
+      `Current mentor alignment for this role includes ${joinNarrativeList(options.assignedMentors, 3)}.`,
+    );
+  }
+
+  if (paragraphs.length === 0) {
+    paragraphs.push(
+      `A printable narrative has not been generated for ${options.roleTitle} yet.`,
+    );
+  }
+
+  return paragraphs;
+}
 
 export default async function PrintRoleCompositePage({
   params,
@@ -32,7 +152,6 @@ export default async function PrintRoleCompositePage({
     roleResult,
     characteristicsResult,
     competenciesResult,
-    compositeDocumentResult,
     assignmentsResult,
     mentorsResult,
   ] = await Promise.all([
@@ -58,12 +177,6 @@ export default async function PrintRoleCompositePage({
       .eq("role_id", roleId)
       .order("created_at", { ascending: true }),
     supabase
-      .from("role_composite_documents")
-      .select("file_name, storage_bucket, storage_path")
-      .eq("organization_id", profile.organization_id)
-      .eq("role_id", roleId)
-      .maybeSingle(),
-    supabase
       .from("role_mentor_assignments")
       .select("mentor_profile_id, status")
       .eq("organization_id", profile.organization_id)
@@ -78,15 +191,13 @@ export default async function PrintRoleCompositePage({
   if (
     roleResult.error ||
     characteristicsResult.error ||
-    competenciesResult.error ||
-    compositeDocumentResult.error
+    competenciesResult.error
   ) {
     throw new Error(
       roleResult.error?.message ??
         characteristicsResult.error?.message ??
         competenciesResult.error?.message ??
-        compositeDocumentResult.error?.message ??
-        "Unable to load the printable role composite.",
+        "Unable to load the printable role narrative.",
     );
   }
 
@@ -106,28 +217,6 @@ export default async function PrintRoleCompositePage({
   const characteristics = groupCharacteristicsByCategory(
     characteristicsResult.data ?? [],
   );
-  let compositeNarrativeParagraphs: string[] = [];
-
-  if (compositeDocumentResult.data?.storage_bucket && compositeDocumentResult.data.storage_path) {
-    const storageResult = await supabase.storage
-      .from(compositeDocumentResult.data.storage_bucket)
-      .download(compositeDocumentResult.data.storage_path);
-
-    if (!storageResult.error) {
-      const compositeBuffer = Buffer.from(await storageResult.data.arrayBuffer());
-      const extractedCompositeText = await extractRoleCompositeDocumentText({
-        buffer: compositeBuffer,
-        fileName: compositeDocumentResult.data.file_name ?? "role-composite.docx",
-      });
-      compositeNarrativeParagraphs = splitRoleCompositeNarrative(extractedCompositeText);
-    } else {
-      console.error("Unable to load stored role composite document for printable view", {
-        roleId,
-        storagePath: compositeDocumentResult.data.storage_path,
-        error: storageResult.error,
-      });
-    }
-  }
   const mentorMap = new Map(
     (mentorsResult.data ?? []).map((mentor) => [mentor.id, mentor]),
   );
@@ -150,6 +239,16 @@ export default async function PrintRoleCompositePage({
         }),
     ),
   );
+  const narrativeParagraphs = buildRoleNarrative({
+    roleTitle: role.title,
+    roleDescription: role.description,
+    idealCompetencies: characteristics,
+    roleCompetencies: (competenciesResult.data ?? []).map((competency) => ({
+      name: competency.name,
+      definition: competency.definition,
+    })),
+    assignedMentors,
+  });
 
   return (
     <main className="min-h-screen bg-white text-slate-900">
@@ -158,7 +257,7 @@ export default async function PrintRoleCompositePage({
         <div className="mb-8 flex items-center justify-between print:hidden">
           <div>
             <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
-              Printable Role Composite
+              Printable Role Narrative
             </p>
             <h1 className="mt-2 font-display text-3xl text-slate-900">
               {role.title}
@@ -179,14 +278,16 @@ export default async function PrintRoleCompositePage({
           <div className="flex items-start justify-between gap-6 border-b border-slate-200 pb-6">
             <div>
               <p className="text-sm font-semibold tracking-[0.14em] text-slate-500 uppercase">
-                {role.department || "Role Composite"}
+                {role.department || "Role Narrative"}
               </p>
               <h2 className="mt-3 font-display text-5xl leading-tight text-slate-900">
                 {role.title}
               </h2>
-              <p className="mt-4 max-w-3xl text-base leading-8 text-slate-700">
-                {role.description}
-              </p>
+              {role.description ? (
+                <p className="mt-4 max-w-3xl text-base leading-8 text-slate-700">
+                  {role.description}
+                </p>
+              ) : null}
               <p className="mt-4 text-sm leading-7 text-slate-600">
                 Assigned mentors:{" "}
                 <span className="font-semibold text-slate-900">
@@ -205,108 +306,15 @@ export default async function PrintRoleCompositePage({
             <p className="text-sm font-semibold tracking-[0.14em] text-slate-500 uppercase">
               Role Narrative
             </p>
-            {compositeNarrativeParagraphs.length > 0 ? (
-              <div className="mt-4 rounded-3xl border border-slate-200 bg-slate-50 p-6 text-sm leading-7 text-slate-700">
-                {compositeNarrativeParagraphs.map((paragraph, index) => (
-                  <p
-                    key={`${role.id}-narrative-${index}`}
-                    className={index === 0 ? "" : "mt-4"}
-                  >
-                    {paragraph}
-                  </p>
-                ))}
-              </div>
-            ) : (
-              <div className="mt-4 rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm leading-7 text-slate-600">
-                No stored composite narrative was found for this role yet. The
-                sections below are being shown from the saved role competencies
-                and ideal candidate competencies.
-              </div>
-            )}
-          </section>
-
-          <section className="mt-8">
-            <p className="text-sm font-semibold tracking-[0.14em] text-slate-500 uppercase">
-              Ideal Candidate Competencies
-            </p>
-            <div className="mt-4 grid gap-4 md:grid-cols-3">
-              {[
-                { title: "Talents", items: characteristics.talents },
-                { title: "Skills", items: characteristics.skills },
-                { title: "Behaviors", items: characteristics.behaviors },
-              ].map((group) => (
-                <article
-                  key={group.title}
-                  className="rounded-3xl border border-slate-200 bg-slate-50 p-5"
+            <div className="mt-4 rounded-3xl border border-slate-200 bg-slate-50 p-6 text-sm leading-7 text-slate-700">
+              {narrativeParagraphs.map((paragraph, index) => (
+                <p
+                  key={`${role.id}-narrative-${index}`}
+                  className={index === 0 ? "" : "mt-4"}
                 >
-                  <p className="text-lg font-semibold text-slate-900">
-                    {group.title}
-                  </p>
-                  <ul className="mt-4 space-y-2 text-sm leading-7 text-slate-700">
-                    {group.items.length > 0 ? (
-                      group.items.map((item) => <li key={item}>• {item}</li>)
-                    ) : (
-                      <li>No {group.title.toLowerCase()} attached yet.</li>
-                    )}
-                  </ul>
-                </article>
+                  {paragraph}
+                </p>
               ))}
-            </div>
-          </section>
-
-          <section className="mt-10">
-            <p className="text-sm font-semibold tracking-[0.14em] text-slate-500 uppercase">
-              Composite Competency Areas
-            </p>
-            <div className="mt-4 grid gap-5">
-              {(competenciesResult.data ?? []).length > 0 ? (
-                (competenciesResult.data ?? []).map((competency) => (
-                  <article
-                    key={competency.id}
-                    className="rounded-3xl border border-slate-200 bg-slate-50 p-6"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <h3 className="text-2xl font-semibold text-slate-900">
-                        {competency.name}
-                      </h3>
-                      <div className="text-right text-sm font-semibold text-slate-600">
-                        <p>Target {competency.target_score.toFixed(2)}</p>
-                        <p>Weight {competency.weight.toFixed(2)}</p>
-                      </div>
-                    </div>
-                    <p className="mt-4 text-sm leading-7 text-slate-700">
-                      {competency.definition}
-                    </p>
-                    <div className="mt-5 grid gap-4 md:grid-cols-2">
-                      <div className="rounded-2xl bg-white px-4 py-4 text-sm text-slate-700">
-                        <p className="font-semibold text-slate-900">
-                          Behavioral Indicators
-                        </p>
-                        <ul className="mt-3 space-y-2 leading-7">
-                          {((competency.behavioral_indicators as string[]) ?? []).map(
-                            (item) => (
-                              <li key={item}>• {item}</li>
-                            ),
-                          )}
-                        </ul>
-                      </div>
-                      <div className="rounded-2xl bg-white px-4 py-4 text-sm text-slate-700">
-                        <p className="font-semibold text-slate-900">Red Flags</p>
-                        <ul className="mt-3 space-y-2 leading-7">
-                          {((competency.red_flags as string[]) ?? []).map((item) => (
-                            <li key={item}>• {item}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  </article>
-                ))
-              ) : (
-                <article className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm leading-7 text-slate-600">
-                  No generated composite sections exist for this role yet. Add
-                  competencies and generate the composite first.
-                </article>
-              )}
             </div>
           </section>
         </section>
