@@ -126,13 +126,14 @@ export default async function AdministrationPage({
 
           <div className="mt-8 flex flex-wrap gap-3">
             {[
+              { id: "organization-controls", label: "Organization Controls" },
               { id: "user-access", label: "User Access" },
               { id: "assign-mentors", label: "Assign Mentors" },
             ].map((tab) => {
               const isActive =
-                (requestedSection ?? "user-access") === tab.id;
+                (requestedSection ?? "organization-controls") === tab.id;
               const href =
-                tab.id === "user-access"
+                tab.id === "organization-controls"
                   ? `/administration?organizationId=${encodeURIComponent(selectedOrganization.id)}`
                   : `/administration?organizationId=${encodeURIComponent(selectedOrganization.id)}&section=${encodeURIComponent(tab.id)}`;
 
@@ -155,7 +156,11 @@ export default async function AdministrationPage({
 
         <AdministrationPanel
           initialTab={
-            requestedSection === "assign-mentors" ? "assign-mentors" : "user-access"
+            requestedSection === "assign-mentors"
+              ? "assign-mentors"
+              : requestedSection === "user-access"
+                ? "user-access"
+                : "organization-controls"
           }
           mentorAssignmentOptions={{
             candidates: (candidatesResult.data ?? []).map((candidate) => ({

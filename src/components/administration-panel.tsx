@@ -71,7 +71,10 @@ type SummaryFilterKey =
   | "active-mentors"
   | "suspended-users"
   | "pending-invitations";
-type AdministrationTab = "user-access" | "assign-mentors";
+type AdministrationTab =
+  | "organization-controls"
+  | "user-access"
+  | "assign-mentors";
 
 const adminRoleOptions: {
   value: OrganizationUserAdminRole;
@@ -225,6 +228,12 @@ export function AdministrationPanel({
   });
   const filtersSectionRef = useRef<HTMLElement | null>(null);
   const activeTab = initialTab;
+  const organizationSectionSuffix =
+    activeTab === "assign-mentors"
+      ? "&section=assign-mentors"
+      : activeTab === "user-access"
+        ? "&section=user-access"
+        : "";
   const toggleFilters: Array<{
     label: string;
     value: boolean;
@@ -612,7 +621,7 @@ export function AdministrationPanel({
 
   return (
     <>
-      {selectedOrganization ? (
+      {selectedOrganization && activeTab === "organization-controls" ? (
         <section className="theme-panel-strong rounded-[2rem] p-8">
           <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
             <div>
@@ -671,9 +680,7 @@ export function AdministrationPanel({
                   value={selectedOrganizationId}
                   onChange={(event) =>
                     window.location.assign(
-                      `/administration?organizationId=${encodeURIComponent(event.target.value)}${
-                        activeTab === "assign-mentors" ? "&section=assign-mentors" : ""
-                      }`,
+                      `/administration?organizationId=${encodeURIComponent(event.target.value)}${organizationSectionSuffix}`,
                     )
                   }
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
@@ -992,7 +999,7 @@ export function AdministrationPanel({
             mentors={mentorAssignmentOptions.mentors}
           />
         </section>
-      ) : (
+      ) : activeTab === "user-access" ? (
         <>
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <SummaryCard
@@ -1259,7 +1266,7 @@ export function AdministrationPanel({
         </div>
           </section>
         </>
-      )}
+      ) : null}
 
       {composerMode ? (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/45 px-4 py-8">
