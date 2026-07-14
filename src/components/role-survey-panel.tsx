@@ -82,6 +82,7 @@ export function RoleSurveyPanel({
   const [selectedRoleId, setSelectedRoleId] = useState(initialRoleId);
   const [selectedSurveyId, setSelectedSurveyId] = useState(initialSurvey?.id ?? "");
   const [isCreatingNewSurvey, setIsCreatingNewSurvey] = useState(false);
+  const [isWorkflowOpen, setIsWorkflowOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [title, setTitle] = useState(
     initialSurvey?.title ?? createDefaultRoleSurveyTitle(initialRole?.title ?? "Role"),
@@ -173,6 +174,7 @@ export function RoleSurveyPanel({
 
   function handleCreateNewSurvey() {
     setIsCreatingNewSurvey(true);
+    setIsWorkflowOpen(true);
     setIsSettingsOpen(true);
     setSelectedSurveyId("");
     setSurveyError(null);
@@ -330,6 +332,7 @@ export function RoleSurveyPanel({
     const nextSurvey = nextSurveys[0] ?? null;
 
     setSelectedRoleId(nextRoleId);
+    setIsWorkflowOpen(true);
     setIsCreatingNewSurvey(false);
     setSelectedSurveyId(nextSurvey?.id ?? "");
     setSurveyError(null);
@@ -341,6 +344,7 @@ export function RoleSurveyPanel({
   }
 
   function handleSelectSurvey(survey: RoleSurveyRecord) {
+    setIsWorkflowOpen(true);
     setIsCreatingNewSurvey(false);
     setSelectedSurveyId(survey.id);
     setSurveyError(null);
@@ -375,11 +379,37 @@ export function RoleSurveyPanel({
           do, and model across the organization.
         </p>
 
-        <div className="mt-6 grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-          <div className="grid gap-5">
-            <label className="block">
-              <span className="mb-2 block text-sm font-semibold text-slate-700">
-                Role
+        <div className="mt-6 rounded-[1.5rem] border border-slate-200 bg-slate-50">
+          <button
+            type="button"
+            onClick={() => setIsWorkflowOpen((current) => !current)}
+            aria-expanded={isWorkflowOpen}
+            aria-controls="role-survey-workflow-panel"
+            className="flex w-full items-start justify-between gap-4 px-5 py-5 text-left"
+          >
+            <div>
+              <p className="text-sm font-semibold text-slate-900">
+                Survey workflow
+              </p>
+              <p className="mt-1 text-xs leading-6 text-slate-500">
+                Open this section to choose the role, manage the survey, add recipients, and review responses.
+              </p>
+            </div>
+            <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+              {isWorkflowOpen ? "Collapse" : "Expand"}
+            </span>
+          </button>
+
+          {isWorkflowOpen ? (
+            <div
+              id="role-survey-workflow-panel"
+              className="border-t border-slate-200 px-5 py-5"
+            >
+              <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+                <div className="grid gap-5">
+          <label className="block">
+            <span className="mb-2 block text-sm font-semibold text-slate-700">
+              Role
               </span>
               <select
                 className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-700 focus:bg-white"
@@ -774,7 +804,10 @@ export function RoleSurveyPanel({
                 </div>
               </>
             ) : null}
-          </div>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
     </section>
