@@ -161,16 +161,6 @@ export function LeadershipDevelopmentRecordManager({
     : [];
   const selectedRecord =
     currentRecords.find((record) => record.id === selectedRecordId) ?? null;
-  const activeLeaderCount = formState
-    ? formState.leaderEngagements.filter(isFilledLeadershipDevelopmentLeader).length
-    : 0;
-  const activeCompetencyCount = formState
-    ? formState.competencies.filter(isFilledLeadershipDevelopmentCompetency).length
-    : 0;
-  const activeFeedbackCount = formState
-    ? formState.reviewerFeedback.filter(isFilledLeadershipDevelopmentFeedback).length
-    : 0;
-
   function applySelectedRecord(
     nextSelectedAssignment: LeadershipDevelopmentAssignmentOption,
     records: LeadershipDevelopmentRecordRecord[],
@@ -650,35 +640,6 @@ export function LeadershipDevelopmentRecordManager({
             {isLoading ? (
               <p className="text-sm text-slate-600">Loading leadership development records...</p>
             ) : null}
-
-            <div className="grid gap-4 md:grid-cols-4">
-              <article className="rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm">
-                <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
-                  Status
-                </p>
-                <p className="mt-2 font-semibold text-slate-900">
-                  {getStatusLabel(formState.status)}
-                </p>
-              </article>
-              <article className="rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm">
-                <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
-                  Leaders Engaged
-                </p>
-                <p className="mt-2 font-semibold text-slate-900">{activeLeaderCount}</p>
-              </article>
-              <article className="rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm">
-                <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
-                  Competencies Tracked
-                </p>
-                <p className="mt-2 font-semibold text-slate-900">{activeCompetencyCount}</p>
-              </article>
-              <article className="rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm">
-                <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
-                  Feedback Entries
-                </p>
-                <p className="mt-2 font-semibold text-slate-900">{activeFeedbackCount}</p>
-              </article>
-            </div>
 
             {[
               {
