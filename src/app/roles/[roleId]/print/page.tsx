@@ -355,13 +355,6 @@ export default async function PrintRoleCompositePage({
                 </p>
               ))}
             </div>
-            {compositeNarrativeParagraphs.length === 0 ? (
-              <div className="mt-4 rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm leading-7 text-slate-600">
-                No stored Word narrative was found for this role yet, so this
-                printable version is being built from the saved role model and
-                competencies.
-              </div>
-            ) : null}
           </section>
 
           <section className="mt-8">
