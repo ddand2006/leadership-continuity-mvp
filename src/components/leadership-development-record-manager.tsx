@@ -161,9 +161,6 @@ export function LeadershipDevelopmentRecordManager({
     : [];
   const selectedRecord =
     currentRecords.find((record) => record.id === selectedRecordId) ?? null;
-  const averageFeedbackScore = formState
-    ? computeLeadershipDevelopmentAverageFeedbackScore(formState.reviewerFeedback)
-    : null;
   const activeLeaderCount = formState
     ? formState.leaderEngagements.filter(isFilledLeadershipDevelopmentLeader).length
     : 0;
@@ -574,118 +571,80 @@ export function LeadershipDevelopmentRecordManager({
       ) : null}
 
       <div className="mt-6 grid gap-6">
-        <label className="block">
-          <span className="mb-2 block text-sm font-semibold text-slate-700">
-            Candidate role track
-          </span>
-          <select
-            value={selectedAssignmentKey}
-            onChange={(event) => {
-              const nextAssignmentKey = event.target.value;
-              const nextAssignment =
-                assignments.find(
-                  (assignment) => getAssignmentKey(assignment) === nextAssignmentKey,
-                ) ?? null;
+        <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+          <label className="block">
+            <span className="mb-2 block text-sm font-semibold text-slate-700">
+              Candidate role track
+            </span>
+            <select
+              value={selectedAssignmentKey}
+              onChange={(event) => {
+                const nextAssignmentKey = event.target.value;
+                const nextAssignment =
+                  assignments.find(
+                    (assignment) => getAssignmentKey(assignment) === nextAssignmentKey,
+                  ) ?? null;
 
-              setSelectedAssignmentKey(nextAssignmentKey);
-              setSelectedRecordId("");
-              setOpenSections(createOpenSectionState());
-              setError(null);
-              setSuccess(null);
+                setSelectedAssignmentKey(nextAssignmentKey);
+                setSelectedRecordId("");
+                setOpenSections(createOpenSectionState());
+                setError(null);
+                setSuccess(null);
 
-              if (nextAssignment) {
-                setFormState(createDraftRecordForAssignment(nextAssignment));
-              }
-            }}
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
-          >
-            {assignments.map((assignment) => (
-              <option key={getAssignmentKey(assignment)} value={getAssignmentKey(assignment)}>
-                {assignment.candidateName} • {assignment.roleTitle} • {assignment.mentorName}
-              </option>
-            ))}
-          </select>
-        </label>
+                if (nextAssignment) {
+                  setFormState(createDraftRecordForAssignment(nextAssignment));
+                }
+              }}
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
+            >
+              {assignments.map((assignment) => (
+                <option
+                  key={getAssignmentKey(assignment)}
+                  value={getAssignmentKey(assignment)}
+                >
+                  {assignment.candidateName} • {assignment.roleTitle} • {assignment.mentorName}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {selectedAssignment && formState ? (
+            <button
+              type="button"
+              onClick={handleCreateNewRecord}
+              className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+            >
+              Start New Record
+            </button>
+          ) : null}
+        </div>
 
         {selectedAssignment && formState ? (
           <>
-            <div className="grid gap-4 md:grid-cols-4">
-              <article className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm">
-                <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
-                  Candidate
-                </p>
-                <p className="mt-2 font-semibold text-slate-900">
-                  {selectedAssignment.candidateName}
-                </p>
-                <p className="mt-1 text-slate-600">
-                  {selectedAssignment.currentTitle ?? "Current title not entered"}
-                </p>
-              </article>
-              <article className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm">
-                <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
-                  Role Track
-                </p>
-                <p className="mt-2 font-semibold text-slate-900">
-                  {selectedAssignment.roleTitle}
-                </p>
-              </article>
-              <article className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm">
-                <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
-                  Primary Mentor
-                </p>
-                <p className="mt-2 font-semibold text-slate-900">
-                  {selectedAssignment.mentorName}
-                </p>
-                <p className="mt-1 text-slate-600">
-                  {selectedAssignment.mentorPositionTitle ?? "Position not entered"}
-                </p>
-              </article>
-              <article className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm">
-                <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
-                  Average Feedback
-                </p>
-                <p className="mt-2 font-semibold text-slate-900">
-                  {averageFeedbackScore !== null ? `${averageFeedbackScore.toFixed(2)} / 5` : "No feedback yet"}
-                </p>
-                <p className="mt-1 text-slate-600">
-                  {getReadinessLabel(formState.readinessSignal)}
-                </p>
-              </article>
-            </div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-5">
+              <label className="block">
+                <span className="mb-2 block text-sm font-semibold text-slate-700">
+                  Record
+                </span>
+                <select
+                  value={selectedRecordId}
+                  onChange={(event) => {
+                    const nextRecordId = event.target.value;
 
-            <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-5 md:flex-row md:items-end md:justify-between">
-              <div className="flex-1">
-                <label className="block">
-                  <span className="mb-2 block text-sm font-semibold text-slate-700">
-                    Record
-                  </span>
-                  <select
-                    value={selectedRecordId}
-                    onChange={(event) => {
-                      const nextRecordId = event.target.value;
-
-                      applySelectedRecord(selectedAssignment, currentRecords, nextRecordId);
-                      setError(null);
-                      setSuccess(null);
-                    }}
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500"
-                  >
-                    <option value="">Create a new development record</option>
-                    {currentRecords.map((record) => (
-                      <option key={record.id} value={record.id}>
-                        {createRecordLabel(record)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              <button
-                type="button"
-                onClick={handleCreateNewRecord}
-                className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
-              >
-                Start New Record
-              </button>
+                    applySelectedRecord(selectedAssignment, currentRecords, nextRecordId);
+                    setError(null);
+                    setSuccess(null);
+                  }}
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500"
+                >
+                  <option value="">Create a new development record</option>
+                  {currentRecords.map((record) => (
+                    <option key={record.id} value={record.id}>
+                      {createRecordLabel(record)}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
 
             {isLoading ? (
