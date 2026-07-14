@@ -3,6 +3,7 @@
 import type { Dispatch, SetStateAction } from "react";
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { MentorAssignmentManager } from "@/components/mentor-assignment-manager";
 import {
   getAdminRoleLabel,
   getStatusLabel,
@@ -26,6 +27,22 @@ type AdministrationUser = {
 };
 
 type AdministrationPanelProps = {
+  initialTab: AdministrationTab;
+  mentorAssignmentOptions: {
+    candidates: Array<{
+      id: string;
+      full_name: string;
+    }>;
+    roles: Array<{
+      id: string;
+      title: string;
+    }>;
+    mentors: Array<{
+      id: string;
+      full_name: string;
+      position_title: string | null;
+    }>;
+  };
   users: AdministrationUser[];
   summary: {
     activeCandidates: number;
@@ -54,6 +71,7 @@ type SummaryFilterKey =
   | "active-mentors"
   | "suspended-users"
   | "pending-invitations";
+type AdministrationTab = "user-access" | "assign-mentors";
 
 const adminRoleOptions: {
   value: OrganizationUserAdminRole;
@@ -139,6 +157,8 @@ function SummaryCard(props: {
 }
 
 export function AdministrationPanel({
+  initialTab,
+  mentorAssignmentOptions,
   users,
   summary,
   organizations,
@@ -204,6 +224,7 @@ export function AdministrationPanel({
     leadershipHelpTier: "none",
   });
   const filtersSectionRef = useRef<HTMLElement | null>(null);
+  const activeTab = initialTab;
   const toggleFilters: Array<{
     label: string;
     value: boolean;
@@ -650,7 +671,9 @@ export function AdministrationPanel({
                   value={selectedOrganizationId}
                   onChange={(event) =>
                     window.location.assign(
-                      `/administration?organizationId=${encodeURIComponent(event.target.value)}`,
+                      `/administration?organizationId=${encodeURIComponent(event.target.value)}${
+                        activeTab === "assign-mentors" ? "&section=assign-mentors" : ""
+                      }`,
                     )
                   }
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
@@ -948,195 +971,224 @@ export function AdministrationPanel({
         </section>
       ) : null}
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard
-          label="Active Candidates"
-          value={summary.activeCandidates}
-          tone="border-teal-200 bg-teal-50/85 text-teal-900"
-          isActive={activeSummaryFilter === "active-candidates"}
-          onClick={() => activateSummaryFilter("active-candidates")}
-        />
-        <SummaryCard
-          label="Active Mentors"
-          value={summary.activeMentors}
-          tone="border-sky-200 bg-sky-50/85 text-sky-900"
-          isActive={activeSummaryFilter === "active-mentors"}
-          onClick={() => activateSummaryFilter("active-mentors")}
-        />
-        <SummaryCard
-          label="Suspended Users"
-          value={summary.suspendedUsers}
-          tone="border-rose-200 bg-rose-50/85 text-rose-900"
-          isActive={activeSummaryFilter === "suspended-users"}
-          onClick={() => activateSummaryFilter("suspended-users")}
-        />
-        <SummaryCard
-          label="Pending Invitations"
-          value={summary.pendingInvitations}
-          tone="border-amber-200 bg-amber-50/85 text-amber-900"
-          isActive={activeSummaryFilter === "pending-invitations"}
-          onClick={() => activateSummaryFilter("pending-invitations")}
-        />
-      </section>
-
-      <section
-        ref={filtersSectionRef}
-        className="theme-panel-strong rounded-[2rem] p-8"
-      >
-        <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-          <div>
+      {activeTab === "assign-mentors" ? (
+        <section className="grid gap-6">
+          <section className="theme-panel-strong rounded-[2rem] p-8">
             <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
-              Search And Filters
+              Assign Mentors
             </p>
             <h2 className="mt-3 font-display text-3xl text-slate-900">
-              Manage access without losing history
+              Tie candidate-role tracks to the right mentor
             </h2>
             <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600">
-              Suspended and archived users keep their scores, reports, interview
-              results, assignments, and development history. Permanent deletion is
-              blocked whenever historical program data exists.
+              Use this tab to create the role-based mentoring assignment before
+              development records, reports, and worksheet work begin.
             </p>
-          </div>
+          </section>
 
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={() => openComposer("create")}
-              className="interactive-contrast rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-900"
-            >
-              Add User
-            </button>
-            <button
-              type="button"
-              onClick={() => openComposer("invite")}
-              className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-teal-200 hover:text-teal-900"
-            >
-              Invite User
-            </button>
-          </div>
-        </div>
+          <MentorAssignmentManager
+            candidates={mentorAssignmentOptions.candidates}
+            roles={mentorAssignmentOptions.roles}
+            mentors={mentorAssignmentOptions.mentors}
+          />
+        </section>
+      ) : (
+        <>
+          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <SummaryCard
+              label="Active Candidates"
+              value={summary.activeCandidates}
+              tone="border-teal-200 bg-teal-50/85 text-teal-900"
+              isActive={activeSummaryFilter === "active-candidates"}
+              onClick={() => activateSummaryFilter("active-candidates")}
+            />
+            <SummaryCard
+              label="Active Mentors"
+              value={summary.activeMentors}
+              tone="border-sky-200 bg-sky-50/85 text-sky-900"
+              isActive={activeSummaryFilter === "active-mentors"}
+              onClick={() => activateSummaryFilter("active-mentors")}
+            />
+            <SummaryCard
+              label="Suspended Users"
+              value={summary.suspendedUsers}
+              tone="border-rose-200 bg-rose-50/85 text-rose-900"
+              isActive={activeSummaryFilter === "suspended-users"}
+              onClick={() => activateSummaryFilter("suspended-users")}
+            />
+            <SummaryCard
+              label="Pending Invitations"
+              value={summary.pendingInvitations}
+              tone="border-amber-200 bg-amber-50/85 text-amber-900"
+              isActive={activeSummaryFilter === "pending-invitations"}
+              onClick={() => activateSummaryFilter("pending-invitations")}
+            />
+          </section>
 
-        {feedback.error ? (
-          <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-medium text-rose-700">
-            {feedback.error}
-          </div>
-        ) : null}
+          <section
+            ref={filtersSectionRef}
+            className="theme-panel-strong rounded-[2rem] p-8"
+          >
+            <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+              <div>
+                <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
+                  Search And Filters
+                </p>
+                <h2 className="mt-3 font-display text-3xl text-slate-900">
+                  Manage access without losing history
+                </h2>
+                <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600">
+                  Suspended and archived users keep their scores, reports, interview
+                  results, assignments, and development history. Permanent deletion is
+                  blocked whenever historical program data exists.
+                </p>
+              </div>
 
-        {feedback.message ? (
-          <div className="mt-6 rounded-2xl border border-teal-200 bg-teal-50 px-5 py-4 text-sm font-medium text-teal-800">
-            <p>{feedback.message}</p>
-            {feedback.resetLink ? (
-              <p className="mt-2 break-all text-xs text-teal-700">{feedback.resetLink}</p>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => openComposer("create")}
+                  className="interactive-contrast rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-900"
+                >
+                  Add User
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openComposer("invite")}
+                  className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-teal-200 hover:text-teal-900"
+                >
+                  Invite User
+                </button>
+              </div>
+            </div>
+
+            {feedback.error ? (
+              <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-medium text-rose-700">
+                {feedback.error}
+              </div>
             ) : null}
-          </div>
-        ) : null}
 
-        <div className="mt-8 grid gap-4 lg:grid-cols-2">
-          <label className="block">
-            <span className="mb-2 block text-sm font-semibold text-slate-700">
-              Name
-            </span>
-            <input
-              value={nameFilter}
-              onChange={(event) => setNameFilter(event.target.value)}
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
-              type="text"
-              placeholder="Search by first or last name"
-            />
-          </label>
-          <label className="block">
-            <span className="mb-2 block text-sm font-semibold text-slate-700">
-              Email
-            </span>
-            <input
-              value={emailFilter}
-              onChange={(event) => setEmailFilter(event.target.value)}
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
-              type="text"
-              placeholder="Search by email"
-            />
-          </label>
-        </div>
+            {feedback.message ? (
+              <div className="mt-6 rounded-2xl border border-teal-200 bg-teal-50 px-5 py-4 text-sm font-medium text-teal-800">
+                <p>{feedback.message}</p>
+                {feedback.resetLink ? (
+                  <p className="mt-2 break-all text-xs text-teal-700">
+                    {feedback.resetLink}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
 
-        <div className="mt-6 flex flex-wrap gap-3">
-          {toggleFilters.map((filter) => (
-            <button
-              key={filter.label}
-              type="button"
-              onClick={() => filter.setValue(!filter.value)}
-              className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
-                filter.value
-                  ? "border-slate-950 bg-slate-950 text-white"
-                  : "border-slate-200 bg-white text-slate-700 hover:border-teal-200 hover:text-teal-900"
-              }`}
-            >
-              {filter.label}
-            </button>
-          ))}
-        </div>
-      </section>
+            <div className="mt-8 grid gap-4 lg:grid-cols-2">
+              <label className="block">
+                <span className="mb-2 block text-sm font-semibold text-slate-700">
+                  Name
+                </span>
+                <input
+                  value={nameFilter}
+                  onChange={(event) => setNameFilter(event.target.value)}
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
+                  type="text"
+                  placeholder="Search by first or last name"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-2 block text-sm font-semibold text-slate-700">
+                  Email
+                </span>
+                <input
+                  value={emailFilter}
+                  onChange={(event) => setEmailFilter(event.target.value)}
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
+                  type="text"
+                  placeholder="Search by email"
+                />
+              </label>
+            </div>
 
-      <section className="theme-panel-strong overflow-hidden rounded-[2rem]">
-        <div className="overflow-x-auto">
-          <table className="min-w-full border-collapse">
-            <thead>
-              <tr className="border-b border-slate-200/80 bg-white/60 text-left text-xs font-semibold tracking-[0.16em] text-slate-500 uppercase">
-                <th className="px-6 py-4">Name</th>
-                <th className="px-6 py-4">Email</th>
-                <th className="px-6 py-4">User Type</th>
-                <th className="px-6 py-4">Admin Role</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4">Last Login</th>
-                <th className="px-6 py-4">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredUsers.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-6 py-10 text-center text-sm text-slate-500"
-                  >
-                    No users match the current filters.
-                  </td>
-                </tr>
-              ) : (
-                filteredUsers.map((user) => (
-                  <tr
-                    key={user.id}
-                    className="border-b border-slate-200/70 bg-white/30 align-top text-sm text-slate-700 last:border-b-0"
-                  >
-                    <td className="px-6 py-5">
-                      <p className="font-semibold text-slate-950">
-                        {user.first_name} {user.last_name}
-                      </p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        Created {formatDate(user.created_at)}
-                      </p>
-                    </td>
-                    <td className="px-6 py-5">{user.email}</td>
-                    <td className="px-6 py-5">
-                      {getUserTypeLabel({
-                        isCandidate: user.is_candidate,
-                        isMentor: user.is_mentor,
-                      })}
-                    </td>
-                    <td className="px-6 py-5">{getAdminRoleLabel(user.admin_role)}</td>
-                    <td className="px-6 py-5">
-                      <span
-                        className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getBadgeClassName(user.status)}`}
+            <div className="mt-6 flex flex-wrap gap-3">
+              {toggleFilters.map((filter) => (
+                <button
+                  key={filter.label}
+                  type="button"
+                  onClick={() => filter.setValue(!filter.value)}
+                  className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                    filter.value
+                      ? "border-slate-950 bg-slate-950 text-white"
+                      : "border-slate-200 bg-white text-slate-700 hover:border-teal-200 hover:text-teal-900"
+                  }`}
+                >
+                  {filter.label}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section className="theme-panel-strong overflow-hidden rounded-[2rem]">
+            <div className="overflow-x-auto">
+              <table className="min-w-full border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-200/80 bg-white/60 text-left text-xs font-semibold tracking-[0.16em] text-slate-500 uppercase">
+                    <th className="px-6 py-4">Name</th>
+                    <th className="px-6 py-4">Email</th>
+                    <th className="px-6 py-4">User Type</th>
+                    <th className="px-6 py-4">Admin Role</th>
+                    <th className="px-6 py-4">Status</th>
+                    <th className="px-6 py-4">Last Login</th>
+                    <th className="px-6 py-4">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredUsers.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={7}
+                        className="px-6 py-10 text-center text-sm text-slate-500"
                       >
-                        {getStatusLabel(user.status)}
-                      </span>
-                      {user.hasHistoricalData ? (
-                        <p className="mt-2 text-xs text-slate-500">History retained</p>
-                      ) : (
-                        <p className="mt-2 text-xs text-slate-500">No linked program history</p>
-                      )}
-                    </td>
-                    <td className="px-6 py-5">{formatDate(user.last_login_at)}</td>
-                    <td className="px-6 py-5">
-                      <details className="relative">
+                        No users match the current filters.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredUsers.map((user) => (
+                      <tr
+                        key={user.id}
+                        className="border-b border-slate-200/70 bg-white/30 align-top text-sm text-slate-700 last:border-b-0"
+                      >
+                        <td className="px-6 py-5">
+                          <p className="font-semibold text-slate-950">
+                            {user.first_name} {user.last_name}
+                          </p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            Created {formatDate(user.created_at)}
+                          </p>
+                        </td>
+                        <td className="px-6 py-5">{user.email}</td>
+                        <td className="px-6 py-5">
+                          {getUserTypeLabel({
+                            isCandidate: user.is_candidate,
+                            isMentor: user.is_mentor,
+                          })}
+                        </td>
+                        <td className="px-6 py-5">
+                          {getAdminRoleLabel(user.admin_role)}
+                        </td>
+                        <td className="px-6 py-5">
+                          <span
+                            className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getBadgeClassName(user.status)}`}
+                          >
+                            {getStatusLabel(user.status)}
+                          </span>
+                          {user.hasHistoricalData ? (
+                            <p className="mt-2 text-xs text-slate-500">History retained</p>
+                          ) : (
+                            <p className="mt-2 text-xs text-slate-500">
+                              No linked program history
+                            </p>
+                          )}
+                        </td>
+                        <td className="px-6 py-5">{formatDate(user.last_login_at)}</td>
+                        <td className="px-6 py-5">
+                          <details className="relative">
                         <summary className="inline-flex cursor-pointer list-none rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-teal-200 hover:text-teal-900">
                           Actions
                         </summary>
@@ -1205,7 +1257,9 @@ export function AdministrationPanel({
             </tbody>
           </table>
         </div>
-      </section>
+          </section>
+        </>
+      )}
 
       {composerMode ? (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/45 px-4 py-8">

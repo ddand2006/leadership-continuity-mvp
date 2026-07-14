@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { MentorFlowPanel } from "@/components/mentor-flow-panel";
 import { MentoringCrossDepartmentalProjectWorksheetManager } from "@/components/mentoring-cross-departmental-project-worksheet-manager";
 import { MentoringDepartmentalProjectWorksheetManager } from "@/components/mentoring-departmental-project-worksheet-manager";
-import { MentorAssignmentManager } from "@/components/mentor-assignment-manager";
 import { MentoringPreparationWorksheetManager } from "@/components/mentoring-preparation-worksheet-manager";
 import { LeadershipDevelopmentRecordManager } from "@/components/leadership-development-record-manager";
 import { MentoringWorkspaceMenu } from "@/components/mentoring-workspace-menu";
@@ -177,23 +176,6 @@ export default async function MentoringPage({
           : candidateIdForSelfAccess !== null &&
             assignment.candidate_id === candidateIdForSelfAccess,
       );
-  const visibleRoleOptions = isAdmin
-    ? rolesResult.data ?? []
-    : isMentor
-      ? (rolesResult.data ?? []).filter((role) =>
-        (roleMentorAssignmentsResult.data ?? []).some(
-          (assignment) =>
-            assignment.role_id === role.id &&
-            assignment.mentor_profile_id === profile.id &&
-            assignment.status === "active",
-        ),
-      )
-      : [];
-  const visibleMentorOptions = isAdmin
-    ? mentorsResult.data ?? []
-    : isMentor
-      ? (mentorsResult.data ?? []).filter((mentor) => mentor.id === profile.id)
-      : [];
   const requestedAssignmentKey =
     requestedCandidateId && requestedRoleId && requestedMentorProfileId
       ? `${requestedCandidateId}:${requestedRoleId}:${requestedMentorProfileId}`
@@ -592,25 +574,6 @@ export default async function MentoringPage({
             label: "My Mentoring Assignments",
             content: (
               <>
-                {(isAdmin || visibleRoleOptions.length > 0) ? (
-                  <MentorAssignmentManager
-                    candidates={(candidatesResult.data ?? []).map((candidate) => ({
-                      id: candidate.id,
-                      full_name: candidate.full_name,
-                    }))}
-                    roles={visibleRoleOptions.map((role) => ({
-                      id: role.id,
-                      title: role.title,
-                    }))}
-                    mentors={visibleMentorOptions.map((mentor) => ({
-                      id: mentor.id,
-                      full_name: mentor.full_name,
-                      position_title: mentor.position_title,
-                    }))}
-                    canChooseMentor={isAdmin}
-                  />
-                ) : null}
-
                 <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
                   <div className="flex items-center justify-between gap-4">
                     <div>
@@ -667,7 +630,7 @@ export default async function MentoringPage({
                     ) : (
                       <article className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm leading-7 text-slate-600">
                         {isAdmin
-                          ? "No mentor assignments exist yet. Create the first candidate-role assignment above."
+                          ? "No mentor assignments exist yet. Open the Assign Mentors tab in Administration to create the first candidate-role assignment."
                           : "No candidate-role assignments are attached to your mentor account yet."}
                       </article>
                     )}

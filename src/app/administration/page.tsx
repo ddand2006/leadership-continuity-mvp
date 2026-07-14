@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AdministrationPanel } from "@/components/administration-panel";
 import { isAdminAppRole } from "@/lib/mentor-access";
@@ -8,6 +9,7 @@ import { requireWorkspaceProfile } from "@/lib/workspace";
 type AdministrationPageProps = {
   searchParams: Promise<{
     organizationId?: string;
+    section?: string;
   }>;
 };
 
@@ -15,7 +17,10 @@ export default async function AdministrationPage({
   searchParams,
 }: AdministrationPageProps) {
   const { profile } = await requireWorkspaceProfile();
-  const { organizationId: requestedOrganizationId } = await searchParams;
+  const {
+    organizationId: requestedOrganizationId,
+    section: requestedSection,
+  } = await searchParams;
 
   if (!isAdminAppRole(profile.role)) {
     redirect("/dashboard?message=Administration+is+available+to+organization+admins+only.");
@@ -54,10 +59,35 @@ export default async function AdministrationPage({
     throw new Error("No organization could be loaded for administration.");
   }
 
-  const users = await loadAdministrationUsers({
-    admin,
-    organizationId: selectedOrganization.id,
-  });
+  const [users, candidatesResult, rolesResult, mentorsResult] = await Promise.all([
+    loadAdministrationUsers({
+      admin,
+      organizationId: selectedOrganization.id,
+    }),
+    admin
+      .from("candidates")
+      .select("id, full_name")
+      .eq("organization_id", selectedOrganization.id)
+      .order("full_name", { ascending: true }),
+    admin
+      .from("roles")
+      .select("id, title")
+      .eq("organization_id", selectedOrganization.id)
+      .order("title", { ascending: true }),
+    admin
+      .from("profiles")
+      .select("id, full_name, position_title")
+      .eq("organization_id", selectedOrganization.id)
+      .eq("role", "mentor")
+      .order("full_name", { ascending: true }),
+  ]);
+
+  for (const result of [candidatesResult, rolesResult, mentorsResult]) {
+    if (result.error) {
+      throw new Error(result.error.message);
+    }
+  }
+
   const summary = {
     activeCandidates: users.filter(
       (user) => user.status === "active" && user.is_candidate,
@@ -93,9 +123,55 @@ export default async function AdministrationPage({
                 : "CEO Admin and Manager Admin currently share the same permissions inside their organization."}
             </div>
           </div>
+
+          <div className="mt-8 flex flex-wrap gap-3">
+            {[
+              { id: "user-access", label: "User Access" },
+              { id: "assign-mentors", label: "Assign Mentors" },
+            ].map((tab) => {
+              const isActive =
+                (requestedSection ?? "user-access") === tab.id;
+              const href =
+                tab.id === "user-access"
+                  ? `/administration?organizationId=${encodeURIComponent(selectedOrganization.id)}`
+                  : `/administration?organizationId=${encodeURIComponent(selectedOrganization.id)}&section=${encodeURIComponent(tab.id)}`;
+
+              return (
+                <Link
+                  key={tab.id}
+                  href={href}
+                  className={`rounded-full border px-5 py-3 text-sm font-semibold transition ${
+                    isActive
+                      ? "interactive-contrast border-teal-900 bg-teal-900 text-white shadow-[0_18px_40px_rgba(15,118,110,0.18)]"
+                      : "border-slate-200 bg-white text-slate-700 hover:border-teal-200 hover:text-teal-900"
+                  }`}
+                >
+                  {tab.label}
+                </Link>
+              );
+            })}
+          </div>
         </section>
 
         <AdministrationPanel
+          initialTab={
+            requestedSection === "assign-mentors" ? "assign-mentors" : "user-access"
+          }
+          mentorAssignmentOptions={{
+            candidates: (candidatesResult.data ?? []).map((candidate) => ({
+              id: candidate.id,
+              full_name: candidate.full_name,
+            })),
+            roles: (rolesResult.data ?? []).map((role) => ({
+              id: role.id,
+              title: role.title,
+            })),
+            mentors: (mentorsResult.data ?? []).map((mentor) => ({
+              id: mentor.id,
+              full_name: mentor.full_name,
+              position_title: mentor.position_title,
+            })),
+          }}
           users={users}
           summary={summary}
           organizations={organizations.map((organization) => ({
