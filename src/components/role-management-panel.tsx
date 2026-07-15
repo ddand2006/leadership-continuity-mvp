@@ -56,14 +56,14 @@ async function readApiResult(response: Response): Promise<ApiResult> {
     if (response.status === 413) {
       return {
         error:
-          "The upload was too large for the server to process. Save the spreadsheet as a smaller XLSX or CSV file and try again.",
+          "The upload was too large for the server to process. Save a smaller file and try again.",
       };
     }
 
     return {
       error: response.ok
         ? "The server returned an unexpected response."
-        : "The upload failed before the app could read the server response. Try saving the spreadsheet as a standard XLSX or CSV file and upload it again.",
+        : "The upload failed before the app could read the server response. Try saving the file again and re-uploading it.",
     };
   }
 }
@@ -83,6 +83,12 @@ export function RoleManagementPanel({
   const [createSuccess, setCreateSuccess] = useState<string | null>(null);
   const [uploadCharacteristicsError, setUploadCharacteristicsError] = useState<string | null>(null);
   const [uploadCharacteristicsSuccess, setUploadCharacteristicsSuccess] = useState<string | null>(null);
+  const [uploadRoleDocumentError, setUploadRoleDocumentError] = useState<string | null>(
+    null,
+  );
+  const [uploadRoleDocumentSuccess, setUploadRoleDocumentSuccess] = useState<string | null>(
+    null,
+  );
   const [editCompetenciesError, setEditCompetenciesError] = useState<string | null>(null);
   const [editCompetenciesSuccess, setEditCompetenciesSuccess] = useState<string | null>(null);
   const [addLibraryCompetencyError, setAddLibraryCompetencyError] = useState<string | null>(null);
@@ -93,6 +99,7 @@ export function RoleManagementPanel({
   const [uploadCompositeDocumentError, setUploadCompositeDocumentError] = useState<string | null>(null);
   const [uploadCompositeDocumentSuccess, setUploadCompositeDocumentSuccess] = useState<string | null>(null);
   const [uploadCharacteristicsResetKey, setUploadCharacteristicsResetKey] = useState(0);
+  const [uploadRoleDocumentResetKey, setUploadRoleDocumentResetKey] = useState(0);
   const [uploadCompositeDocumentResetKey, setUploadCompositeDocumentResetKey] =
     useState(0);
   const initialEditorRole =
@@ -131,6 +138,7 @@ export function RoleManagementPanel({
   const [isEditingCompetencies, setIsEditingCompetencies] = useState(false);
   const [isCreatePending, startCreateTransition] = useTransition();
   const [isUploadCharacteristicsPending, startUploadCharacteristicsTransition] = useTransition();
+  const [isUploadRoleDocumentPending, startUploadRoleDocumentTransition] = useTransition();
   const [isEditCompetenciesPending, startEditCompetenciesTransition] = useTransition();
   const [isAddLibraryCompetencyPending, startAddLibraryCompetencyTransition] =
     useTransition();
@@ -486,6 +494,8 @@ export function RoleManagementPanel({
   function handleUploadCharacteristics(formData: FormData) {
     setUploadCharacteristicsError(null);
     setUploadCharacteristicsSuccess(null);
+    setUploadRoleDocumentError(null);
+    setUploadRoleDocumentSuccess(null);
     setEditCompetenciesError(null);
     setEditCompetenciesSuccess(null);
     setGenerateCompositeError(null);
@@ -535,6 +545,52 @@ export function RoleManagementPanel({
     });
   }
 
+  function handleUploadRoleDocument(formData: FormData) {
+    setUploadRoleDocumentError(null);
+    setUploadRoleDocumentSuccess(null);
+    setUploadCharacteristicsError(null);
+    setUploadCharacteristicsSuccess(null);
+    setEditCompetenciesError(null);
+    setEditCompetenciesSuccess(null);
+    setGenerateCompositeError(null);
+    setGenerateCompositeSuccess(null);
+    setDownloadCompositeError(null);
+    setUploadCompositeDocumentError(null);
+    setUploadCompositeDocumentSuccess(null);
+
+    startUploadRoleDocumentTransition(async () => {
+      try {
+        const roleId = String(formData.get("roleId") ?? "");
+        const response = await fetch("/api/roles/upload-composite", {
+          method: "POST",
+          body: formData,
+        });
+        const result = await readApiResult(response);
+
+        if (!response.ok) {
+          setUploadRoleDocumentError(
+            result.error ?? "Unable to import the role document.",
+          );
+          return;
+        }
+
+        setSelectedCompetencyRoleId(roleId);
+        setIsEditingCompetencies(false);
+        setUploadRoleDocumentResetKey((current) => current + 1);
+        setUploadRoleDocumentSuccess(
+          result.message ?? "Role document imported.",
+        );
+        router.refresh();
+      } catch (error) {
+        setUploadRoleDocumentError(
+          error instanceof Error
+            ? error.message
+            : "Unable to import the role document.",
+        );
+      }
+    });
+  }
+
   function handleEditCompetencies(formData: FormData) {
     if (!selectedCompetencyRoleId) {
       return;
@@ -544,6 +600,8 @@ export function RoleManagementPanel({
     setEditCompetenciesSuccess(null);
     setUploadCharacteristicsError(null);
     setUploadCharacteristicsSuccess(null);
+    setUploadRoleDocumentError(null);
+    setUploadRoleDocumentSuccess(null);
     setGenerateCompositeError(null);
     setGenerateCompositeSuccess(null);
     setDownloadCompositeError(null);
@@ -602,6 +660,8 @@ export function RoleManagementPanel({
     setGenerateCompositeSuccess(null);
     setUploadCharacteristicsError(null);
     setUploadCharacteristicsSuccess(null);
+    setUploadRoleDocumentError(null);
+    setUploadRoleDocumentSuccess(null);
     setEditCompetenciesError(null);
     setEditCompetenciesSuccess(null);
     setDownloadCompositeError(null);
@@ -683,6 +743,8 @@ export function RoleManagementPanel({
 
     setUploadCompositeDocumentError(null);
     setUploadCompositeDocumentSuccess(null);
+    setUploadRoleDocumentError(null);
+    setUploadRoleDocumentSuccess(null);
     setGenerateCompositeError(null);
     setGenerateCompositeSuccess(null);
     setDownloadCompositeError(null);
@@ -1066,13 +1128,15 @@ export function RoleManagementPanel({
           Upload Competencies
         </p>
         <h2 className="mt-3 font-display text-3xl text-slate-900">
-          Import ideal candidate competencies
+          Import ideal candidate competencies or a structured role document
         </h2>
         <p className="mt-4 text-sm leading-7 text-slate-600">
           Upload a CSV or XLSX file with ideal candidate competencies, then
           attach it to an existing role. This can include spreadsheet formats
           with headers like Type of Set and Competency, or grouped columns like
-          Talents, Skills, and Behaviors.
+          Talents, Skills, and Behaviors. You can also use the structured role
+          document importer below to align a role directly from a composite or
+          interview scorecard.
         </p>
 
         <form
@@ -1096,6 +1160,8 @@ export function RoleManagementPanel({
                 setIsEditingCompetencies(false);
                 setUploadCharacteristicsError(null);
                 setUploadCharacteristicsSuccess(null);
+                setUploadRoleDocumentError(null);
+                setUploadRoleDocumentSuccess(null);
                 setEditCompetenciesError(null);
                 setEditCompetenciesSuccess(null);
                 setGenerateCompositeError(null);
@@ -1333,6 +1399,54 @@ export function RoleManagementPanel({
             </div>
           </form>
         ) : null}
+        {selectedCompetencyRole ? (
+          <div className="mt-8 rounded-3xl border border-slate-200 bg-slate-50 p-6">
+            <p className="text-sm font-semibold tracking-[0.14em] text-slate-500 uppercase">
+              Structured Role Document
+            </p>
+            <h3 className="mt-3 font-display text-2xl text-slate-900">
+              Replace the role model from a composite or scorecard
+            </h3>
+            <p className="mt-3 text-sm leading-7 text-slate-600">
+              Upload a role composite, interview scorecard, or other structured
+              DOCX, PDF, or TXT file to replace the stored competency model for
+              this role. Scorecard section titles are kept as the competency
+              names so the rest of the workspace can align to them.
+            </p>
+            <p className="mt-3 text-sm leading-7 text-slate-600">
+              If this role already has a generated or manually edited composite
+              document, that saved document will be cleared so the narrative can
+              be rebuilt from the new competency structure.
+            </p>
+
+            <form
+              className="mt-5 space-y-4"
+              onSubmit={(event) => {
+                event.preventDefault();
+                handleUploadRoleDocument(new FormData(event.currentTarget));
+              }}
+            >
+              <input type="hidden" name="roleId" value={selectedCompetencyRole.id} />
+              <FileDropInput
+                key={`${selectedCompetencyRole.id}-${uploadRoleDocumentResetKey}`}
+                label="Composite or scorecard file"
+                name="file"
+                accept=".docx,.pdf,.txt"
+                required
+                helperText="Accepted formats: DOCX, PDF, or TXT. Use this to align the structured role competencies to a source document such as the VP-PCS interview scorecard."
+              />
+              <button
+                className="rounded-full bg-white px-5 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                type="submit"
+                disabled={isUploadRoleDocumentPending}
+              >
+                {isUploadRoleDocumentPending
+                  ? "Importing role document..."
+                  : "Import Role Composite or Scorecard"}
+              </button>
+            </form>
+          </div>
+        ) : null}
         {roles.length === 0 ? (
           <p className="mt-4 text-sm text-slate-600">
             Create a role first so the uploaded competencies have somewhere to land.
@@ -1343,6 +1457,12 @@ export function RoleManagementPanel({
         ) : null}
         {uploadCharacteristicsSuccess ? (
           <p className="mt-4 text-sm text-teal-700">{uploadCharacteristicsSuccess}</p>
+        ) : null}
+        {uploadRoleDocumentError ? (
+          <p className="mt-4 text-sm text-rose-700">{uploadRoleDocumentError}</p>
+        ) : null}
+        {uploadRoleDocumentSuccess ? (
+          <p className="mt-4 text-sm text-teal-700">{uploadRoleDocumentSuccess}</p>
         ) : null}
         {editCompetenciesError ? (
           <p className="mt-4 text-sm text-rose-700">{editCompetenciesError}</p>

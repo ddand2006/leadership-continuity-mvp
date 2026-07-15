@@ -21,7 +21,7 @@ export async function POST(request: Request) {
       statusValue === "active" || statusValue === "draft" ? statusValue : "active";
 
     if (!(file instanceof File)) {
-      throw new ApiRouteError("Upload a composite file first.", 400);
+      throw new ApiRouteError("Upload a composite or interview scorecard file first.", 400);
     }
 
     assertAcceptedFileType(file, ["pdf", "docx", "txt"]);
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
 
     if (!compositeText) {
       throw new ApiRouteError(
-        "No readable text was found in the uploaded composite.",
+        "No readable text was found in the uploaded role document.",
         400,
       );
     }
@@ -39,13 +39,16 @@ export async function POST(request: Request) {
       fileName: file.name,
       text: compositeText,
     });
+    const isScorecardImport =
+      extractedComposite.source_document_type === "interview_scorecard";
 
     let currentRoleId = roleId;
+    let resolvedRoleTitle = extractedComposite.title;
 
     if (currentRoleId) {
       const existingRoleResult = await admin
         .from("roles")
-        .select("id")
+        .select("id, title, department, description")
         .eq("organization_id", profile.organization_id)
         .eq("id", currentRoleId)
         .maybeSingle();
@@ -58,11 +61,16 @@ export async function POST(request: Request) {
         throw new ApiRouteError("Selected role could not be found.", 404);
       }
 
+      const nextRoleTitle = isScorecardImport
+        ? existingRoleResult.data.title
+        : extractedComposite.title;
+      resolvedRoleTitle = nextRoleTitle;
+
       const conflictingRoleResult = await admin
         .from("roles")
         .select("id")
         .eq("organization_id", profile.organization_id)
-        .eq("title", extractedComposite.title)
+        .eq("title", nextRoleTitle)
         .neq("id", currentRoleId)
         .maybeSingle();
 
@@ -72,7 +80,7 @@ export async function POST(request: Request) {
 
       if (conflictingRoleResult.data) {
         throw new ApiRouteError(
-          "Another role already uses the extracted title. Choose a different role or edit the title manually first.",
+          "Another role already uses the target title. Choose a different role or edit the title manually first.",
           409,
         );
       }
@@ -80,9 +88,15 @@ export async function POST(request: Request) {
       const updateResult = await admin
         .from("roles")
         .update({
-          title: extractedComposite.title,
-          department: extractedComposite.department,
-          description: extractedComposite.description,
+          title: nextRoleTitle,
+          department:
+            extractedComposite.department ??
+            existingRoleResult.data.department ??
+            null,
+          description:
+            isScorecardImport && existingRoleResult.data.description?.trim()
+              ? existingRoleResult.data.description
+              : extractedComposite.description,
           status,
         })
         .eq("organization_id", profile.organization_id)
@@ -100,6 +114,44 @@ export async function POST(request: Request) {
 
       if (deleteCompetenciesResult.error) {
         throw new ApiRouteError(deleteCompetenciesResult.error.message, 500);
+      }
+
+      const existingCompositeDocumentResult = await admin
+        .from("role_composite_documents")
+        .select("storage_bucket, storage_path")
+        .eq("organization_id", profile.organization_id)
+        .eq("role_id", currentRoleId)
+        .maybeSingle();
+
+      if (existingCompositeDocumentResult.error) {
+        throw new ApiRouteError(existingCompositeDocumentResult.error.message, 500);
+      }
+
+      const deleteCompositeDocumentResult = await admin
+        .from("role_composite_documents")
+        .delete()
+        .eq("organization_id", profile.organization_id)
+        .eq("role_id", currentRoleId);
+
+      if (deleteCompositeDocumentResult.error) {
+        throw new ApiRouteError(deleteCompositeDocumentResult.error.message, 500);
+      }
+
+      if (
+        existingCompositeDocumentResult.data?.storage_bucket &&
+        existingCompositeDocumentResult.data.storage_path
+      ) {
+        const removeStoredDocumentResult = await admin.storage
+          .from(existingCompositeDocumentResult.data.storage_bucket)
+          .remove([existingCompositeDocumentResult.data.storage_path]);
+
+        if (removeStoredDocumentResult.error) {
+          console.error("Unable to remove superseded role composite document", {
+            roleId: currentRoleId,
+            storagePath: existingCompositeDocumentResult.data.storage_path,
+            error: removeStoredDocumentResult.error,
+          });
+        }
       }
     } else {
       const existingRoleResult = await admin
@@ -137,6 +189,7 @@ export async function POST(request: Request) {
       }
 
       currentRoleId = insertRoleResult.data.id;
+      resolvedRoleTitle = extractedComposite.title;
     }
 
     const insertCompetenciesResult = await admin.from("role_competencies").insert(
@@ -152,7 +205,9 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({
-      message: `Composite imported into "${extractedComposite.title}".`,
+      message: isScorecardImport
+        ? `Interview scorecard imported into "${resolvedRoleTitle}" and the structured competency model now matches the scorecard sections.`
+        : `Composite imported into "${resolvedRoleTitle}".`,
       roleId: currentRoleId,
       competenciesCreated: extractedComposite.competencies.length,
     });
