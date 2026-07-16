@@ -126,7 +126,7 @@ export function PersonalRoleProfileForm({
               onChange={(event) => setCurrentPositionTitle(event.target.value)}
               className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
               type="text"
-              placeholder="VP Patient Care Services"
+              placeholder="VP - Patient Care Services"
             />
           </label>
 
