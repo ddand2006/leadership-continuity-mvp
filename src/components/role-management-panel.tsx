@@ -188,6 +188,22 @@ export function RoleManagementPanel({
     router.push(nextQuery ? `${pathname}?${nextQuery}` : pathname);
   }
 
+  function openCompetencyEditorPage() {
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.set("mode", "create");
+
+    if (selectedCompetencyRoleId) {
+      nextParams.set("roleId", selectedCompetencyRoleId);
+    } else if (editorRoleId) {
+      nextParams.set("roleId", editorRoleId);
+    } else {
+      nextParams.delete("roleId");
+    }
+
+    const nextQuery = nextParams.toString();
+    router.push(nextQuery ? `${pathname}?${nextQuery}` : pathname);
+  }
+
   function openCompositePage() {
     const nextParams = new URLSearchParams(searchParams.toString());
     nextParams.set("mode", "composite");
@@ -1343,7 +1359,7 @@ export function RoleManagementPanel({
                 </button>
                 <button
                   type="button"
-                  onClick={openCompetencyImport}
+                  onClick={openCompetencyEditorPage}
                   className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                 >
                   Back to Competencies
