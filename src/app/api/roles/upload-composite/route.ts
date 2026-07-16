@@ -4,6 +4,7 @@ import {
   createApiErrorResponse,
   requireApiWorkspaceProfile,
 } from "@/lib/api-route";
+import { invalidateRoleInterviewScorecard } from "@/lib/role-interview-scorecard-store";
 import { assertAcceptedFileType, extractTextFromUploadedFile } from "@/lib/file-parsers";
 import { extractRoleCompositeFromText } from "@/lib/role-composite";
 
@@ -203,6 +204,16 @@ export async function POST(request: Request) {
     if (insertCompetenciesResult.error) {
       throw new ApiRouteError(insertCompetenciesResult.error.message, 500);
     }
+
+    if (!currentRoleId) {
+      throw new ApiRouteError("Unable to resolve the role for this import.", 500);
+    }
+
+    await invalidateRoleInterviewScorecard({
+      admin,
+      organizationId: profile.organization_id,
+      roleId: currentRoleId,
+    });
 
     return NextResponse.json({
       message: isScorecardImport

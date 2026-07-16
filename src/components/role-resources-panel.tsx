@@ -285,8 +285,8 @@ export function RoleResourcesPanel({
                 className="interactive-contrast rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-900 disabled:cursor-not-allowed disabled:bg-slate-300"
               >
                 {isPreviewPending
-                  ? "Generating Questions..."
-                  : "Generate Behavioral Interview Questions"}
+                  ? "Preparing Scorecard Preview..."
+                  : "Open Interview Scorecard Preview"}
               </button>
               <button
                 type="button"

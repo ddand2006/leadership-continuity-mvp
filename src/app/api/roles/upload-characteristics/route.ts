@@ -4,8 +4,10 @@ import {
   createApiErrorResponse,
   requireApiWorkspaceProfile,
 } from "@/lib/api-route";
+import { invalidateRoleInterviewScorecard } from "@/lib/role-interview-scorecard-store";
 import { syncRoleCharacteristicLibrary } from "@/lib/role-characteristic-library";
 import { normalizeRoleCandidateCharacteristics } from "@/lib/role-characteristics-normalizer";
+import { canonicalizeRoleTitle } from "@/lib/role-title";
 
 export const runtime = "nodejs";
 const MAX_COMPETENCY_UPLOAD_SIZE_BYTES = 50 * 1024 * 1024;
@@ -117,8 +119,14 @@ export async function POST(request: Request) {
       throw new ApiRouteError(insertResult.error.message, 500);
     }
 
+    await invalidateRoleInterviewScorecard({
+      admin,
+      organizationId: profile.organization_id,
+      roleId,
+    });
+
     return NextResponse.json({
-      message: `Imported ${characteristics.length} ideal-candidate competencies into "${roleResult.data.title}".`,
+      message: `Imported ${characteristics.length} ideal-candidate competencies into "${canonicalizeRoleTitle(roleResult.data.title)}".`,
       roleId,
       count: characteristics.length,
     });

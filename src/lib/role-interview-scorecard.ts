@@ -3,6 +3,7 @@ import { z } from "zod";
 import { zodTextFormat } from "openai/helpers/zod";
 import { getOpenAIEnv } from "@/lib/env";
 import { createOpenAIClient, serializeModelInput } from "@/lib/openai";
+import { canonicalizeRoleTitle } from "@/lib/role-title";
 
 const interviewScorecardSchema = z.object({
   purpose: z.string().min(1),
@@ -29,6 +30,173 @@ const interviewScorecardSchema = z.object({
 export type RoleInterviewScorecardContent = z.infer<
   typeof interviewScorecardSchema
 >;
+export const roleInterviewScorecardContentSchema = interviewScorecardSchema;
+
+const LOCKED_VP_PATIENT_CARE_SERVICES_SCORECARD: RoleInterviewScorecardContent = {
+  purpose:
+    "Evaluate candidates for the VP-PCS role across Character, Competence, and Leadership Impact.",
+  sections: [
+    {
+      title: "Relational Leadership",
+      questions: [
+        {
+          question:
+            "Tell us about a time you had to address a serious performance issue with a respected nurse or physician.",
+          validates:
+            "Ability to handle difficult conversations while maintaining trust",
+        },
+        {
+          question:
+            "Describe a situation where staff morale was low or trust in leadership was damaged. How did you handle that situation?",
+          validates: "Leadership presence and ability to rebuild culture",
+        },
+        {
+          question:
+            "Give an example of conflict between nursing and another department. What happened and how did it get resolved? Or did it?",
+          validates: "Cross-functional collaboration and conflict resolution",
+        },
+      ],
+    },
+    {
+      title: "Accountability",
+      questions: [
+        {
+          question:
+            "Tell us about a time outcomes were not where they needed to be. What responsibility did you take?",
+          validates: "Ownership of outcomes and accountability",
+        },
+        {
+          question:
+            "Describe a situation where you could have blamed external factors. What did you do instead?",
+          validates: "Bias toward responsibility over excuses",
+        },
+        {
+          question:
+            "Tell us about a decision you made that did not work. How did you handle it?",
+          validates: "Learning agility and corrective action",
+        },
+      ],
+    },
+    {
+      title: "Systems Thinking",
+      questions: [
+        {
+          question:
+            "Describe a decision that impacted finance, quality, or operations beyond your department. What did you do?",
+          validates: "Enterprise-level thinking and downstream awareness",
+        },
+        {
+          question:
+            "Tell us about a time fixing one problem created another. How did you handle it?",
+          validates: "Ability to anticipate unintended consequences",
+        },
+        {
+          question:
+            "Describe how you partnered with finance or operations.",
+          validates: "Cross-functional problem solving",
+        },
+      ],
+    },
+    {
+      title: "Emotional Intelligence",
+      questions: [
+        {
+          question:
+            "Describe a time you were under intense pressure. How did others experience you?",
+          validates: "Self-awareness and composure",
+        },
+        {
+          question:
+            "Tell us about a time you misread a team. What did you do?",
+          validates: "Ability to learn from emotional misreads",
+        },
+        {
+          question:
+            "Describe how you de-escalated a tense situation.",
+          validates: "De-escalation and emotional leadership",
+        },
+      ],
+    },
+    {
+      title: "People Development",
+      questions: [
+        {
+          question:
+            "Tell us about someone you developed into a leadership role.",
+          validates: "Commitment to developing leaders",
+        },
+        {
+          question:
+            "Describe how you identify high-potential staff.",
+          validates: "Talent identification capability",
+        },
+        {
+          question:
+            "Tell us about coaching an under-performer.",
+          validates: "Coaching and performance management",
+        },
+      ],
+    },
+    {
+      title: "Stewardship",
+      questions: [
+        {
+          question:
+            "What do you see as the primary responsibility of the VP-PCS?",
+          validates: "Role identity and strategic mindset",
+        },
+        {
+          question:
+            "Describe a time nursing culture impacted patient outcomes.",
+          validates: "Understanding of culture-impact on outcomes",
+        },
+        {
+          question:
+            "Tell us about a time you had to say no to protect quality or culture.",
+          validates: "Courage to protect quality and standards",
+        },
+      ],
+    },
+    {
+      title: "Technical Competence",
+      questions: [
+        {
+          question:
+            "Walk us through your experience leading a QAPI program.",
+          validates: "Quality program leadership",
+        },
+        {
+          question:
+            "How have you ensured regulatory compliance (CMS, Joint Commission)?",
+          validates: "Regulatory knowledge and readiness",
+        },
+        {
+          question:
+            "How do you manage nursing labor productivity and staffing models?",
+          validates: "Operational and staffing management",
+        },
+        {
+          question:
+            "What role have you played in budgeting?",
+          validates: "Financial understanding and accountability",
+        },
+      ],
+    },
+  ],
+  final_summary_labels: [
+    "Relational Leadership",
+    "Accountability",
+    "Systems Thinking",
+    "Emotional Intelligence",
+    "People Development",
+    "Stewardship",
+    "Technical Competence",
+  ],
+};
+
+export function hasLockedRoleInterviewScorecard(roleTitle: string) {
+  return canonicalizeRoleTitle(roleTitle) === "VP - Patient Care Services";
+}
 
 function normalizeText(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9\s]/g, " ");
@@ -127,6 +295,10 @@ export async function generateRoleInterviewScorecardContent(options: {
     red_flags: string[];
   }[];
 }) {
+  if (hasLockedRoleInterviewScorecard(options.roleTitle)) {
+    return LOCKED_VP_PATIENT_CARE_SERVICES_SCORECARD;
+  }
+
   const openAIEnv = getOpenAIEnv();
   const openai = createOpenAIClient();
   const response = await openai.responses.parse({
@@ -183,6 +355,7 @@ export async function buildRoleInterviewScorecardDocumentBuffer(options: {
   roleTitle: string;
   content: RoleInterviewScorecardContent;
 }) {
+  const usesLockedTemplate = hasLockedRoleInterviewScorecard(options.roleTitle);
   const children: Paragraph[] = [
     new Paragraph({
       spacing: { after: 120 },
@@ -221,7 +394,9 @@ export async function buildRoleInterviewScorecardDocumentBuffer(options: {
   children.push(heading("Final Evaluation Summary", 26));
   children.push(
     body(
-      "Total the responses for each section and note the areas that matter most for this role.",
+      usesLockedTemplate
+        ? "Total the responses for each of the sections. Write the totals below. Circle the areas you feel are most important for the role of the VP-PCS."
+        : "Total the responses for each section and note the areas that matter most for this role.",
     ),
   );
 

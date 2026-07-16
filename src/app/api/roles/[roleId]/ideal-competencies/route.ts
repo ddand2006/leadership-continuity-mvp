@@ -5,9 +5,11 @@ import {
   createApiErrorResponse,
   requireApiWorkspaceProfile,
 } from "@/lib/api-route";
+import { invalidateRoleInterviewScorecard } from "@/lib/role-interview-scorecard-store";
 import { syncRoleCharacteristicLibrary } from "@/lib/role-characteristic-library";
 import { ROLE_CHARACTERISTIC_CATEGORIES } from "@/lib/role-characteristics";
 import { normalizeRoleCandidateCharacteristics } from "@/lib/role-characteristics-normalizer";
+import { canonicalizeRoleTitle } from "@/lib/role-title";
 
 const payloadSchema = z.object({
   talents: z.array(z.string().min(1)).default([]),
@@ -90,8 +92,14 @@ export async function POST(request: Request, context: RouteContext) {
       }
     }
 
+    await invalidateRoleInterviewScorecard({
+      admin,
+      organizationId: profile.organization_id,
+      roleId,
+    });
+
     return NextResponse.json({
-      message: `Ideal candidate competencies updated for "${roleResult.data.title}".`,
+      message: `Ideal candidate competencies updated for "${canonicalizeRoleTitle(roleResult.data.title)}".`,
       roleId,
       count: competencies.length,
     });

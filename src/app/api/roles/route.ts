@@ -5,6 +5,7 @@ import {
   createApiErrorResponse,
   requireApiWorkspaceProfile,
 } from "@/lib/api-route";
+import { invalidateRoleInterviewScorecard } from "@/lib/role-interview-scorecard-store";
 import { syncRoleCharacteristicLibrary } from "@/lib/role-characteristic-library";
 import { ROLE_CHARACTERISTIC_CATEGORIES } from "@/lib/role-characteristics";
 import { normalizeRoleCandidateCharacteristics } from "@/lib/role-characteristics-normalizer";
@@ -183,6 +184,14 @@ export async function POST(request: Request) {
       if (mentorAssignmentResult.error) {
         throw new ApiRouteError(mentorAssignmentResult.error.message, 500);
       }
+    }
+
+    if (payload.roleId) {
+      await invalidateRoleInterviewScorecard({
+        admin,
+        organizationId: profile.organization_id,
+        roleId: roleRecord.id,
+      });
     }
 
     return NextResponse.json({

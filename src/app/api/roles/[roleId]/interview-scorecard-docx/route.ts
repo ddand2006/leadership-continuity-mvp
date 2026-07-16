@@ -7,9 +7,9 @@ import {
 import { groupCharacteristicsByCategory } from "@/lib/role-characteristics";
 import {
   buildRoleInterviewScorecardDocumentBuffer,
-  generateRoleInterviewScorecardContent,
 } from "@/lib/role-interview-scorecard";
-import { hasOpenAIEnv } from "@/lib/env";
+import { getOrCreateRoleInterviewScorecard } from "@/lib/role-interview-scorecard-store";
+import { canonicalizeRoleTitle } from "@/lib/role-title";
 
 type RouteContext = {
   params: Promise<{
@@ -28,13 +28,6 @@ export const runtime = "nodejs";
 
 export async function GET(_request: Request, context: RouteContext) {
   try {
-    if (!hasOpenAIEnv()) {
-      throw new ApiRouteError(
-        "Add OPENAI_API_KEY to .env.local before generating interview resources.",
-        400,
-      );
-    }
-
     const { admin, profile } = await requireApiWorkspaceProfile({
       requireAdmin: true,
     });
@@ -83,6 +76,7 @@ export async function GET(_request: Request, context: RouteContext) {
       throw new ApiRouteError("Selected role could not be found.", 404);
     }
 
+    const roleTitle = canonicalizeRoleTitle(roleResult.data.title);
     if ((competenciesResult.data ?? []).length === 0) {
       throw new ApiRouteError(
         "Generate the role composite first so interview resources can be based on the role competencies.",
@@ -94,23 +88,29 @@ export async function GET(_request: Request, context: RouteContext) {
       characteristicsResult.data ?? [],
     );
 
-    const content = await generateRoleInterviewScorecardContent({
+    const roleCompetencies = (competenciesResult.data ?? []).map((competency) => ({
+      name: competency.name,
+      definition: competency.definition ?? "",
+      behavioral_indicators:
+        (competency.behavioral_indicators as string[] | null) ?? [],
+      red_flags: (competency.red_flags as string[] | null) ?? [],
+    }));
+
+    const content = await getOrCreateRoleInterviewScorecard({
+      admin,
+      organizationId: profile.organization_id,
       organizationName: organizationResult.data?.name ?? "Organization",
-      roleTitle: roleResult.data.title,
+      roleId,
+      roleTitle,
       roleDescription: roleResult.data.description ?? "",
+      generatedByProfileId: profile.id,
       idealCompetencies,
-      roleCompetencies: (competenciesResult.data ?? []).map((competency) => ({
-        name: competency.name,
-        definition: competency.definition ?? "",
-        behavioral_indicators:
-          (competency.behavioral_indicators as string[] | null) ?? [],
-        red_flags: (competency.red_flags as string[] | null) ?? [],
-      })),
+      roleCompetencies,
     });
 
     const buffer = await buildRoleInterviewScorecardDocumentBuffer({
       organizationName: organizationResult.data?.name ?? "Organization",
-      roleTitle: roleResult.data.title,
+      roleTitle,
       content,
     });
 
@@ -118,7 +118,7 @@ export async function GET(_request: Request, context: RouteContext) {
       headers: {
         "Content-Type":
           "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "Content-Disposition": `attachment; filename="${createSafeFileName(roleResult.data.title)}-interview-scorecard.docx"`,
+        "Content-Disposition": `attachment; filename="${createSafeFileName(roleTitle)}-interview-scorecard.docx"`,
       },
     });
   } catch (error) {
