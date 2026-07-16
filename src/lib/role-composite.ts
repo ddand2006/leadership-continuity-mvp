@@ -2,6 +2,7 @@ import { z } from "zod";
 import { zodTextFormat } from "openai/helpers/zod";
 import { getOpenAIEnv } from "@/lib/env";
 import { createOpenAIClient, serializeModelInput } from "@/lib/openai";
+import { getLockedRoleCompetencies } from "@/lib/role-locked-competencies";
 
 export const roleCompositeSchema = z.object({
   title: z.string().min(1),
@@ -276,18 +277,22 @@ function parseInterviewScorecardText(text: string): ParsedInterviewScorecard | n
 function convertInterviewScorecardToRoleComposite(
   scorecard: ParsedInterviewScorecard,
 ): RoleComposite {
+  const lockedCompetencies = getLockedRoleCompetencies(scorecard.roleTitle);
+
   return normalizeRoleComposite({
     title: scorecard.roleTitle,
     department: null,
     description: buildScorecardDescription(scorecard),
-    competencies: scorecard.sections.map((section) => ({
-      name: section.title,
-      definition: buildScorecardCompetencyDefinition(section),
-      weight: 1,
-      target_score: 4,
-      behavioral_indicators: buildScorecardBehavioralIndicators(section),
-      red_flags: buildScorecardRedFlags(section),
-    })),
+    competencies:
+      lockedCompetencies ??
+      scorecard.sections.map((section) => ({
+        name: section.title,
+        definition: buildScorecardCompetencyDefinition(section),
+        weight: 1,
+        target_score: 4,
+        behavioral_indicators: buildScorecardBehavioralIndicators(section),
+        red_flags: buildScorecardRedFlags(section),
+      })),
   });
 }
 
@@ -356,8 +361,12 @@ export async function extractRoleCompositeFromText(options: {
     throw new Error("OpenAI returned no parsed role composite.");
   }
 
+  const normalizedComposite = normalizeRoleComposite(response.output_parsed);
+  const lockedCompetencies = getLockedRoleCompetencies(normalizedComposite.title);
+
   return {
-    ...normalizeRoleComposite(response.output_parsed),
+    ...normalizedComposite,
+    competencies: lockedCompetencies ?? normalizedComposite.competencies,
     source_document_type: "role_composite" as const,
   };
 }
@@ -370,6 +379,17 @@ export async function generateRoleCompositeFromIdealCompetencies(options: {
   skills: string[];
   behaviors: string[];
 }) {
+  const lockedCompetencies = getLockedRoleCompetencies(options.title);
+
+  if (lockedCompetencies) {
+    return normalizeRoleComposite({
+      title: options.title,
+      department: options.department,
+      description: options.description,
+      competencies: lockedCompetencies,
+    });
+  }
+
   const openAIEnv = getOpenAIEnv();
   const openai = createOpenAIClient();
   const response = await openai.responses.parse({

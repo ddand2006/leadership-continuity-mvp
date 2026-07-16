@@ -15,6 +15,7 @@ import {
 } from "@/lib/role-composite-document";
 import { generateRoleCompositeFromIdealCompetencies } from "@/lib/role-composite";
 import { groupCharacteristicsByCategory } from "@/lib/role-characteristics";
+import { canonicalizeRoleTitle } from "@/lib/role-title";
 
 const payloadSchema = z.object({
   roleId: z.string().uuid(),
@@ -91,6 +92,8 @@ export async function POST(request: Request) {
       throw new ApiRouteError("Selected role could not be found.", 404);
     }
 
+    const roleTitle = canonicalizeRoleTitle(roleResult.data.title);
+
     if (existingDocumentResult.data) {
       throw new ApiRouteError(
         "A role composite document already exists for this role. Download it, edit it in Word, and upload corrections manually instead of regenerating.",
@@ -117,7 +120,7 @@ export async function POST(request: Request) {
 
     if (roleCompetencies.length === 0) {
       const generatedComposite = await generateRoleCompositeFromIdealCompetencies({
-        title: roleResult.data.title,
+        title: roleTitle,
         department: roleResult.data.department,
         description: roleResult.data.description,
         talents: idealCompetencies.talents,
@@ -128,9 +131,10 @@ export async function POST(request: Request) {
       const insertCompetenciesResult = await admin
         .from("role_competencies")
         .insert(
-          generatedComposite.competencies.map((competency) => ({
+          generatedComposite.competencies.map((competency, index) => ({
             organization_id: profile.organization_id,
             role_id: payload.roleId,
+            created_at: new Date(Date.now() + index * 1000).toISOString(),
             ...competency,
           })),
         )
@@ -149,7 +153,7 @@ export async function POST(request: Request) {
       organizationResult.data?.name ?? "Organization";
     const documentContent = await generateRoleCompositeDocumentContent({
       organizationName,
-      roleTitle: roleResult.data.title,
+      roleTitle,
       roleDepartment: roleResult.data.department,
       roleDescription: roleResult.data.description,
       idealCompetencies,
@@ -165,12 +169,12 @@ export async function POST(request: Request) {
 
     const buffer = await buildRoleCompositeDocumentBuffer({
       organizationName,
-      roleTitle: roleResult.data.title,
+      roleTitle,
       content: documentContent,
     });
 
     const bucket = getRoleCompositeDocumentsBucket();
-    const fileName = `${createSafeFileName(roleResult.data.title)}-role-composite.docx`;
+    const fileName = `${createSafeFileName(roleTitle)}-role-composite.docx`;
     const storagePath = buildRoleCompositeDocumentStoragePath({
       organizationId: profile.organization_id,
       roleId: payload.roleId,
@@ -211,7 +215,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({
-      message: `Role composite created for "${roleResult.data.title}". Download the Word file, make any edits manually, and upload the corrected version if needed.`,
+      message: `Role composite created for "${roleTitle}". Download the Word file, make any edits manually, and upload the corrected version if needed.`,
       roleId: payload.roleId,
       competenciesCreated: roleCompetencies.length,
     });

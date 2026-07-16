@@ -7,7 +7,10 @@ export function canonicalizeRoleTitle(value: string | null | undefined) {
     return "";
   }
 
-  const normalizedValue = trimmedValue.toLowerCase().replace(/\s+/g, " ");
+  const normalizedValue = trimmedValue
+    .toLowerCase()
+    .replace(/[‐‑‒–—−]/g, "-")
+    .replace(/\s+/g, " ");
 
   if (
     normalizedValue === "assistant administrator of patient care services" ||

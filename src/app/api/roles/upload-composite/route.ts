@@ -194,9 +194,10 @@ export async function POST(request: Request) {
     }
 
     const insertCompetenciesResult = await admin.from("role_competencies").insert(
-      extractedComposite.competencies.map((competency) => ({
+      extractedComposite.competencies.map((competency, index) => ({
         organization_id: profile.organization_id,
         role_id: currentRoleId,
+        created_at: new Date(Date.now() + index * 1000).toISOString(),
         ...competency,
       })),
     );
