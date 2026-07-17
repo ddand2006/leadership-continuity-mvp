@@ -331,48 +331,7 @@ export function LeadershipDevelopmentRecordManager({
     if (nextAssignmentKey && nextAssignmentKey !== selectedAssignmentKey) {
       setSelectedAssignmentKey(nextAssignmentKey);
     }
-
-    if (initialSelectedProjectId) {
-      const matchingProject =
-        selectedAssignment?.roleId
-          ? currentSourceProjects.find(
-              (project) => project.id === initialSelectedProjectId,
-            ) ?? null
-          : null;
-
-      setPendingInitialProjectId(initialSelectedProjectId);
-      setPendingInitialRecordId("");
-      setSelectedRecordId("");
-      setProjectDetailsOpen(true);
-
-      if (matchingProject && selectedAssignment) {
-        applySelectedProject(selectedAssignment, matchingProject);
-        setPendingInitialProjectId("");
-      } else {
-        setSelectedProjectId("");
-      }
-
-      return;
-    }
-
-    if (initialSelectedRecordId) {
-      setPendingInitialRecordId(initialSelectedRecordId);
-      setSelectedProjectId("");
-      setProjectDetailsOpen(false);
-      return;
-    }
-
-    setPendingInitialRecordId("");
-    setPendingInitialProjectId("");
-  }, [
-    assignments,
-    currentSourceProjects,
-    initialSelectedAssignmentKey,
-    initialSelectedProjectId,
-    initialSelectedRecordId,
-    selectedAssignment,
-    selectedAssignmentKey,
-  ]);
+  }, [assignments, initialSelectedAssignmentKey, selectedAssignmentKey]);
 
   function applySelectedRecord(
     nextSelectedAssignment: LeadershipDevelopmentAssignmentOption,
@@ -426,7 +385,7 @@ export function LeadershipDevelopmentRecordManager({
         mentorId: selectedAssignment.mentorProfileId,
       });
 
-      const requestedProjectId = pendingInitialProjectId || initialSelectedProjectId || "";
+      const requestedProjectId = pendingInitialProjectId;
 
       if (requestedProjectId) {
         params.set("projectId", requestedProjectId);
