@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   LEADERSHIP_DEVELOPMENT_GROWTH_AREAS,
   LEADERSHIP_DEVELOPMENT_READINESS_SIGNALS,
@@ -258,6 +258,7 @@ export function LeadershipDevelopmentRecordManager({
   const [openSections, setOpenSections] = useState(createOpenSectionState);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const selectionRevisionRef = useRef(0);
 
   const selectedAssignment = useMemo(
     () =>
@@ -337,7 +338,14 @@ export function LeadershipDevelopmentRecordManager({
     nextSelectedAssignment: LeadershipDevelopmentAssignmentOption,
     records: LeadershipDevelopmentRecordRecord[],
     nextRecordId: string,
+    options?: {
+      userInitiated?: boolean;
+    },
   ) {
+    if (options?.userInitiated) {
+      selectionRevisionRef.current += 1;
+    }
+
     setSelectedProjectId("");
     setSelectedRecordId(nextRecordId);
     setFormState(
@@ -355,7 +363,14 @@ export function LeadershipDevelopmentRecordManager({
   function applySelectedProject(
     nextSelectedAssignment: LeadershipDevelopmentAssignmentOption,
     project: MentoringSourceProject,
+    options?: {
+      userInitiated?: boolean;
+    },
   ) {
+    if (options?.userInitiated) {
+      selectionRevisionRef.current += 1;
+    }
+
     setSelectedRecordId("");
     setSelectedProjectId(project.id);
     setProjectDetailsOpen(true);
@@ -373,6 +388,7 @@ export function LeadershipDevelopmentRecordManager({
     }
 
     const controller = new AbortController();
+    const selectionRevisionAtLoad = selectionRevisionRef.current;
 
     async function loadRecords() {
       setIsLoading(true);
@@ -457,6 +473,12 @@ export function LeadershipDevelopmentRecordManager({
           selectedRecordId && records.some((record) => record.id === selectedRecordId)
             ? selectedRecordId
             : "";
+        const shouldPreserveUserSelection =
+          selectionRevisionRef.current !== selectionRevisionAtLoad;
+
+        if (shouldPreserveUserSelection) {
+          return;
+        }
 
         if (initialProjectForRoute) {
           const matchedProject =
@@ -728,6 +750,7 @@ export function LeadershipDevelopmentRecordManager({
       return;
     }
 
+    selectionRevisionRef.current += 1;
     setPendingInitialProjectId("");
     setSelectedProjectId("");
     setSelectedRecordId("");
@@ -870,6 +893,7 @@ export function LeadershipDevelopmentRecordManager({
                     (assignment) => getAssignmentKey(assignment) === nextAssignmentKey,
                   ) ?? null;
 
+                selectionRevisionRef.current += 1;
                 setSelectedAssignmentKey(nextAssignmentKey);
                 setPendingInitialProjectId("");
                 setSelectedProjectId("");
@@ -940,7 +964,9 @@ export function LeadershipDevelopmentRecordManager({
                         ) ?? null;
 
                       if (nextProject) {
-                        applySelectedProject(selectedAssignment, nextProject);
+                        applySelectedProject(selectedAssignment, nextProject, {
+                          userInitiated: true,
+                        });
                       }
 
                       return;
@@ -949,7 +975,9 @@ export function LeadershipDevelopmentRecordManager({
                     const nextRecordId = nextValue.startsWith("record:")
                       ? nextValue.slice("record:".length)
                       : nextValue;
-                    applySelectedRecord(selectedAssignment, currentRecords, nextRecordId);
+                    applySelectedRecord(selectedAssignment, currentRecords, nextRecordId, {
+                      userInitiated: true,
+                    });
                   }}
                   className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500"
                 >
@@ -1003,7 +1031,10 @@ export function LeadershipDevelopmentRecordManager({
 
                   <button
                     type="button"
-                    onClick={() => setProjectDetailsOpen((current) => !current)}
+                    onClick={() => {
+                      selectionRevisionRef.current += 1;
+                      setProjectDetailsOpen((current) => !current);
+                    }}
                     className="rounded-full border border-teal-200 bg-white px-4 py-2 text-sm font-semibold text-teal-900 transition hover:bg-teal-100"
                   >
                     {projectDetailsOpen ? "Hide Project Details" : "Show Project Details"}
