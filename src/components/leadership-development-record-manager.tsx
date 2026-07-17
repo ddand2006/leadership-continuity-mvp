@@ -239,6 +239,35 @@ function dedupeLeadershipDevelopmentRecords(
   });
 }
 
+function normalizeProjectRecordComparisonValue(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function findRecordForProject(
+  project: MentoringSourceProject,
+  records: LeadershipDevelopmentRecordRecord[],
+) {
+  const normalizedProjectId = normalizeProjectRecordComparisonValue(project.id);
+  const normalizedProjectTitle = normalizeProjectRecordComparisonValue(project.title);
+
+  return (
+    records.find((record) => {
+      const normalizedRecordSourceProjectId = normalizeProjectRecordComparisonValue(
+        record.sourceProjectAssignmentId,
+      );
+      const normalizedRecordTitle = normalizeProjectRecordComparisonValue(
+        record.experienceTitle,
+      );
+
+      return (
+        (normalizedRecordSourceProjectId.length > 0 &&
+          normalizedRecordSourceProjectId === normalizedProjectId) ||
+        normalizedRecordTitle === normalizedProjectTitle
+      );
+    }) ?? null
+  );
+}
+
 function clearStickySelectionParamsFromUrl() {
   if (typeof window === "undefined") {
     return;
@@ -334,10 +363,6 @@ export function LeadershipDevelopmentRecordManager({
   const linkedSourceProject =
     selectedSourceProject ??
     findLinkedProjectForRecord(selectedRecord, visibleSourceProjects);
-  const completedRecords = currentRecords.filter(
-    (record) => record.status === "completed",
-  );
-
   useEffect(() => {
     if (!selectedAssignment) {
       return;
@@ -419,7 +444,13 @@ export function LeadershipDevelopmentRecordManager({
       selectionRevisionRef.current += 1;
     }
 
-    setSelectedRecordId("");
+    const matchingRecord =
+      findRecordForProject(
+        project,
+        recordsByAssignmentKey[getAssignmentKey(nextSelectedAssignment)] ?? [],
+      ) ?? null;
+
+    setSelectedRecordId(matchingRecord?.id ?? "");
     setSelectedProjectId(project.id);
     setProjectDetailsOpen(true);
     setFormState(
@@ -1037,12 +1068,7 @@ export function LeadershipDevelopmentRecordManager({
                   className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500"
                 >
                   <option value="">Create a new development record</option>
-                  {visibleSourceProjects.map((project) => (
-                    <option key={project.id} value={`project:${project.id}`}>
-                      Start from project: {createProjectLabel(project)}
-                    </option>
-                  ))}
-                  {completedRecords.map((record) => (
+                  {currentRecords.map((record) => (
                     <option key={record.id} value={`record:${record.id}`}>
                       Review saved record: {createRecordLabel(record)}
                     </option>
