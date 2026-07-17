@@ -239,33 +239,6 @@ function dedupeLeadershipDevelopmentRecords(
   });
 }
 
-function normalizeProjectRecordComparisonValue(value: string) {
-  return value.trim().toLowerCase();
-}
-
-function projectHasSavedRecord(
-  project: MentoringSourceProject,
-  records: LeadershipDevelopmentRecordRecord[],
-) {
-  const normalizedProjectId = normalizeProjectRecordComparisonValue(project.id);
-  const normalizedProjectTitle = normalizeProjectRecordComparisonValue(project.title);
-
-  return records.some((record) => {
-    const normalizedRecordSourceProjectId = normalizeProjectRecordComparisonValue(
-      record.sourceProjectAssignmentId,
-    );
-    const normalizedRecordTitle = normalizeProjectRecordComparisonValue(
-      record.experienceTitle,
-    );
-
-    return (
-      (normalizedRecordSourceProjectId.length > 0 &&
-        normalizedRecordSourceProjectId === normalizedProjectId) ||
-      normalizedRecordTitle === normalizedProjectTitle
-    );
-  });
-}
-
 function clearStickySelectionParamsFromUrl() {
   if (typeof window === "undefined") {
     return;
@@ -361,9 +334,8 @@ export function LeadershipDevelopmentRecordManager({
   const linkedSourceProject =
     selectedSourceProject ??
     findLinkedProjectForRecord(selectedRecord, visibleSourceProjects);
-  const sourceProjectsWithoutSavedRecords = visibleSourceProjects.filter(
-    (project) =>
-      project.id === selectedProjectId || !projectHasSavedRecord(project, currentRecords),
+  const completedRecords = currentRecords.filter(
+    (record) => record.status === "completed",
   );
 
   useEffect(() => {
@@ -905,8 +877,13 @@ export function LeadershipDevelopmentRecordManager({
           [assignmentKey]: nextRecords,
         };
       });
-      setSelectedProjectId("");
-      setSelectedRecordId(nextRecord.id);
+      if (payload.sourceProjectAssignmentId) {
+        setSelectedProjectId(payload.sourceProjectAssignmentId);
+        setSelectedRecordId("");
+      } else {
+        setSelectedProjectId("");
+        setSelectedRecordId(nextRecord.id);
+      }
       setFormState(nextRecord);
       setSuccess(result.message ?? "Leadership development record saved.");
     });
@@ -1060,12 +1037,12 @@ export function LeadershipDevelopmentRecordManager({
                   className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500"
                 >
                   <option value="">Create a new development record</option>
-                  {sourceProjectsWithoutSavedRecords.map((project) => (
+                  {visibleSourceProjects.map((project) => (
                     <option key={project.id} value={`project:${project.id}`}>
                       Start from project: {createProjectLabel(project)}
                     </option>
                   ))}
-                  {currentRecords.map((record) => (
+                  {completedRecords.map((record) => (
                     <option key={record.id} value={`record:${record.id}`}>
                       Review saved record: {createRecordLabel(record)}
                     </option>
