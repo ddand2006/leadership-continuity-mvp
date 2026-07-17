@@ -851,6 +851,7 @@ export default async function MentoringPage({
       label: "Leadership Development Record",
       content: (
         <LeadershipDevelopmentRecordManager
+          key={`${selectedAssignmentKey ?? "no-assignment"}:${requestedProjectId ?? "no-project"}`}
           assignments={visibleAssignments.map((assignment) => ({
             candidateId: assignment.candidate_id,
             roleId: assignment.role_id,

@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { GeneratedCandidateMentoringIdea } from "@/lib/candidate-mentoring-ideas";
 import type { RankedProjectMatch } from "@/lib/fit-analysis";
@@ -109,7 +108,6 @@ export function MentorReportMatchExplorer({
   roleId: string | null;
   canGenerateCandidateIdeas: boolean;
 }) {
-  const router = useRouter();
   const [selectedCompetencyName, setSelectedCompetencyName] = useState(
     matches[0]?.competency ?? "",
   );
@@ -306,7 +304,7 @@ export function MentorReportMatchExplorer({
       }
 
       if (payload.navigation?.href) {
-        router.push(payload.navigation.href);
+        window.location.assign(payload.navigation.href);
         return;
       }
 

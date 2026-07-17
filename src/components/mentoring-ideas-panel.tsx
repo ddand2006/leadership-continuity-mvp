@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { GeneratedCandidateMentoringIdea } from "@/lib/candidate-mentoring-ideas";
 import type { RankedProjectMatch } from "@/lib/fit-analysis";
@@ -26,7 +25,6 @@ export function MentoringIdeasPanel({
   roleId?: string;
   competencyId?: string;
 }) {
-  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [generatedIdeas, setGeneratedIdeas] = useState<
     GeneratedCandidateMentoringIdea[]
@@ -73,7 +71,7 @@ export function MentoringIdeasPanel({
       }
 
       if (payload.navigation?.href) {
-        router.push(payload.navigation.href);
+        window.location.assign(payload.navigation.href);
         return;
       }
 
