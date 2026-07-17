@@ -365,6 +365,12 @@ export function LeadershipDevelopmentRecordManager({
         mentorId: selectedAssignment.mentorProfileId,
       });
 
+      const requestedProjectId = pendingInitialProjectId || initialSelectedProjectId || "";
+
+      if (requestedProjectId) {
+        params.set("projectId", requestedProjectId);
+      }
+
       try {
         const response = await fetch(
           `/api/mentoring/leadership-development-record?${params.toString()}`,

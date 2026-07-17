@@ -34,6 +34,7 @@ const leadershipDevelopmentQuerySchema = z.object({
   candidateId: z.string().uuid(),
   roleId: z.string().uuid(),
   mentorId: z.string().uuid(),
+  projectId: z.string().uuid().optional(),
 });
 
 function assertScore(value: string, fieldLabel: string) {
@@ -218,6 +219,7 @@ export async function GET(request: Request) {
       candidateId: url.searchParams.get("candidateId"),
       roleId: url.searchParams.get("roleId"),
       mentorId: url.searchParams.get("mentorId"),
+      projectId: url.searchParams.get("projectId") ?? undefined,
     });
 
     ensureUserCanAccessRecord({
@@ -417,10 +419,14 @@ export async function GET(request: Request) {
           mentorNotes: assignment.mentor_notes,
         });
 
-        return mentoringSourceProjectMatchesRoleTitle(
-          sourceProject,
-          canonicalRoleTitle,
-        )
+        const matchesRequestedProject =
+          query.projectId === assignment.id || query.projectId === project.id;
+
+        return matchesRequestedProject ||
+          mentoringSourceProjectMatchesRoleTitle(
+            sourceProject,
+            canonicalRoleTitle,
+          )
           ? sourceProject
           : null;
       })
