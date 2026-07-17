@@ -240,15 +240,36 @@ export function LeadershipDevelopmentRecordManager({
     }
 
     if (initialSelectedProjectId) {
+      const matchingProject =
+        selectedAssignment?.roleId
+          ? currentSourceProjects.find(
+              (project) => project.id === initialSelectedProjectId,
+            ) ?? null
+          : null;
+
       setPendingInitialProjectId(initialSelectedProjectId);
-      setSelectedProjectId("");
       setSelectedRecordId("");
       setProjectDetailsOpen(true);
+
+      if (matchingProject && selectedAssignment) {
+        applySelectedProject(selectedAssignment, matchingProject);
+        setPendingInitialProjectId("");
+      } else {
+        setSelectedProjectId("");
+      }
+
       return;
     }
 
     setPendingInitialProjectId("");
-  }, [assignments, initialSelectedAssignmentKey, initialSelectedProjectId, selectedAssignmentKey]);
+  }, [
+    assignments,
+    currentSourceProjects,
+    initialSelectedAssignmentKey,
+    initialSelectedProjectId,
+    selectedAssignment,
+    selectedAssignmentKey,
+  ]);
 
   function applySelectedRecord(
     nextSelectedAssignment: LeadershipDevelopmentAssignmentOption,
@@ -411,7 +432,7 @@ export function LeadershipDevelopmentRecordManager({
     loadRecords();
 
     return () => controller.abort();
-  }, [selectedAssignment, selectedRecordId]);
+  }, [pendingInitialProjectId, selectedAssignment, selectedRecordId]);
 
   function toggleSection(sectionId: CollapsibleSectionId) {
     setOpenSections((current) => ({
