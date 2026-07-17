@@ -24,6 +24,11 @@ import {
   type LeadershipDevelopmentFeedbackInput,
   type LeadershipDevelopmentRecordRecord,
 } from "@/lib/leadership-development-record";
+import {
+  buildMentoringSourceProject,
+  mentoringSourceProjectMatchesRoleTitle,
+} from "@/lib/mentoring-source-project";
+import { canonicalizeRoleTitle } from "@/lib/role-title";
 
 const leadershipDevelopmentQuerySchema = z.object({
   candidateId: z.string().uuid(),
@@ -144,14 +149,14 @@ function normalizeRecordFromDatabase(record: {
     readiness_score: number;
     evidence_comments: string | null;
   }>;
-}): LeadershipDevelopmentRecordRecord {
+}, resolvedTargetRole?: string | null): LeadershipDevelopmentRecordRecord {
   return {
     id: record.id,
     candidateId: record.candidate_id,
     roleId: record.role_id,
     mentorId: record.mentor_id,
     candidateName: record.candidate_name,
-    targetRole: record.target_role,
+    targetRole: resolvedTargetRole?.trim() || record.target_role,
     primaryMentor: record.primary_mentor,
     dateAssigned: record.date_assigned,
     status: record.status,
@@ -228,7 +233,7 @@ export async function GET(request: Request) {
       mentorId: query.mentorId,
     });
 
-    const [candidateResult, mentorResult] = await Promise.all([
+    const [candidateResult, mentorResult, roleResult] = await Promise.all([
       admin
         .from("candidates")
         .select("full_name")
@@ -241,15 +246,21 @@ export async function GET(request: Request) {
         .eq("organization_id", profile.organization_id)
         .eq("id", query.mentorId)
         .maybeSingle(),
+      admin
+        .from("roles")
+        .select("title")
+        .eq("organization_id", profile.organization_id)
+        .eq("id", query.roleId)
+        .maybeSingle(),
     ]);
 
-    if (candidateResult.error) {
-      throw new ApiRouteError(candidateResult.error.message, 500);
+    for (const result of [candidateResult, mentorResult, roleResult]) {
+      if (result.error) {
+        throw new ApiRouteError(result.error.message, 500);
+      }
     }
 
-    if (mentorResult.error) {
-      throw new ApiRouteError(mentorResult.error.message, 500);
-    }
+    const canonicalRoleTitle = canonicalizeRoleTitle(roleResult.data?.title ?? null);
 
     const recordsResult = await admin
       .from("development_records")
@@ -319,6 +330,42 @@ export async function GET(request: Request) {
       }
     }
 
+    const projectAssignmentsResult = await admin
+      .from("candidate_project_assignments")
+      .select(
+        "id, development_project_id, status, start_date, due_date, mentor_notes, created_at",
+      )
+      .eq("organization_id", profile.organization_id)
+      .eq("candidate_id", query.candidateId)
+      .eq("mentor_profile_id", query.mentorId)
+      .order("created_at", { ascending: false });
+
+    if (projectAssignmentsResult.error) {
+      throw new ApiRouteError(projectAssignmentsResult.error.message, 500);
+    }
+
+    const developmentProjectIds = Array.from(
+      new Set(
+        (projectAssignmentsResult.data ?? []).map(
+          (assignment) => assignment.development_project_id,
+        ),
+      ),
+    );
+    const developmentProjectsResult =
+      developmentProjectIds.length > 0
+        ? await admin
+            .from("development_projects")
+            .select(
+              "id, title, description, duration_days, competencies_developed, expected_outcomes, mentor_questions, evidence_of_success, applicable_roles",
+            )
+            .eq("organization_id", profile.organization_id)
+            .in("id", developmentProjectIds)
+        : { data: [], error: null };
+
+    if (developmentProjectsResult.error) {
+      throw new ApiRouteError(developmentProjectsResult.error.message, 500);
+    }
+
     const competenciesByRecordId = new Map<string, typeof competenciesResult.data>();
     const leadersByRecordId = new Map<string, typeof leadersResult.data>();
     const feedbackByRecordId = new Map<string, typeof feedbackResult.data>();
@@ -341,6 +388,57 @@ export async function GET(request: Request) {
       feedbackByRecordId.set(feedback.development_record_id, current);
     }
 
+    const projectById = new Map(
+      (developmentProjectsResult.data ?? []).map((project) => [project.id, project]),
+    );
+    const projects = (projectAssignmentsResult.data ?? [])
+      .map((assignment) => {
+        const project = projectById.get(assignment.development_project_id);
+
+        if (!project) {
+          return null;
+        }
+
+        const sourceProject = buildMentoringSourceProject({
+          id: project.id,
+          title: project.title,
+          description: project.description,
+          durationDays: project.duration_days,
+          competencyNames: project.competencies_developed,
+          applicableRoles: project.applicable_roles,
+          successMeasures: project.expected_outcomes,
+          reflectionQuestions: project.mentor_questions,
+          successSignals: project.evidence_of_success,
+          startDate: assignment.start_date,
+          dueDate: assignment.due_date,
+          status: assignment.status,
+          mentorNotes: assignment.mentor_notes,
+        });
+
+        return mentoringSourceProjectMatchesRoleTitle(
+          sourceProject,
+          canonicalRoleTitle,
+        )
+          ? sourceProject
+          : null;
+      })
+      .filter((project): project is NonNullable<typeof project> => project !== null);
+
+    const competencyNamesUsedByRecords = new Set(
+      (recordsResult.data ?? []).flatMap((record) =>
+        (competenciesByRecordId.get(record.id) ?? []).map(
+          (competency) => competency.competency_name,
+        ),
+      ),
+    );
+    const sourceProjectsWithFallbackCompetencies = projects.map((project) => ({
+      ...project,
+      competencyNames:
+        project.competencyNames.length > 0
+          ? project.competencyNames
+          : Array.from(competencyNamesUsedByRecords).slice(0, 1),
+    }));
+
     return NextResponse.json({
       records: (recordsResult.data ?? []).map((record) =>
         normalizeRecordFromDatabase({
@@ -350,8 +448,9 @@ export async function GET(request: Request) {
           competencies: competenciesByRecordId.get(record.id) ?? [],
           leaders: leadersByRecordId.get(record.id) ?? [],
           feedback: feedbackByRecordId.get(record.id) ?? [],
-        }),
+        }, canonicalRoleTitle),
       ),
+      projects: sourceProjectsWithFallbackCompetencies,
     });
   } catch (error) {
     return createApiErrorResponse(
@@ -380,6 +479,22 @@ export async function POST(request: Request) {
       mentorId: payload.mentorId,
     });
 
+    const roleResult = await admin
+      .from("roles")
+      .select("title")
+      .eq("organization_id", profile.organization_id)
+      .eq("id", payload.roleId)
+      .maybeSingle();
+
+    if (roleResult.error) {
+      throw new ApiRouteError(roleResult.error.message, 500);
+    }
+
+    if (!roleResult.data) {
+      throw new ApiRouteError("Target role could not be found.", 404);
+    }
+
+    const roleTitle = canonicalizeRoleTitle(roleResult.data.title);
     const filledCompetencies = payload.competencies.filter(
       isFilledLeadershipDevelopmentCompetency,
     );
@@ -505,7 +620,7 @@ export async function POST(request: Request) {
       candidate_id: payload.candidateId,
       role_id: payload.roleId,
       mentor_id: payload.mentorId,
-      target_role: payload.targetRole,
+      target_role: roleTitle,
       date_assigned: payload.dateAssigned,
       status: payload.status,
       growth_areas: payload.growthAreas,

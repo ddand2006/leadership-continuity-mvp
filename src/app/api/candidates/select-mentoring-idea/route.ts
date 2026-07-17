@@ -5,7 +5,12 @@ import {
   createApiErrorResponse,
   requireApiWorkspaceProfile,
 } from "@/lib/api-route";
+import {
+  buildCandidateSpecificProjectDescription,
+  buildMentoringProjectAssignmentNotes,
+} from "@/lib/mentoring-source-project";
 import { isAdminAppRole, mentorHasCandidateAccess } from "@/lib/mentor-access";
+import { canonicalizeRoleTitle } from "@/lib/role-title";
 
 const payloadSchema = z.object({
   candidateId: z.string().uuid(),
@@ -119,7 +124,27 @@ export async function POST(request: Request) {
       );
     }
 
+    const roleTitle = canonicalizeRoleTitle(roleResult.data.title);
+    const activeMentorAssignments = (mentorAssignmentsResult.data ?? []).filter(
+      (assignment) => assignment.status === "active",
+    );
+    const selectedMentorAssignment =
+      activeMentorAssignments.find(
+        (assignment) => assignment.mentor_profile_id === profile.id,
+      ) ??
+      activeMentorAssignments[0] ??
+      null;
+
+    if (!selectedMentorAssignment?.mentor_profile_id) {
+      throw new ApiRouteError(
+        "Assign a mentor to this candidate-role track before choosing a project.",
+        409,
+      );
+    }
+
+    const mentoringTrackMentorProfileId = selectedMentorAssignment.mentor_profile_id;
     let developmentProjectId = existingProjectResult.data?.id ?? null;
+    const projectDescription = buildCandidateSpecificProjectDescription(payload.idea);
 
     if (!developmentProjectId) {
       const insertProjectResult = await admin
@@ -127,23 +152,10 @@ export async function POST(request: Request) {
         .insert({
           organization_id: profile.organization_id,
           title: payload.idea.title,
-          description: [
-            `Project type: ${payload.idea.project_type === "cross_departmental" ? "Cross-Departmental Project" : "Departmental Project"}`,
-            `Purpose: ${payload.idea.purpose}`,
-            payload.idea.description,
-            "",
-            `Working goal: ${payload.idea.working_goal}`,
-            `Why it fits: ${payload.idea.why_it_fits}`,
-            `How strengths can help: ${payload.idea.strengths_application}`,
-            `Mentor focus: ${payload.idea.mentor_focus}`,
-            `First step: ${payload.idea.first_step}`,
-            `Key partners: ${payload.idea.key_partners.join(", ")}`,
-            `Leadership actions required: ${payload.idea.leadership_actions_required.join(" • ")}`,
-            `Anticipated challenges: ${payload.idea.anticipated_challenges.join(" • ")}`,
-          ].join("\n"),
+          description: projectDescription,
           difficulty: "intermediate",
           duration_days: payload.idea.duration_days,
-          applicable_roles: [roleResult.data.title],
+          applicable_roles: [roleTitle],
           competencies_developed: [competencyResult.data.name],
           strengths_leveraged: [],
           expected_outcomes: payload.idea.success_measures,
@@ -160,19 +172,59 @@ export async function POST(request: Request) {
       developmentProjectId = insertProjectResult.data.id;
     }
 
-    const existingAssignmentResult = await admin
+    const matchingAssignmentResult = await admin
       .from("candidate_project_assignments")
-      .select("id")
+      .select("id, mentor_profile_id")
       .eq("organization_id", profile.organization_id)
       .eq("candidate_id", payload.candidateId)
       .eq("development_project_id", developmentProjectId)
+      .eq("mentor_profile_id", mentoringTrackMentorProfileId)
       .maybeSingle();
 
-    if (existingAssignmentResult.error) {
-      throw new ApiRouteError(existingAssignmentResult.error.message, 500);
+    if (matchingAssignmentResult.error) {
+      throw new ApiRouteError(matchingAssignmentResult.error.message, 500);
     }
 
-    if (!existingAssignmentResult.data) {
+    const unscopedAssignmentResult = matchingAssignmentResult.data
+      ? { data: null, error: null }
+      : await admin
+          .from("candidate_project_assignments")
+          .select("id")
+          .eq("organization_id", profile.organization_id)
+          .eq("candidate_id", payload.candidateId)
+          .eq("development_project_id", developmentProjectId)
+          .is("mentor_profile_id", null)
+          .maybeSingle();
+
+    if (unscopedAssignmentResult.error) {
+      throw new ApiRouteError(unscopedAssignmentResult.error.message, 500);
+    }
+
+    const assignmentNotes = buildMentoringProjectAssignmentNotes({
+      roleTitle,
+      competencyName: competencyResult.data.name,
+    });
+    let candidateProjectAssignmentId =
+      matchingAssignmentResult.data?.id ?? unscopedAssignmentResult.data?.id ?? null;
+
+    if (unscopedAssignmentResult.data) {
+      const updateAssignmentResult = await admin
+        .from("candidate_project_assignments")
+        .update({
+          mentor_profile_id: mentoringTrackMentorProfileId,
+          mentor_notes: assignmentNotes,
+        })
+        .eq("organization_id", profile.organization_id)
+        .eq("id", unscopedAssignmentResult.data.id)
+        .select("id")
+        .single();
+
+      if (updateAssignmentResult.error) {
+        throw new ApiRouteError(updateAssignmentResult.error.message, 500);
+      }
+
+      candidateProjectAssignmentId = updateAssignmentResult.data.id;
+    } else if (!matchingAssignmentResult.data) {
       const today = new Date();
       const dueDate = addDays(today, payload.idea.duration_days);
       const assignmentResult = await admin
@@ -180,21 +232,41 @@ export async function POST(request: Request) {
         .insert({
           organization_id: profile.organization_id,
           candidate_id: payload.candidateId,
-          mentor_profile_id: mentorHasAccess ? profile.id : null,
+          mentor_profile_id: mentoringTrackMentorProfileId,
           development_project_id: developmentProjectId,
           status: "assigned",
           start_date: toIsoDate(today),
           due_date: toIsoDate(dueDate),
-          mentor_notes: `Candidate-specific project selected for ${roleResult.data.title}. Focus competency: ${competencyResult.data.name}.`,
-        });
+          mentor_notes: assignmentNotes,
+        })
+        .select("id")
+        .single();
 
       if (assignmentResult.error) {
         throw new ApiRouteError(assignmentResult.error.message, 500);
+      }
+
+      candidateProjectAssignmentId = assignmentResult.data.id;
+    } else {
+      const updateAssignmentResult = await admin
+        .from("candidate_project_assignments")
+        .update({
+          mentor_notes: assignmentNotes,
+        })
+        .eq("organization_id", profile.organization_id)
+        .eq("id", matchingAssignmentResult.data.id);
+
+      if (updateAssignmentResult.error) {
+        throw new ApiRouteError(updateAssignmentResult.error.message, 500);
       }
     }
 
     return NextResponse.json({
       message: `"${payload.idea.title}" has been chosen for ${candidateResult.data.full_name}.`,
+      navigation: {
+        href: `/mentoring?section=leadership-development-record&candidateId=${payload.candidateId}&roleId=${payload.roleId}&mentorProfileId=${mentoringTrackMentorProfileId}&projectId=${developmentProjectId}`,
+      },
+      projectAssignmentId: candidateProjectAssignmentId,
     });
   } catch (error) {
     return createApiErrorResponse(error, "Unable to choose this mentoring project.");

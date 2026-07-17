@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { GeneratedCandidateMentoringIdea } from "@/lib/candidate-mentoring-ideas";
 import type { RankedProjectMatch } from "@/lib/fit-analysis";
@@ -108,6 +109,7 @@ export function MentorReportMatchExplorer({
   roleId: string | null;
   canGenerateCandidateIdeas: boolean;
 }) {
+  const router = useRouter();
   const [selectedCompetencyName, setSelectedCompetencyName] = useState(
     matches[0]?.competency ?? "",
   );
@@ -291,10 +293,21 @@ export function MentorReportMatchExplorer({
           idea,
         }),
       });
-      const payload = (await response.json()) as { error?: string; message?: string };
+      const payload = (await response.json()) as {
+        error?: string;
+        message?: string;
+        navigation?: {
+          href?: string;
+        };
+      };
 
       if (!response.ok) {
         throw new Error(payload.error ?? "Unable to choose this project.");
+      }
+
+      if (payload.navigation?.href) {
+        router.push(payload.navigation.href);
+        return;
       }
 
       setActionMessage(payload.message ?? "Project selected.");

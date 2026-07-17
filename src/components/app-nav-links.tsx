@@ -31,11 +31,13 @@ export function AppNavLinks({
   navItems,
   resourceNavItems,
   showResources,
+  trailingNavItems,
 }: {
   initialPathname: string;
   navItems: NavItem[];
   resourceNavItems: ResourceNavItem[];
   showResources: boolean;
+  trailingNavItems: NavItem[];
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -122,6 +124,25 @@ export function AppNavLinks({
           </div>
         </details>
       ) : null}
+
+      {trailingNavItems.map((item) => {
+        const isActive = isActiveNavItem(currentPath, item);
+
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            aria-current={isActive ? "page" : undefined}
+            className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+              isActive
+                ? "interactive-contrast border-teal-900 bg-teal-900 text-white shadow-[0_18px_40px_rgba(15,118,110,0.18)]"
+                : "border-slate-200/80 bg-white/85 text-slate-700 hover:-translate-y-0.5 hover:border-teal-200 hover:text-teal-900"
+            }`}
+          >
+            {item.label}
+          </Link>
+        );
+      })}
     </nav>
   );
 }

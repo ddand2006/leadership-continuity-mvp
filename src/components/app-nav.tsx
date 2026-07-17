@@ -141,9 +141,6 @@ export async function AppNav({ pathname }: { pathname: string }) {
         { href: "/", label: "Home" },
         ...(hasContinuityAccess && isAdmin ? [{ href: "/roles", label: "Roles" }] : []),
         ...(hasContinuityAccess ? [{ href: "/candidates", label: "Candidates" }] : []),
-        ...(hasLeadershipHelpAccess && hasLeadershipHelpPreviewAccess
-          ? [{ href: "/personal-development", label: "Personal Development" }]
-          : []),
         ...(hasContinuityAccess && (isAdmin || isMentor || isCandidate)
           ? [{ href: "/mentoring", label: "Mentoring" }]
           : []),
@@ -159,6 +156,10 @@ export async function AppNav({ pathname }: { pathname: string }) {
         { href: "/", label: "Home" },
         ...(isPaywallEnabled() ? [{ href: "/subscribe", label: "Access" }] : []),
       ];
+  const trailingNavItems =
+    user && hasLeadershipHelpAccess && hasLeadershipHelpPreviewAccess
+      ? [{ href: "/personal-development", label: "Personal Development" }]
+      : [];
   const accountLandingHref = hasContinuityAccess
     ? isAdmin || isMentor
       ? "/dashboard"
@@ -258,6 +259,7 @@ export async function AppNav({ pathname }: { pathname: string }) {
             navItems={navItems}
             resourceNavItems={resourceNavItems}
             showResources={hasContinuityAccess && (isAdmin || isMentor)}
+            trailingNavItems={trailingNavItems}
           />
         </div>
       </div>

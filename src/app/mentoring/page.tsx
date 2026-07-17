@@ -14,12 +14,14 @@ import {
   isMentorAppUser,
 } from "@/lib/mentor-access";
 import { isMissingPreparationWorksheetTableError } from "@/lib/mentoring-preparation-worksheet";
+import { canonicalizeRoleTitle } from "@/lib/role-title";
 import { requirePaidWorkspaceProfile } from "@/lib/workspace";
 
 type MentoringPageProps = {
   searchParams: Promise<{
     section?: string;
     candidateId?: string;
+    projectId?: string;
     roleId?: string;
     mentorProfileId?: string;
   }>;
@@ -39,6 +41,7 @@ export default async function MentoringPage({
   const {
     candidateId: requestedCandidateId,
     mentorProfileId: requestedMentorProfileId,
+    projectId: requestedProjectId,
     roleId: requestedRoleId,
     section: requestedSection,
   } = await searchParams;
@@ -157,7 +160,15 @@ export default async function MentoringPage({
     }
   }
 
-  const roleMap = new Map((rolesResult.data ?? []).map((role) => [role.id, role]));
+  const roleMap = new Map(
+    (rolesResult.data ?? []).map((role) => [
+      role.id,
+      {
+        ...role,
+        title: canonicalizeRoleTitle(role.title),
+      },
+    ]),
+  );
   const candidateMap = new Map(
     (candidatesResult.data ?? []).map((candidate) => [candidate.id, candidate]),
   );
@@ -676,6 +687,7 @@ export default async function MentoringPage({
             startDate: assignment.start_date,
           }))}
           initialSelectedAssignmentKey={selectedAssignmentKey}
+          initialSelectedProjectId={requestedProjectId ?? null}
         />
       ),
     },

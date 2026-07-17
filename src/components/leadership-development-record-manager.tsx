@@ -7,19 +7,19 @@ import {
   LEADERSHIP_DEVELOPMENT_STATUSES,
   calculateLeadershipDevelopmentGapRemaining,
   calculateLeadershipDevelopmentImprovement,
-  computeLeadershipDevelopmentAverageFeedbackScore,
   createEmptyLeadershipDevelopmentCompetency,
   createEmptyLeadershipDevelopmentFeedback,
   createEmptyLeadershipDevelopmentLeader,
   createEmptyLeadershipDevelopmentRecord,
-  isFilledLeadershipDevelopmentCompetency,
-  isFilledLeadershipDevelopmentFeedback,
-  isFilledLeadershipDevelopmentLeader,
   isLeadershipDevelopmentMentorReviewComplete,
   normalizeLeadershipDevelopmentRecord,
   type LeadershipDevelopmentRecordPayload,
   type LeadershipDevelopmentRecordRecord,
 } from "@/lib/leadership-development-record";
+import {
+  buildLeadershipDevelopmentRecordFromProject,
+  type MentoringSourceProject,
+} from "@/lib/mentoring-source-project";
 
 type LeadershipDevelopmentAssignmentOption = {
   candidateId: string;
@@ -121,12 +121,58 @@ function createDraftRecordForAssignment(
   });
 }
 
+function syncRecordWithAssignment(
+  record: LeadershipDevelopmentRecordPayload | LeadershipDevelopmentRecordRecord,
+  assignment: LeadershipDevelopmentAssignmentOption,
+) {
+  return {
+    ...record,
+    candidateName: assignment.candidateName,
+    targetRole: assignment.roleTitle,
+    primaryMentor: assignment.mentorName,
+  };
+}
+
+function createSelectorValue(options: {
+  selectedRecordId: string;
+  selectedProjectId: string;
+}) {
+  if (options.selectedRecordId) {
+    return `record:${options.selectedRecordId}`;
+  }
+
+  if (options.selectedProjectId) {
+    return `project:${options.selectedProjectId}`;
+  }
+
+  return "";
+}
+
+function findLinkedProjectForRecord(
+  record: LeadershipDevelopmentRecordRecord | null,
+  sourceProjects: MentoringSourceProject[],
+) {
+  if (!record) {
+    return null;
+  }
+
+  const normalizedExperienceTitle = record.experienceTitle.trim().toLowerCase();
+
+  return (
+    sourceProjects.find(
+      (project) => project.title.trim().toLowerCase() === normalizedExperienceTitle,
+    ) ?? null
+  );
+}
+
 export function LeadershipDevelopmentRecordManager({
   assignments,
   initialSelectedAssignmentKey,
+  initialSelectedProjectId,
 }: {
   assignments: LeadershipDevelopmentAssignmentOption[];
   initialSelectedAssignmentKey?: string | null;
+  initialSelectedProjectId?: string | null;
 }) {
   const [isPending, startTransition] = useTransition();
   const [isLoading, setIsLoading] = useState(false);
@@ -138,9 +184,19 @@ export function LeadershipDevelopmentRecordManager({
       ? (initialSelectedAssignmentKey ?? "")
       : (assignments[0] ? getAssignmentKey(assignments[0]) : ""),
   );
+  const [selectedProjectId, setSelectedProjectId] = useState("");
+  const [pendingInitialProjectId, setPendingInitialProjectId] = useState(
+    initialSelectedProjectId ?? "",
+  );
+  const [projectDetailsOpen, setProjectDetailsOpen] = useState(
+    Boolean(initialSelectedProjectId),
+  );
   const [selectedRecordId, setSelectedRecordId] = useState("");
   const [recordsByAssignmentKey, setRecordsByAssignmentKey] = useState<
     Record<string, LeadershipDevelopmentRecordRecord[]>
+  >({});
+  const [sourceProjectsByAssignmentKey, setSourceProjectsByAssignmentKey] = useState<
+    Record<string, MentoringSourceProject[]>
   >({});
   const [formState, setFormState] = useState<LeadershipDevelopmentRecordPayload | null>(
     null,
@@ -159,20 +215,48 @@ export function LeadershipDevelopmentRecordManager({
   const currentRecords = selectedAssignment
     ? recordsByAssignmentKey[getAssignmentKey(selectedAssignment)] ?? []
     : [];
+  const currentSourceProjects = selectedAssignment
+    ? sourceProjectsByAssignmentKey[getAssignmentKey(selectedAssignment)] ?? []
+    : [];
   const selectedRecord =
     currentRecords.find((record) => record.id === selectedRecordId) ?? null;
+  const selectedSourceProject =
+    currentSourceProjects.find((project) => project.id === selectedProjectId) ?? null;
+  const linkedSourceProject =
+    selectedSourceProject ??
+    findLinkedProjectForRecord(selectedRecord, currentSourceProjects);
+
   function applySelectedRecord(
     nextSelectedAssignment: LeadershipDevelopmentAssignmentOption,
     records: LeadershipDevelopmentRecordRecord[],
     nextRecordId: string,
   ) {
+    setSelectedProjectId("");
     setSelectedRecordId(nextRecordId);
     setFormState(
       nextRecordId
-        ? normalizeLeadershipDevelopmentRecord(
-            records.find((record) => record.id === nextRecordId) ?? records[0],
+        ? syncRecordWithAssignment(
+            normalizeLeadershipDevelopmentRecord(
+              records.find((record) => record.id === nextRecordId) ?? records[0],
+            ),
+            nextSelectedAssignment,
           )
         : createDraftRecordForAssignment(nextSelectedAssignment),
+    );
+  }
+
+  function applySelectedProject(
+    nextSelectedAssignment: LeadershipDevelopmentAssignmentOption,
+    project: MentoringSourceProject,
+  ) {
+    setSelectedRecordId("");
+    setSelectedProjectId(project.id);
+    setProjectDetailsOpen(true);
+    setFormState(
+      buildLeadershipDevelopmentRecordFromProject({
+        assignment: nextSelectedAssignment,
+        project,
+      }),
     );
   }
 
@@ -204,6 +288,7 @@ export function LeadershipDevelopmentRecordManager({
         const payload = (await response.json()) as {
           error?: string;
           records?: LeadershipDevelopmentRecordRecord[];
+          projects?: MentoringSourceProject[];
         };
 
         if (!response.ok) {
@@ -212,6 +297,10 @@ export function LeadershipDevelopmentRecordManager({
           }
 
           setRecordsByAssignmentKey((current) => ({
+            ...current,
+            [getAssignmentKey(selectedAssignment)]: [],
+          }));
+          setSourceProjectsByAssignmentKey((current) => ({
             ...current,
             [getAssignmentKey(selectedAssignment)]: [],
           }));
@@ -224,17 +313,54 @@ export function LeadershipDevelopmentRecordManager({
         const records = (payload.records ?? []).map((record) =>
           normalizeLeadershipDevelopmentRecord(record),
         );
+        const sourceProjects = payload.projects ?? [];
+        const assignmentKey = getAssignmentKey(selectedAssignment);
 
         setRecordsByAssignmentKey((current) => ({
           ...current,
-          [getAssignmentKey(selectedAssignment)]: records,
+          [assignmentKey]: records,
+        }));
+        setSourceProjectsByAssignmentKey((current) => ({
+          ...current,
+          [assignmentKey]: sourceProjects,
         }));
 
+        const persistedSelectedProject =
+          selectedProjectId &&
+          sourceProjects.some((project) => project.id === selectedProjectId)
+            ? selectedProjectId
+            : "";
+        const initialProjectForRoute =
+          pendingInitialProjectId &&
+          sourceProjects.some((project) => project.id === pendingInitialProjectId)
+            ? pendingInitialProjectId
+            : "";
         const nextRecordId =
           selectedRecordId && records.some((record) => record.id === selectedRecordId)
             ? selectedRecordId
-            : (records[0]?.id ?? "");
-        applySelectedRecord(selectedAssignment, records, nextRecordId);
+            : "";
+
+        if (nextRecordId) {
+          applySelectedRecord(selectedAssignment, records, nextRecordId);
+          return;
+        }
+
+        const nextProjectId = persistedSelectedProject || initialProjectForRoute;
+
+        if (nextProjectId) {
+          const matchedProject =
+            sourceProjects.find((project) => project.id === nextProjectId) ?? null;
+
+          if (matchedProject) {
+            applySelectedProject(selectedAssignment, matchedProject);
+            if (initialProjectForRoute === nextProjectId) {
+              setPendingInitialProjectId("");
+            }
+            return;
+          }
+        }
+
+        applySelectedRecord(selectedAssignment, records, records[0]?.id ?? "");
       } catch (loadError) {
         if ((loadError as Error).name === "AbortError") {
           return;
@@ -444,7 +570,10 @@ export function LeadershipDevelopmentRecordManager({
       return;
     }
 
+    setPendingInitialProjectId("");
+    setSelectedProjectId("");
     setSelectedRecordId("");
+    setProjectDetailsOpen(false);
     setError(null);
     setSuccess(null);
     setOpenSections(createOpenSectionState());
@@ -461,9 +590,9 @@ export function LeadershipDevelopmentRecordManager({
 
     const payload: LeadershipDevelopmentRecordPayload = {
       ...formState,
-      candidateName: formState.candidateName || selectedAssignment.candidateName,
-      targetRole: formState.targetRole || selectedAssignment.roleTitle,
-      primaryMentor: formState.primaryMentor || selectedAssignment.mentorName,
+      candidateName: selectedAssignment.candidateName,
+      targetRole: selectedAssignment.roleTitle,
+      primaryMentor: selectedAssignment.mentorName,
       status: nextStatus,
     };
 
@@ -576,7 +705,10 @@ export function LeadershipDevelopmentRecordManager({
                   ) ?? null;
 
                 setSelectedAssignmentKey(nextAssignmentKey);
+                setPendingInitialProjectId("");
+                setSelectedProjectId("");
                 setSelectedRecordId("");
+                setProjectDetailsOpen(false);
                 setOpenSections(createOpenSectionState());
                 setError(null);
                 setSuccess(null);
@@ -614,28 +746,281 @@ export function LeadershipDevelopmentRecordManager({
             <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-5">
               <label className="block">
                 <span className="mb-2 block text-sm font-semibold text-slate-700">
-                  Review Past Record, or Create New Record
+                  Review Past Record, Create New Record, or Start from Selected Project
                 </span>
                 <select
-                  value={selectedRecordId}
+                  value={createSelectorValue({
+                    selectedRecordId,
+                    selectedProjectId,
+                  })}
                   onChange={(event) => {
-                    const nextRecordId = event.target.value;
+                    const nextValue = event.target.value;
 
-                    applySelectedRecord(selectedAssignment, currentRecords, nextRecordId);
+                    setPendingInitialProjectId("");
                     setError(null);
                     setSuccess(null);
+                    setOpenSections(createOpenSectionState());
+
+                    if (!nextValue) {
+                      handleCreateNewRecord();
+                      return;
+                    }
+
+                    if (nextValue.startsWith("project:")) {
+                      const nextProjectId = nextValue.slice("project:".length);
+                      const nextProject =
+                        currentSourceProjects.find(
+                          (project) => project.id === nextProjectId,
+                        ) ?? null;
+
+                      if (nextProject) {
+                        applySelectedProject(selectedAssignment, nextProject);
+                      }
+
+                      return;
+                    }
+
+                    const nextRecordId = nextValue.startsWith("record:")
+                      ? nextValue.slice("record:".length)
+                      : nextValue;
+                    applySelectedRecord(selectedAssignment, currentRecords, nextRecordId);
                   }}
                   className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500"
                 >
                   <option value="">Create a new development record</option>
+                  {currentSourceProjects.map((project) => (
+                    <option key={project.id} value={`project:${project.id}`}>
+                      Start from project: {project.title}
+                    </option>
+                  ))}
                   {currentRecords.map((record) => (
-                    <option key={record.id} value={record.id}>
+                    <option key={record.id} value={`record:${record.id}`}>
                       {createRecordLabel(record)}
                     </option>
                   ))}
                 </select>
+                <p className="mt-2 text-xs leading-6 text-slate-500">
+                  Source projects selected from the candidate workspace appear here so
+                  you can turn them into a detailed development record without retyping
+                  the project summary.
+                </p>
               </label>
             </div>
+
+            {linkedSourceProject ? (
+              <article className="rounded-2xl border border-teal-200 bg-teal-50/60 px-5 py-5">
+                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <p className="text-xs font-semibold tracking-[0.16em] text-teal-700 uppercase">
+                      Source Project
+                    </p>
+                    <h3 className="mt-2 text-xl font-semibold text-slate-900">
+                      {linkedSourceProject.title}
+                    </h3>
+                    <p className="mt-2 text-sm leading-7 text-slate-700">
+                      {linkedSourceProject.projectType}
+                      {linkedSourceProject.durationDays
+                        ? ` • ${linkedSourceProject.durationDays} days`
+                        : ""}
+                      {linkedSourceProject.focusCompetency
+                        ? ` • Focus competency: ${linkedSourceProject.focusCompetency}`
+                        : ""}
+                    </p>
+                    {selectedProjectId ? (
+                      <p className="mt-2 text-sm leading-7 text-teal-900">
+                        This draft is being built from the selected project. Save it when
+                        you are ready to turn it into a formal leadership development
+                        record.
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setProjectDetailsOpen((current) => !current)}
+                    className="rounded-full border border-teal-200 bg-white px-4 py-2 text-sm font-semibold text-teal-900 transition hover:bg-teal-100"
+                  >
+                    {projectDetailsOpen ? "Hide Project Details" : "Show Project Details"}
+                  </button>
+                </div>
+
+                {projectDetailsOpen ? (
+                  <div className="mt-4 grid gap-3">
+                    {linkedSourceProject.description ? (
+                      <div className="rounded-2xl bg-white px-4 py-4">
+                        <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                          Project Summary
+                        </p>
+                        <p className="mt-2 text-sm leading-7 text-slate-700">
+                          {linkedSourceProject.description}
+                        </p>
+                      </div>
+                    ) : null}
+
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {linkedSourceProject.purpose ? (
+                        <div className="rounded-2xl bg-white px-4 py-4">
+                          <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                            Purpose
+                          </p>
+                          <p className="mt-2 text-sm leading-7 text-slate-700">
+                            {linkedSourceProject.purpose}
+                          </p>
+                        </div>
+                      ) : null}
+                      {linkedSourceProject.workingGoal ? (
+                        <div className="rounded-2xl bg-white px-4 py-4">
+                          <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                            Working Goal
+                          </p>
+                          <p className="mt-2 text-sm leading-7 text-slate-700">
+                            {linkedSourceProject.workingGoal}
+                          </p>
+                        </div>
+                      ) : null}
+                    </div>
+
+                    {linkedSourceProject.whyItFits ? (
+                      <div className="rounded-2xl bg-white px-4 py-4">
+                        <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                          Why It Fits
+                        </p>
+                        <p className="mt-2 text-sm leading-7 text-slate-700">
+                          {linkedSourceProject.whyItFits}
+                        </p>
+                      </div>
+                    ) : null}
+
+                    {linkedSourceProject.mentorFocus || linkedSourceProject.firstStep ? (
+                      <div className="grid gap-3 md:grid-cols-2">
+                        {linkedSourceProject.mentorFocus ? (
+                          <div className="rounded-2xl bg-white px-4 py-4">
+                            <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                              Mentor Focus
+                            </p>
+                            <p className="mt-2 text-sm leading-7 text-slate-700">
+                              {linkedSourceProject.mentorFocus}
+                            </p>
+                          </div>
+                        ) : null}
+                        {linkedSourceProject.firstStep ? (
+                          <div className="rounded-2xl bg-white px-4 py-4">
+                            <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                              First Step
+                            </p>
+                            <p className="mt-2 text-sm leading-7 text-slate-700">
+                              {linkedSourceProject.firstStep}
+                            </p>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {linkedSourceProject.keyPartners.length > 0 ? (
+                        <div className="rounded-2xl bg-white px-4 py-4">
+                          <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                            Key Partners
+                          </p>
+                          <ul className="mt-2 space-y-1 text-sm leading-7 text-slate-700">
+                            {linkedSourceProject.keyPartners.map((partner) => (
+                              <li key={partner}>• {partner}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                      {linkedSourceProject.leadershipActionsRequired.length > 0 ? (
+                        <div className="rounded-2xl bg-white px-4 py-4">
+                          <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                            Leadership Actions Required
+                          </p>
+                          <ul className="mt-2 space-y-1 text-sm leading-7 text-slate-700">
+                            {linkedSourceProject.leadershipActionsRequired.map((action) => (
+                              <li key={action}>• {action}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                      {linkedSourceProject.anticipatedChallenges.length > 0 ? (
+                        <div className="rounded-2xl bg-white px-4 py-4">
+                          <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                            Anticipated Challenges
+                          </p>
+                          <ul className="mt-2 space-y-1 text-sm leading-7 text-slate-700">
+                            {linkedSourceProject.anticipatedChallenges.map((challenge) => (
+                              <li key={challenge}>• {challenge}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                      {linkedSourceProject.successMeasures.length > 0 ? (
+                        <div className="rounded-2xl bg-white px-4 py-4">
+                          <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                            Success Measures
+                          </p>
+                          <ul className="mt-2 space-y-1 text-sm leading-7 text-slate-700">
+                            {linkedSourceProject.successMeasures.map((measure) => (
+                              <li key={measure}>• {measure}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {linkedSourceProject.mentorPreparation.length > 0 ? (
+                        <div className="rounded-2xl bg-white px-4 py-4">
+                          <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                            Mentor Preparation
+                          </p>
+                          <ul className="mt-2 space-y-1 text-sm leading-7 text-slate-700">
+                            {linkedSourceProject.mentorPreparation.map((item) => (
+                              <li key={item}>• {item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                      {linkedSourceProject.menteePreparation.length > 0 ? (
+                        <div className="rounded-2xl bg-white px-4 py-4">
+                          <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                            Mentee Preparation
+                          </p>
+                          <ul className="mt-2 space-y-1 text-sm leading-7 text-slate-700">
+                            {linkedSourceProject.menteePreparation.map((item) => (
+                              <li key={item}>• {item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                      {linkedSourceProject.reflectionQuestions.length > 0 ? (
+                        <div className="rounded-2xl bg-white px-4 py-4">
+                          <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                            Reflection Prompts
+                          </p>
+                          <ul className="mt-2 space-y-1 text-sm leading-7 text-slate-700">
+                            {linkedSourceProject.reflectionQuestions.map((question) => (
+                              <li key={question}>• {question}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                      {linkedSourceProject.successSignals.length > 0 ? (
+                        <div className="rounded-2xl bg-white px-4 py-4">
+                          <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                            Success Signals
+                          </p>
+                          <ul className="mt-2 space-y-1 text-sm leading-7 text-slate-700">
+                            {linkedSourceProject.successSignals.map((signal) => (
+                              <li key={signal}>• {signal}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
+              </article>
+            ) : null}
 
             {isLoading ? (
               <p className="text-sm text-slate-600">Loading leadership development records...</p>
