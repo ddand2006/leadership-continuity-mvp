@@ -645,12 +645,42 @@ export async function POST(request: Request) {
       updated_at: timestamp,
     };
 
-    const recordResult = payload.id
+    const existingProjectRecordResult =
+      !payload.id &&
+      payload.sourceProjectAssignmentId &&
+      payload.experienceTitle.trim().length > 0
+        ? await admin
+            .from("development_records")
+            .select("id")
+            .eq("organization_id", profile.organization_id)
+            .eq("candidate_id", payload.candidateId)
+            .eq("role_id", payload.roleId)
+            .eq("mentor_id", payload.mentorId)
+            .eq("experience_title", payload.experienceTitle)
+            .order("updated_at", { ascending: false })
+            .limit(1)
+        : { data: [], error: null };
+
+    if (existingProjectRecordResult.error) {
+      if (isMissingLeadershipDevelopmentRecordTableError(existingProjectRecordResult.error)) {
+        throw new ApiRouteError(
+          "Leadership development record storage is not available yet. Run the latest Supabase migration first.",
+          503,
+        );
+      }
+
+      throw new ApiRouteError(existingProjectRecordResult.error.message, 500);
+    }
+
+    const targetRecordId =
+      payload.id || existingProjectRecordResult.data?.[0]?.id || null;
+
+    const recordResult = targetRecordId
       ? await admin
           .from("development_records")
           .update(baseRecord)
           .eq("organization_id", profile.organization_id)
-          .eq("id", payload.id)
+          .eq("id", targetRecordId)
           .select("id, updated_at")
           .single()
       : await admin

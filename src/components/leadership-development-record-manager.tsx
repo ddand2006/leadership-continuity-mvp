@@ -212,6 +212,33 @@ function findLinkedProjectForRecord(
   );
 }
 
+function createRecordDeduplicationKey(record: LeadershipDevelopmentRecordRecord) {
+  const sourceProjectKey = record.sourceProjectAssignmentId.trim();
+
+  if (sourceProjectKey.length > 0) {
+    return `project:${sourceProjectKey}`;
+  }
+
+  return `title:${record.experienceTitle.trim().toLowerCase()}`;
+}
+
+function dedupeLeadershipDevelopmentRecords(
+  records: LeadershipDevelopmentRecordRecord[],
+) {
+  const seenKeys = new Set<string>();
+
+  return records.filter((record) => {
+    const recordKey = createRecordDeduplicationKey(record);
+
+    if (seenKeys.has(recordKey)) {
+      return false;
+    }
+
+    seenKeys.add(recordKey);
+    return true;
+  });
+}
+
 function clearStickySelectionParamsFromUrl() {
   if (typeof window === "undefined") {
     return;
@@ -457,8 +484,10 @@ export function LeadershipDevelopmentRecordManager({
         }
 
         setStorageReady(true);
-        const records = (payload.records ?? []).map((record) =>
-          normalizeLeadershipDevelopmentRecord(record),
+        const records = dedupeLeadershipDevelopmentRecords(
+          (payload.records ?? []).map((record) =>
+            normalizeLeadershipDevelopmentRecord(record),
+          ),
         );
         const sourceProjects = payload.projects ?? [];
         const assignmentKey = getAssignmentKey(selectedAssignment);
@@ -832,11 +861,13 @@ export function LeadershipDevelopmentRecordManager({
 
       setRecordsByAssignmentKey((current) => {
         const existingRecords = current[assignmentKey] ?? [];
-        const nextRecords = existingRecords.some((record) => record.id === nextRecord.id)
-          ? existingRecords.map((record) =>
-              record.id === nextRecord.id ? nextRecord : record,
-            )
-          : [nextRecord, ...existingRecords];
+        const nextRecords = dedupeLeadershipDevelopmentRecords(
+          existingRecords.some((record) => record.id === nextRecord.id)
+            ? existingRecords.map((record) =>
+                record.id === nextRecord.id ? nextRecord : record,
+              )
+            : [nextRecord, ...existingRecords],
+        );
 
         return {
           ...current,
