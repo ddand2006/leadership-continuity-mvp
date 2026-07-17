@@ -341,7 +341,7 @@ export function LeadershipDevelopmentRecordManager({
           : null;
 
       setPendingInitialProjectId(initialSelectedProjectId);
-      setPendingInitialRecordId(initialSelectedRecordId ?? "");
+      setPendingInitialRecordId("");
       setSelectedRecordId("");
       setProjectDetailsOpen(true);
 
@@ -507,6 +507,7 @@ export function LeadershipDevelopmentRecordManager({
           if (matchedProject) {
             applySelectedProject(selectedAssignment, matchedProject);
             setPendingInitialProjectId("");
+            setPendingInitialRecordId("");
             return;
           }
         }
