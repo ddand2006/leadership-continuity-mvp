@@ -152,6 +152,7 @@ function normalizeRecordFromDatabase(record: {
 }, resolvedTargetRole?: string | null): LeadershipDevelopmentRecordRecord {
   return {
     id: record.id,
+    sourceProjectAssignmentId: "",
     candidateId: record.candidate_id,
     roleId: record.role_id,
     mentorId: record.mentor_id,
@@ -400,7 +401,8 @@ export async function GET(request: Request) {
         }
 
         const sourceProject = buildMentoringSourceProject({
-          id: project.id,
+          id: assignment.id,
+          projectId: project.id,
           title: project.title,
           description: project.description,
           durationDays: project.duration_days,
@@ -666,6 +668,25 @@ export async function POST(request: Request) {
     }
 
     const recordId = recordResult.data.id;
+    const assignmentStatus =
+      payload.status === "ready_for_review" ? "in_progress" : payload.status;
+
+    if (payload.sourceProjectAssignmentId) {
+      const updateProjectAssignmentResult = await admin
+        .from("candidate_project_assignments")
+        .update({
+          status: assignmentStatus,
+          start_date: payload.dateAssigned,
+        })
+        .eq("organization_id", profile.organization_id)
+        .eq("id", payload.sourceProjectAssignmentId)
+        .eq("candidate_id", payload.candidateId)
+        .eq("mentor_profile_id", payload.mentorId);
+
+      if (updateProjectAssignmentResult.error) {
+        throw new ApiRouteError(updateProjectAssignmentResult.error.message, 500);
+      }
+    }
 
     for (const tableName of [
       "development_record_competencies",

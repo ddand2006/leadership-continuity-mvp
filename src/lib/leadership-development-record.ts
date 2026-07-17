@@ -61,6 +61,10 @@ export const leadershipDevelopmentFeedbackSchema = z.object({
 
 export const leadershipDevelopmentRecordPayloadSchema = z.object({
   id: z.string().uuid().optional(),
+  sourceProjectAssignmentId: z
+    .union([z.string().uuid(), z.literal("")])
+    .optional()
+    .default(""),
   candidateId: z.string().uuid(),
   roleId: z.string().uuid(),
   mentorId: z.string().uuid(),
@@ -147,6 +151,7 @@ export function createEmptyLeadershipDevelopmentRecord(options: {
   dateAssigned?: string | null;
 }): LeadershipDevelopmentRecordPayload {
   return {
+    sourceProjectAssignmentId: "",
     candidateId: options.candidateId,
     roleId: options.roleId,
     mentorId: options.mentorId,

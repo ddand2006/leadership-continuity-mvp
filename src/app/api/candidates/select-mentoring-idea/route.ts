@@ -224,50 +224,61 @@ export async function POST(request: Request) {
       developmentProjectId = insertProjectResult.data.id;
     }
 
-    const matchingAssignmentResult = await admin
+    const matchingAssignmentsResult = await admin
       .from("candidate_project_assignments")
-      .select("id, mentor_profile_id")
+      .select("id, mentor_profile_id, status, created_at")
       .eq("organization_id", profile.organization_id)
       .eq("candidate_id", payload.candidateId)
       .eq("development_project_id", developmentProjectId)
       .eq("mentor_profile_id", mentoringTrackMentorProfileId)
-      .maybeSingle();
+      .order("created_at", { ascending: false });
 
-    if (matchingAssignmentResult.error) {
-      throw new ApiRouteError(matchingAssignmentResult.error.message, 500);
+    if (matchingAssignmentsResult.error) {
+      throw new ApiRouteError(matchingAssignmentsResult.error.message, 500);
     }
 
-    const unscopedAssignmentResult = matchingAssignmentResult.data
-      ? { data: null, error: null }
+    const reusableMatchingAssignment =
+      (matchingAssignmentsResult.data ?? []).find(
+        (assignment) => assignment.status !== "completed",
+      ) ?? null;
+
+    const unscopedAssignmentsResult = reusableMatchingAssignment
+      ? { data: [], error: null }
       : await admin
           .from("candidate_project_assignments")
-          .select("id")
+          .select("id, status, created_at")
           .eq("organization_id", profile.organization_id)
           .eq("candidate_id", payload.candidateId)
           .eq("development_project_id", developmentProjectId)
           .is("mentor_profile_id", null)
-          .maybeSingle();
+          .order("created_at", { ascending: false });
 
-    if (unscopedAssignmentResult.error) {
-      throw new ApiRouteError(unscopedAssignmentResult.error.message, 500);
+    if (unscopedAssignmentsResult.error) {
+      throw new ApiRouteError(unscopedAssignmentsResult.error.message, 500);
     }
+
+    const reusableUnscopedAssignment =
+      (unscopedAssignmentsResult.data ?? []).find(
+        (assignment) => assignment.status !== "completed",
+      ) ?? null;
 
     const assignmentNotes = buildMentoringProjectAssignmentNotes({
       roleTitle,
       competencyName: competencyResult.data.name,
     });
     let candidateProjectAssignmentId =
-      matchingAssignmentResult.data?.id ?? unscopedAssignmentResult.data?.id ?? null;
+      reusableMatchingAssignment?.id ?? reusableUnscopedAssignment?.id ?? null;
 
-    if (unscopedAssignmentResult.data) {
+    if (reusableUnscopedAssignment) {
       const updateAssignmentResult = await admin
         .from("candidate_project_assignments")
         .update({
           mentor_profile_id: mentoringTrackMentorProfileId,
           mentor_notes: assignmentNotes,
+          status: "assigned",
         })
         .eq("organization_id", profile.organization_id)
-        .eq("id", unscopedAssignmentResult.data.id)
+        .eq("id", reusableUnscopedAssignment.id)
         .select("id")
         .single();
 
@@ -276,7 +287,7 @@ export async function POST(request: Request) {
       }
 
       candidateProjectAssignmentId = updateAssignmentResult.data.id;
-    } else if (!matchingAssignmentResult.data) {
+    } else if (!reusableMatchingAssignment) {
       const today = new Date();
       const dueDate = addDays(today, payload.idea.duration_days);
       const assignmentResult = await admin
@@ -304,9 +315,13 @@ export async function POST(request: Request) {
         .from("candidate_project_assignments")
         .update({
           mentor_notes: assignmentNotes,
+          status:
+            reusableMatchingAssignment.status === "completed"
+              ? "assigned"
+              : reusableMatchingAssignment.status,
         })
         .eq("organization_id", profile.organization_id)
-        .eq("id", matchingAssignmentResult.data.id);
+        .eq("id", reusableMatchingAssignment.id);
 
       if (updateAssignmentResult.error) {
         throw new ApiRouteError(updateAssignmentResult.error.message, 500);
@@ -316,7 +331,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       message: `"${payload.idea.title}" has been chosen for ${candidateResult.data.full_name}.`,
       navigation: {
-        href: `/mentoring?section=leadership-development-record&candidateId=${payload.candidateId}&roleId=${payload.roleId}&mentorProfileId=${mentoringTrackMentorProfileId}&projectId=${developmentProjectId}`,
+        href: `/mentoring?section=leadership-development-record&candidateId=${payload.candidateId}&roleId=${payload.roleId}&mentorProfileId=${mentoringTrackMentorProfileId}&projectId=${candidateProjectAssignmentId ?? developmentProjectId}`,
       },
       projectAssignmentId: candidateProjectAssignmentId,
     });

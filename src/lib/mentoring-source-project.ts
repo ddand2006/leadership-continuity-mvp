@@ -72,6 +72,7 @@ const GROWTH_AREA_PATTERNS: Array<{
 
 export type MentoringSourceProject = {
   id: string;
+  projectId: string;
   title: string;
   projectType: string;
   purpose: string;
@@ -196,6 +197,7 @@ export function buildMentoringProjectAssignmentNotes(options: {
 
 export function buildMentoringSourceProject(options: {
   id: string;
+  projectId: string;
   title: string;
   description: string | null;
   durationDays: number | null;
@@ -214,6 +216,7 @@ export function buildMentoringSourceProject(options: {
 
   return {
     id: options.id,
+    projectId: options.projectId,
     title: options.title,
     projectType:
       descriptionParse.values.get("projectType") ?? "Candidate-Specific Project",
@@ -311,6 +314,7 @@ export function buildLeadershipDevelopmentRecordFromProject(options: {
 
   return {
     ...draft,
+    sourceProjectAssignmentId: options.project.id,
     growthAreas,
     assignmentReason: options.project.whyItFits || options.project.purpose,
     experienceTitle: options.project.title,

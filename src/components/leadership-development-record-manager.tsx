@@ -96,6 +96,48 @@ function createRecordLabel(record: LeadershipDevelopmentRecordRecord) {
   return `${record.experienceTitle || "Untitled experience"} • ${getStatusLabel(record.status)}`;
 }
 
+function formatProjectDate(value: string | null) {
+  if (!value) {
+    return "";
+  }
+
+  const parsed = new Date(`${value}T00:00:00`);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return parsed.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function getProjectStatusLabel(status: string) {
+  switch (status) {
+    case "assigned":
+      return "Assigned";
+    case "in_progress":
+      return "In Progress";
+    case "completed":
+      return "Completed";
+    default:
+      return status;
+  }
+}
+
+function createProjectLabel(project: MentoringSourceProject) {
+  const details = [
+    getProjectStatusLabel(project.status),
+    project.startDate ? `Started ${formatProjectDate(project.startDate)}` : "",
+  ].filter(Boolean);
+
+  return details.length > 0
+    ? `${project.title} • ${details.join(" • ")}`
+    : project.title;
+}
+
 function getDraftStatus(
   record: LeadershipDevelopmentRecordPayload,
 ): LeadershipDevelopmentRecordPayload["status"] {
@@ -647,6 +689,8 @@ export function LeadershipDevelopmentRecordManager({
 
     const payload: LeadershipDevelopmentRecordPayload = {
       ...formState,
+      sourceProjectAssignmentId:
+        selectedProjectId || linkedSourceProject?.id || formState.sourceProjectAssignmentId,
       candidateName: selectedAssignment.candidateName,
       targetRole: selectedAssignment.roleTitle,
       primaryMentor: selectedAssignment.mentorName,
@@ -847,7 +891,7 @@ export function LeadershipDevelopmentRecordManager({
                   <option value="">Create a new development record</option>
                   {currentSourceProjects.map((project) => (
                     <option key={project.id} value={`project:${project.id}`}>
-                      Start from project: {project.title}
+                      Start from project: {createProjectLabel(project)}
                     </option>
                   ))}
                   {currentRecords.map((record) => (
