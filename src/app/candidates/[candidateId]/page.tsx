@@ -450,6 +450,21 @@ export default async function CandidateDetailPage({
         ),
       )
     : [];
+  const preferredActiveRoleMentorProfileId = activeRoleId
+    ? displayableMentorAssignments.find(
+        (assignment) =>
+          assignment.role_id === activeRoleId &&
+          assignment.status === "active" &&
+          assignment.mentor_profile_id === profile.id,
+      )?.mentor_profile_id ??
+      displayableMentorAssignments.find(
+        (assignment) =>
+          assignment.role_id === activeRoleId &&
+          assignment.status === "active" &&
+          Boolean(assignment.mentor_profile_id),
+      )?.mentor_profile_id ??
+      null
+    : null;
   const activeRoleTitle = canonicalizeRoleTitle(roleResult.data?.title ?? null);
   const candidateWorkspaceDetailItems = [
     `Current title: ${candidate.current_title ?? "Not entered"}`,
@@ -826,6 +841,7 @@ export default async function CandidateDetailPage({
                     candidateId={candidate.id}
                     candidateName={candidate.full_name}
                     roleId={activeRoleId ?? undefined}
+                    mentorProfileId={preferredActiveRoleMentorProfileId ?? undefined}
                     savedGeneratedIdeasByCompetencyId={
                       savedGeneratedIdeasByCompetencyIdObject
                     }
@@ -900,6 +916,9 @@ export default async function CandidateDetailPage({
                         candidateId={candidate.id}
                         candidateName={candidate.full_name}
                         roleId={activeRoleId}
+                        mentorProfileId={
+                          preferredActiveRoleMentorProfileId ?? undefined
+                        }
                         canGenerateCandidateIdeas={
                           canManageCandidate &&
                           canGenerateReport &&

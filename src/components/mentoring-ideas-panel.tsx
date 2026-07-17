@@ -21,6 +21,7 @@ export function MentoringIdeasPanel({
   candidateId,
   candidateName,
   roleId,
+  mentorProfileId,
   competencyId,
   competencyName,
   initialGeneratedIdeas = [],
@@ -30,6 +31,7 @@ export function MentoringIdeasPanel({
   candidateId?: string;
   candidateName?: string;
   roleId?: string;
+  mentorProfileId?: string;
   competencyId?: string;
   competencyName?: string;
   initialGeneratedIdeas?: GeneratedCandidateMentoringIdea[];
@@ -80,6 +82,7 @@ export function MentoringIdeasPanel({
         body: JSON.stringify({
           candidateId,
           roleId,
+          mentorProfileId,
           competencyId,
           idea,
         }),

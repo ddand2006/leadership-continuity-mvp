@@ -18,6 +18,7 @@ import { canonicalizeRoleTitle } from "@/lib/role-title";
 const payloadSchema = z.object({
   candidateId: z.string().uuid(),
   roleId: z.string().uuid(),
+  mentorProfileId: z.string().uuid().optional(),
   competencyId: z.string().uuid(),
   idea: z.object({
     title: z.string().min(1),
@@ -59,11 +60,24 @@ function choosePreferredMentorAssignment(options: {
     status: string;
   }>;
   currentProfileId: string;
+  requestedMentorProfileId?: string;
   validMentorProfileIds: Set<string>;
 }) {
-  const { activeAssignments, currentProfileId, validMentorProfileIds } = options;
+  const {
+    activeAssignments,
+    currentProfileId,
+    requestedMentorProfileId,
+    validMentorProfileIds,
+  } = options;
 
   return (
+    (requestedMentorProfileId
+      ? activeAssignments.find(
+          (assignment) =>
+            assignment.mentor_profile_id === requestedMentorProfileId &&
+            validMentorProfileIds.has(requestedMentorProfileId),
+        ) ?? null
+      : null) ??
     activeAssignments.find(
       (assignment) =>
         assignment.mentor_profile_id === currentProfileId &&
@@ -193,6 +207,7 @@ export async function POST(request: Request) {
     const selectedMentorAssignment = choosePreferredMentorAssignment({
       activeAssignments: activeMentorAssignments,
       currentProfileId: profile.id,
+      requestedMentorProfileId: payload.mentorProfileId,
       validMentorProfileIds,
     });
 

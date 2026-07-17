@@ -43,6 +43,7 @@ type CandidateInsightExplorerProps = {
   candidateId?: string;
   candidateName?: string;
   roleId?: string;
+  mentorProfileId?: string;
   savedGeneratedIdeasByCompetencyId?: Record<string, GeneratedCandidateMentoringIdea[]>;
 };
 
@@ -59,6 +60,7 @@ export function CandidateInsightExplorer({
   candidateId,
   candidateName,
   roleId,
+  mentorProfileId,
   savedGeneratedIdeasByCompetencyId = {},
 }: CandidateInsightExplorerProps) {
   const [selectedInsight, setSelectedInsight] = useState<SelectedInsight>(() => {
@@ -381,6 +383,7 @@ export function CandidateInsightExplorer({
             candidateId={candidateId}
             candidateName={candidateName}
             roleId={roleId}
+            mentorProfileId={mentorProfileId}
             competencyId={activeAssessment.competencyId}
             competencyName={activeAssessment.competencyName}
             initialGeneratedIdeas={

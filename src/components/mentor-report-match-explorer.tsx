@@ -102,6 +102,7 @@ export function MentorReportMatchExplorer({
   candidateId,
   candidateName,
   roleId,
+  mentorProfileId,
   canGenerateCandidateIdeas,
 }: {
   matches: RoleMatch[];
@@ -113,6 +114,7 @@ export function MentorReportMatchExplorer({
   candidateId: string;
   candidateName: string;
   roleId: string | null;
+  mentorProfileId?: string;
   canGenerateCandidateIdeas: boolean;
 }) {
   const [selectedCompetencyName, setSelectedCompetencyName] = useState(
@@ -333,6 +335,7 @@ export function MentorReportMatchExplorer({
         body: JSON.stringify({
           candidateId,
           roleId,
+          mentorProfileId,
           competencyId: selectedAssessment.competencyId,
           idea,
         }),
