@@ -801,7 +801,13 @@ export function LeadershipDevelopmentRecordManager({
           [assignmentKey]: nextRecords,
         };
       });
-      setSelectedRecordId(nextRecord.id);
+      if (payload.sourceProjectAssignmentId) {
+        setSelectedProjectId(payload.sourceProjectAssignmentId);
+        setSelectedRecordId("");
+      } else {
+        setSelectedProjectId("");
+        setSelectedRecordId(nextRecord.id);
+      }
       setFormState(nextRecord);
       setSuccess(result.message ?? "Leadership development record saved.");
     });
@@ -955,7 +961,7 @@ export function LeadershipDevelopmentRecordManager({
                   ))}
                   {currentRecords.map((record) => (
                     <option key={record.id} value={`record:${record.id}`}>
-                      {createRecordLabel(record)}
+                      Review saved record: {createRecordLabel(record)}
                     </option>
                   ))}
                 </select>
