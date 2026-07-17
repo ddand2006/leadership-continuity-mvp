@@ -332,13 +332,6 @@ export function LeadershipDevelopmentRecordManager({
       setSelectedAssignmentKey(nextAssignmentKey);
     }
 
-    if (initialSelectedRecordId) {
-      setPendingInitialRecordId(initialSelectedRecordId);
-      setSelectedProjectId("");
-      setProjectDetailsOpen(false);
-      return;
-    }
-
     if (initialSelectedProjectId) {
       const matchingProject =
         selectedAssignment?.roleId
@@ -348,6 +341,7 @@ export function LeadershipDevelopmentRecordManager({
           : null;
 
       setPendingInitialProjectId(initialSelectedProjectId);
+      setPendingInitialRecordId(initialSelectedRecordId ?? "");
       setSelectedRecordId("");
       setProjectDetailsOpen(true);
 
@@ -358,6 +352,13 @@ export function LeadershipDevelopmentRecordManager({
         setSelectedProjectId("");
       }
 
+      return;
+    }
+
+    if (initialSelectedRecordId) {
+      setPendingInitialRecordId(initialSelectedRecordId);
+      setSelectedProjectId("");
+      setProjectDetailsOpen(false);
       return;
     }
 
@@ -498,12 +499,6 @@ export function LeadershipDevelopmentRecordManager({
             ? selectedRecordId
             : "";
 
-        if (initialRecordForRoute) {
-          applySelectedRecord(selectedAssignment, records, initialRecordForRoute);
-          setPendingInitialRecordId("");
-          return;
-        }
-
         if (initialProjectForRoute) {
           const matchedProject =
             sourceProjects.find((project) => project.id === initialProjectForRoute) ??
@@ -528,6 +523,12 @@ export function LeadershipDevelopmentRecordManager({
           applySelectedProject(selectedAssignment, matchedTransferredProject);
           clearPendingMentoringProjectTransfer();
           setPendingTransferredProject(null);
+          return;
+        }
+
+        if (initialRecordForRoute) {
+          applySelectedRecord(selectedAssignment, records, initialRecordForRoute);
+          setPendingInitialRecordId("");
           return;
         }
 
