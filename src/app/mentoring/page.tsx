@@ -30,9 +30,112 @@ type MentoringPageProps = {
 function getAssignmentKey(option: {
   candidate_id: string;
   role_id: string;
-  mentor_profile_id: string;
+  mentor_profile_id: string | null;
 }) {
-  return `${option.candidate_id}:${option.role_id}:${option.mentor_profile_id}`;
+  return `${option.candidate_id}:${option.role_id}:${option.mentor_profile_id ?? "unassigned"}`;
+}
+
+function getAssignmentPriorityScore(
+  assignment: {
+    mentor_profile_id: string | null;
+    status: string | null;
+  },
+  mentorMap: Map<string, { id: string; full_name: string | null; position_title: string | null }>,
+) {
+  const hasKnownMentor = Boolean(
+    assignment.mentor_profile_id && mentorMap.has(assignment.mentor_profile_id),
+  );
+  const hasAnyMentor = Boolean(assignment.mentor_profile_id);
+
+  return (
+    (assignment.status === "active" ? 100 : 0) +
+    (hasKnownMentor ? 10 : hasAnyMentor ? 5 : 0)
+  );
+}
+
+function compareAssignmentsForSelection(
+  left: {
+    candidate_id: string;
+    mentor_profile_id: string | null;
+    role_id: string;
+    status: string | null;
+  },
+  right: {
+    candidate_id: string;
+    mentor_profile_id: string | null;
+    role_id: string;
+    status: string | null;
+  },
+  mentorMap: Map<string, { id: string; full_name: string | null; position_title: string | null }>,
+) {
+  const scoreDifference =
+    getAssignmentPriorityScore(right, mentorMap) -
+    getAssignmentPriorityScore(left, mentorMap);
+
+  if (scoreDifference !== 0) {
+    return scoreDifference;
+  }
+
+  return getAssignmentKey(left).localeCompare(getAssignmentKey(right));
+}
+
+function resolvePreferredAssignmentKey(options: {
+  mentorMap: Map<string, { id: string; full_name: string | null; position_title: string | null }>;
+  requestedAssignmentKey: string | null;
+  requestedCandidateId: string | undefined;
+  requestedRoleId: string | undefined;
+  visibleAssignments: Array<{
+    candidate_id: string;
+    mentor_profile_id: string | null;
+    role_id: string;
+    status: string | null;
+  }>;
+}) {
+  const orderedAssignments = [...options.visibleAssignments].sort((left, right) =>
+    compareAssignmentsForSelection(left, right, options.mentorMap),
+  );
+
+  if (orderedAssignments.length === 0) {
+    return null;
+  }
+
+  const matchingRequestedTrack =
+    options.requestedCandidateId && options.requestedRoleId
+      ? orderedAssignments.filter(
+          (assignment) =>
+            assignment.candidate_id === options.requestedCandidateId &&
+            assignment.role_id === options.requestedRoleId,
+        )
+      : [];
+
+  if (matchingRequestedTrack.length > 0) {
+    const exactRequestedMatch =
+      options.requestedAssignmentKey &&
+      matchingRequestedTrack.find(
+        (assignment) => getAssignmentKey(assignment) === options.requestedAssignmentKey,
+      );
+
+    if (
+      exactRequestedMatch &&
+      getAssignmentPriorityScore(exactRequestedMatch, options.mentorMap) >=
+        getAssignmentPriorityScore(matchingRequestedTrack[0], options.mentorMap)
+    ) {
+      return getAssignmentKey(exactRequestedMatch);
+    }
+
+    return getAssignmentKey(matchingRequestedTrack[0]);
+  }
+
+  if (
+    options.requestedAssignmentKey &&
+    orderedAssignments.some(
+      (assignment) => getAssignmentKey(assignment) === options.requestedAssignmentKey,
+    )
+  ) {
+    return options.requestedAssignmentKey;
+  }
+
+  return getAssignmentKey(orderedAssignments[0]);
 }
 
 export default async function MentoringPage({
@@ -187,6 +290,9 @@ export default async function MentoringPage({
           : candidateIdForSelfAccess !== null &&
             assignment.candidate_id === candidateIdForSelfAccess,
       );
+  const orderedVisibleAssignments = [...visibleAssignments].sort((left, right) =>
+    compareAssignmentsForSelection(left, right, mentorMap),
+  );
   const requestedAssignmentKey =
     requestedCandidateId && requestedRoleId && requestedMentorProfileId
       ? `${requestedCandidateId}:${requestedRoleId}:${requestedMentorProfileId}`
@@ -484,11 +590,87 @@ export default async function MentoringPage({
           : null,
       };
     });
+  const orderedVisibleAssignmentsWithWorksheet = orderedVisibleAssignments.map((assignment) => {
+    const worksheet =
+      (preparationWorksheetsResult.data ?? []).find(
+        (item) =>
+          item.candidate_id === assignment.candidate_id &&
+          item.role_id === assignment.role_id &&
+          item.mentor_profile_id === assignment.mentor_profile_id,
+      ) ?? null;
+
+    return {
+      candidateId: assignment.candidate_id,
+      roleId: assignment.role_id,
+      mentorProfileId: assignment.mentor_profile_id,
+      candidateName:
+        candidateMap.get(assignment.candidate_id)?.full_name ?? "Unknown candidate",
+      currentTitle:
+        candidateMap.get(assignment.candidate_id)?.current_title ?? null,
+      roleTitle: roleMap.get(assignment.role_id)?.title ?? "Unknown role",
+      departmentName: roleMap.get(assignment.role_id)?.department ?? null,
+      mentorName:
+        mentorMap.get(assignment.mentor_profile_id)?.full_name ?? "Unknown mentor",
+      mentorPositionTitle:
+        mentorMap.get(assignment.mentor_profile_id)?.position_title ?? null,
+      startDate: assignment.start_date,
+      worksheet: worksheet
+        ? {
+            id: worksheet.id,
+            candidateId: worksheet.candidate_id,
+            roleId: worksheet.role_id,
+            mentorProfileId: worksheet.mentor_profile_id,
+            status:
+              worksheet.status === "completed"
+                ? ("completed" as const)
+                : ("draft" as const),
+            worksheetDate: worksheet.worksheet_date ?? "",
+            criticalCompetencies: Array.isArray(worksheet.critical_competencies)
+              ? worksheet.critical_competencies.map((item) => ({
+                  whatMustDo:
+                    typeof item?.whatMustDo === "string" ? item.whatMustDo : "",
+                  whyCritical:
+                    typeof item?.whyCritical === "string" ? item.whyCritical : "",
+                  successLooksLike:
+                    typeof item?.successLooksLike === "string"
+                      ? item.successLooksLike
+                      : "",
+                  failureLooksLike:
+                    typeof item?.failureLooksLike === "string"
+                      ? item.failureLooksLike
+                      : "",
+                  priorityRank:
+                    typeof item?.priorityRank === "string" ? item.priorityRank : "",
+                }))
+              : [],
+            menteeLeastPrepared: worksheet.mentee_least_prepared ?? "",
+            menteeStrongestArea: worksheet.mentee_strongest_area ?? "",
+            strengthsHelp: worksheet.strengths_help ?? "",
+            strengthsDistractionPlan:
+              worksheet.strengths_distraction_plan ?? "",
+            sharedDevelopmentFocus: worksheet.shared_development_focus ?? "",
+            desiredImprovement: worksheet.desired_improvement ?? "",
+            mentorSupportNeeded: worksheet.mentor_support_needed ?? "",
+            communicationExpectations:
+              worksheet.communication_expectations ?? "",
+            initialDevelopmentFocus: Array.isArray(
+              worksheet.initial_development_focus,
+            )
+              ? worksheet.initial_development_focus.map((item) =>
+                  typeof item === "string" ? item : "",
+                )
+              : ["", ""],
+            mentorGuidanceNotes: worksheet.mentor_guidance_notes ?? "",
+            updatedAt: worksheet.updated_at,
+          }
+        : null,
+    };
+  });
   const mentoringWorkspaceDetailItems = [
-    `${new Set(visibleAssignments.map((assignment) => assignment.candidate_id)).size} candidates in active mentoring`,
-    `${visibleAssignments.length} active mentor assignments`,
+    `${new Set(orderedVisibleAssignments.map((assignment) => assignment.candidate_id)).size} candidates in active mentoring`,
+    `${orderedVisibleAssignments.length} active mentor assignments`,
     `${
-      visibleAssignments.filter((assignment) =>
+      orderedVisibleAssignments.filter((assignment) =>
         candidateRolePairsWithReports.has(
           `${assignment.candidate_id}:${assignment.role_id}`,
         ),
@@ -496,13 +678,13 @@ export default async function MentoringPage({
     } role tracks with reports`,
     "Leadership development records, preparation worksheets, departmental projects, and cross-departmental projects are all live in this workspace",
   ];
-  const selectedAssignmentKey =
-    requestedAssignmentKey &&
-    visibleAssignments.some(
-      (assignment) => getAssignmentKey(assignment) === requestedAssignmentKey,
-    )
-      ? requestedAssignmentKey
-      : (visibleAssignments[0] ? getAssignmentKey(visibleAssignments[0]) : null);
+  const selectedAssignmentKey = resolvePreferredAssignmentKey({
+    mentorMap,
+    requestedAssignmentKey,
+    requestedCandidateId,
+    requestedRoleId,
+    visibleAssignments: orderedVisibleAssignments,
+  });
   const isResourceSection =
     selectedSectionId === "preparation-worksheet" ||
     selectedSectionId === "departmental-project" ||

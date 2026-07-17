@@ -48,6 +48,34 @@ function toIsoDate(date: Date) {
   return date.toISOString().slice(0, 10);
 }
 
+function choosePreferredMentorAssignment(options: {
+  activeAssignments: Array<{
+    candidate_id: string;
+    mentor_profile_id: string | null;
+    role_id: string;
+    status: string;
+  }>;
+  currentProfileId: string;
+  validMentorProfileIds: Set<string>;
+}) {
+  const { activeAssignments, currentProfileId, validMentorProfileIds } = options;
+
+  return (
+    activeAssignments.find(
+      (assignment) =>
+        assignment.mentor_profile_id === currentProfileId &&
+        validMentorProfileIds.has(currentProfileId),
+    ) ??
+    activeAssignments.find(
+      (assignment) =>
+        assignment.mentor_profile_id !== null &&
+        validMentorProfileIds.has(assignment.mentor_profile_id),
+    ) ??
+    activeAssignments.find((assignment) => assignment.mentor_profile_id !== null) ??
+    null
+  );
+}
+
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
@@ -128,12 +156,36 @@ export async function POST(request: Request) {
     const activeMentorAssignments = (mentorAssignmentsResult.data ?? []).filter(
       (assignment) => assignment.status === "active",
     );
-    const selectedMentorAssignment =
-      activeMentorAssignments.find(
-        (assignment) => assignment.mentor_profile_id === profile.id,
-      ) ??
-      activeMentorAssignments[0] ??
-      null;
+    const mentorProfileIds = Array.from(
+      new Set(
+        activeMentorAssignments
+          .map((assignment) => assignment.mentor_profile_id)
+          .filter((mentorProfileId): mentorProfileId is string =>
+            Boolean(mentorProfileId),
+          ),
+      ),
+    );
+    const mentorProfilesResult =
+      mentorProfileIds.length > 0
+        ? await admin
+            .from("profiles")
+            .select("id")
+            .eq("organization_id", profile.organization_id)
+            .in("id", mentorProfileIds)
+        : { data: [], error: null };
+
+    if (mentorProfilesResult.error) {
+      throw new ApiRouteError(mentorProfilesResult.error.message, 500);
+    }
+
+    const validMentorProfileIds = new Set(
+      (mentorProfilesResult.data ?? []).map((mentorProfile) => mentorProfile.id),
+    );
+    const selectedMentorAssignment = choosePreferredMentorAssignment({
+      activeAssignments: activeMentorAssignments,
+      currentProfileId: profile.id,
+      validMentorProfileIds,
+    });
 
     if (!selectedMentorAssignment?.mentor_profile_id) {
       throw new ApiRouteError(
