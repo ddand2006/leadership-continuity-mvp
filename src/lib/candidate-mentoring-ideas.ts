@@ -3,7 +3,7 @@ import { zodTextFormat } from "openai/helpers/zod";
 import { getOpenAIEnv } from "@/lib/env";
 import { createOpenAIClient, serializeModelInput } from "@/lib/openai";
 
-const generatedCandidateMentoringIdeasSchema = z.object({
+export const generatedCandidateMentoringIdeasSchema = z.object({
   ideas: z.array(
     z.object({
       title: z.string().min(1),

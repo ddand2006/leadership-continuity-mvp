@@ -1,9 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { GeneratedCandidateMentoringIdea } from "@/lib/candidate-mentoring-ideas";
 import type { RankedProjectMatch } from "@/lib/fit-analysis";
 import { buildDevelopmentPriorityEvidenceSummary } from "@/lib/mentor-report";
+import {
+  readGeneratedMentoringIdeasCache,
+  writeGeneratedMentoringIdeasCache,
+} from "@/lib/generated-mentoring-ideas-cache";
 import { storePendingMentoringProjectTransfer } from "@/lib/pending-mentoring-project-transfer";
 import { sanitizeAppText, sanitizeAppTextList } from "@/lib/text-sanitizer";
 
@@ -94,6 +98,7 @@ export function MentorReportMatchExplorer({
   strengthsToLeverage,
   assessments,
   libraryIdeasByCompetencyId,
+  savedGeneratedIdeasByCompetencyId = {},
   candidateId,
   candidateName,
   roleId,
@@ -104,6 +109,7 @@ export function MentorReportMatchExplorer({
   strengthsToLeverage: StrengthToLeverage[];
   assessments: Assessment[];
   libraryIdeasByCompetencyId: LibraryIdeasByCompetencyId;
+  savedGeneratedIdeasByCompetencyId?: Record<string, GeneratedCandidateMentoringIdea[]>;
   candidateId: string;
   candidateName: string;
   roleId: string | null;
@@ -114,7 +120,7 @@ export function MentorReportMatchExplorer({
   );
   const [generatedIdeasByCompetency, setGeneratedIdeasByCompetency] = useState<
     Record<string, GeneratedCandidateMentoringIdea[]>
-  >({});
+  >(savedGeneratedIdeasByCompetencyId);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isDownloadingSet, setIsDownloadingSet] = useState(false);
   const [isChoosingTitle, setIsChoosingTitle] = useState<string | null>(null);
@@ -165,6 +171,32 @@ export function MentorReportMatchExplorer({
     return buildDevelopmentPriorityEvidenceSummary(selectedAssessment);
   }, [selectedAssessment]);
 
+  useEffect(() => {
+    setGeneratedIdeasByCompetency((current) => {
+      const nextGeneratedIdeasByCompetency = {
+        ...savedGeneratedIdeasByCompetencyId,
+      };
+
+      if (candidateId && roleId) {
+        for (const assessment of assessments) {
+          const cachedIdeas = readGeneratedMentoringIdeasCache({
+            candidateId,
+            roleId,
+            competencyId: assessment.competencyId,
+          });
+
+          if (cachedIdeas && cachedIdeas.length > 0) {
+            nextGeneratedIdeasByCompetency[assessment.competencyId] = cachedIdeas;
+          }
+        }
+      }
+
+      return Object.keys(nextGeneratedIdeasByCompetency).length > 0
+        ? nextGeneratedIdeasByCompetency
+        : current;
+    });
+  }, [assessments, candidateId, roleId, savedGeneratedIdeasByCompetencyId]);
+
   async function handleGenerateIdeas() {
     if (!selectedAssessment || !roleId) {
       setGenerationError("Choose a candidate role and competency first.");
@@ -198,10 +230,23 @@ export function MentorReportMatchExplorer({
         );
       }
 
+      const nextIdeas = payload.ideas ?? [];
+
       setGeneratedIdeasByCompetency((current) => ({
         ...current,
-        [selectedAssessment.competencyId]: payload.ideas ?? [],
+        [selectedAssessment.competencyId]: nextIdeas,
       }));
+
+      if (roleId) {
+        writeGeneratedMentoringIdeasCache(
+          {
+            candidateId,
+            roleId,
+            competencyId: selectedAssessment.competencyId,
+          },
+          nextIdeas,
+        );
+      }
     } catch (error) {
       setGenerationError(
         error instanceof Error

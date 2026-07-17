@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { CompetencyCoachingNarrativePanel } from "@/components/competency-coaching-narrative-panel";
 import { MentoringIdeasPanel } from "@/components/mentoring-ideas-panel";
+import type { GeneratedCandidateMentoringIdea } from "@/lib/candidate-mentoring-ideas";
 import type { RankedProjectMatch } from "@/lib/fit-analysis";
 import { sanitizeAppText, sanitizeAppTextList } from "@/lib/text-sanitizer";
 
@@ -42,6 +43,7 @@ type CandidateInsightExplorerProps = {
   candidateId?: string;
   candidateName?: string;
   roleId?: string;
+  savedGeneratedIdeasByCompetencyId?: Record<string, GeneratedCandidateMentoringIdea[]>;
 };
 
 type SelectedInsight =
@@ -57,6 +59,7 @@ export function CandidateInsightExplorer({
   candidateId,
   candidateName,
   roleId,
+  savedGeneratedIdeasByCompetencyId = {},
 }: CandidateInsightExplorerProps) {
   const [selectedInsight, setSelectedInsight] = useState<SelectedInsight>(() => {
     if (assessments[0]) {
@@ -380,6 +383,9 @@ export function CandidateInsightExplorer({
             roleId={roleId}
             competencyId={activeAssessment.competencyId}
             competencyName={activeAssessment.competencyName}
+            initialGeneratedIdeas={
+              savedGeneratedIdeasByCompetencyId[activeAssessment.competencyId] ?? []
+            }
           />
         </section>
       ) : null}

@@ -5,6 +5,7 @@ import {
   createApiErrorResponse,
   requireApiWorkspaceProfile,
 } from "@/lib/api-route";
+import { isMissingCandidateGeneratedMentoringIdeaSetTableError } from "@/lib/candidate-generated-mentoring-idea-set";
 import {
   buildLeadershipDevelopmentRecordFromProject,
   buildCandidateSpecificProjectDescription,
@@ -470,6 +471,27 @@ export async function POST(request: Request) {
       if (insertLeadersResult.error) {
         throw new ApiRouteError(insertLeadersResult.error.message, 500);
       }
+    }
+
+    const updateSavedIdeaSetResult = await admin
+      .from("candidate_generated_mentoring_idea_sets")
+      .update({
+        selected_idea_title: payload.idea.title,
+        selected_project_assignment_id: candidateProjectAssignmentId,
+        selected_development_record_id: draftRecordId,
+      })
+      .eq("organization_id", profile.organization_id)
+      .eq("candidate_id", payload.candidateId)
+      .eq("role_id", payload.roleId)
+      .eq("competency_id", payload.competencyId);
+
+    if (
+      updateSavedIdeaSetResult.error &&
+      !isMissingCandidateGeneratedMentoringIdeaSetTableError(
+        updateSavedIdeaSetResult.error,
+      )
+    ) {
+      throw new ApiRouteError(updateSavedIdeaSetResult.error.message, 500);
     }
 
     return NextResponse.json({

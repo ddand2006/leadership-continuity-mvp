@@ -5,6 +5,7 @@ import {
   createApiErrorResponse,
   requireApiWorkspaceProfile,
 } from "@/lib/api-route";
+import { isMissingCandidateGeneratedMentoringIdeaSetTableError } from "@/lib/candidate-generated-mentoring-idea-set";
 import { generateCandidateMentoringIdeas } from "@/lib/candidate-mentoring-ideas";
 import { hasOpenAIEnv } from "@/lib/env";
 import {
@@ -14,6 +15,7 @@ import {
   type DevelopmentProjectRecord,
 } from "@/lib/fit-analysis";
 import { isAdminAppRole, mentorHasCandidateAccess } from "@/lib/mentor-access";
+import { canonicalizeRoleTitle } from "@/lib/role-title";
 
 const payloadSchema = z.object({
   candidateId: z.string().uuid(),
@@ -127,6 +129,8 @@ export async function POST(request: Request) {
       throw new ApiRouteError("Role could not be found.", 404);
     }
 
+    const roleTitle = canonicalizeRoleTitle(roleResult.data.title);
+
     const mentorHasAccess = mentorHasCandidateAccess({
       profileId: profile.id,
       candidateId: payload.candidateId,
@@ -203,7 +207,7 @@ export async function POST(request: Request) {
       }),
     );
     const referenceIdeas = rankMentoringIdeasForCompetency(developmentProjects, {
-      roleTitle: roleResult.data.title,
+      roleTitle,
       competencyName: competencyAssessment.competencyName,
       supportingStrengths: competencyAssessment.supportingStrengths,
       leverageStrengths: topStrengths,
@@ -226,7 +230,7 @@ export async function POST(request: Request) {
         status: candidateResult.data.status,
       },
       role: {
-        title: roleResult.data.title,
+        title: roleTitle,
         description: roleResult.data.description,
       },
       competency: {
@@ -250,8 +254,40 @@ export async function POST(request: Request) {
       supportingStrengths: competencyAssessment.supportingStrengths,
       referenceIdeas,
     });
+    let storageReady = true;
+    const persistIdeasResult = await admin
+      .from("candidate_generated_mentoring_idea_sets")
+      .upsert(
+        {
+          organization_id: profile.organization_id,
+          candidate_id: payload.candidateId,
+          role_id: payload.roleId,
+          competency_id: payload.competencyId,
+          ideas_json: ideas,
+          selected_idea_title: null,
+          selected_project_assignment_id: null,
+          selected_development_record_id: null,
+          created_by_profile_id: profile.id,
+          generated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: "organization_id,candidate_id,role_id,competency_id",
+        },
+      );
 
-    return NextResponse.json({ ideas });
+    if (persistIdeasResult.error) {
+      if (
+        isMissingCandidateGeneratedMentoringIdeaSetTableError(
+          persistIdeasResult.error,
+        )
+      ) {
+        storageReady = false;
+      } else {
+        throw new ApiRouteError(persistIdeasResult.error.message, 500);
+      }
+    }
+
+    return NextResponse.json({ ideas, storageReady });
   } catch (error) {
     return createApiErrorResponse(
       error,

@@ -1,8 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { GeneratedCandidateMentoringIdea } from "@/lib/candidate-mentoring-ideas";
 import type { RankedProjectMatch } from "@/lib/fit-analysis";
+import {
+  readGeneratedMentoringIdeasCache,
+  writeGeneratedMentoringIdeasCache,
+} from "@/lib/generated-mentoring-ideas-cache";
 import { storePendingMentoringProjectTransfer } from "@/lib/pending-mentoring-project-transfer";
 
 function projectTypeLabel(projectType: GeneratedCandidateMentoringIdea["project_type"]) {
@@ -19,6 +23,7 @@ export function MentoringIdeasPanel({
   roleId,
   competencyId,
   competencyName,
+  initialGeneratedIdeas = [],
 }: {
   ideas: RankedProjectMatch[];
   canGenerateCandidateIdeas?: boolean;
@@ -27,16 +32,34 @@ export function MentoringIdeasPanel({
   roleId?: string;
   competencyId?: string;
   competencyName?: string;
+  initialGeneratedIdeas?: GeneratedCandidateMentoringIdea[];
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [generatedIdeas, setGeneratedIdeas] = useState<
     GeneratedCandidateMentoringIdea[]
-  >([]);
+  >(initialGeneratedIdeas);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isChoosingTitle, setIsChoosingTitle] = useState<string | null>(null);
   const [isDownloadingTitle, setIsDownloadingTitle] = useState<string | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!candidateId || !roleId || !competencyId) {
+      setGeneratedIdeas(initialGeneratedIdeas);
+      return;
+    }
+
+    const cachedIdeas = readGeneratedMentoringIdeasCache({
+      candidateId,
+      roleId,
+      competencyId,
+    });
+
+    setGeneratedIdeas(
+      cachedIdeas && cachedIdeas.length > 0 ? cachedIdeas : initialGeneratedIdeas,
+    );
+  }, [candidateId, competencyId, initialGeneratedIdeas, roleId]);
 
   async function handleChooseIdea(idea: GeneratedCandidateMentoringIdea) {
     if (!candidateId || !roleId || !competencyId) {
@@ -183,7 +206,20 @@ export function MentoringIdeasPanel({
         );
       }
 
-      setGeneratedIdeas(payload.ideas ?? []);
+      const nextIdeas = payload.ideas ?? [];
+
+      setGeneratedIdeas(nextIdeas);
+
+      if (candidateId && roleId && competencyId) {
+        writeGeneratedMentoringIdeasCache(
+          {
+            candidateId,
+            roleId,
+            competencyId,
+          },
+          nextIdeas,
+        );
+      }
     } catch (error) {
       setGenerationError(
         error instanceof Error

@@ -8,6 +8,10 @@ import { CandidateStrengthsUploadCard } from "@/components/candidate-strengths-u
 import { GenerateMentorReportButton } from "@/components/generate-mentor-report-button";
 import { InterviewScoreEntryPanel } from "@/components/interview-score-entry-panel";
 import {
+  isMissingCandidateGeneratedMentoringIdeaSetTableError,
+  parseCandidateGeneratedMentoringIdeaSetRow,
+} from "@/lib/candidate-generated-mentoring-idea-set";
+import {
   formatFileSize,
   getCandidateSourceDocumentsBucket,
   getStrengthsUploadDocumentCategory,
@@ -25,6 +29,7 @@ import {
   buildRoleMatchesWeakestToStrongest,
   MentorReport,
 } from "@/lib/mentor-report";
+import { canonicalizeRoleTitle } from "@/lib/role-title";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { sanitizeAppText } from "@/lib/text-sanitizer";
 import { requirePaidWorkspaceProfile } from "@/lib/workspace";
@@ -127,7 +132,15 @@ export default async function CandidateDetailPage({
 
   const considerations = considerationsResult.data ?? [];
   const mentorAssignments = mentorAssignmentsResult.data ?? [];
-  const roleMap = new Map((rolesResult.data ?? []).map((role) => [role.id, role]));
+  const roleMap = new Map(
+    (rolesResult.data ?? []).map((role) => [
+      role.id,
+      {
+        ...role,
+        title: canonicalizeRoleTitle(role.title),
+      },
+    ]),
+  );
   const mentorMap = new Map(
     (mentorProfilesResult.data ?? []).map((mentor) => [mentor.id, mentor]),
   );
@@ -185,6 +198,7 @@ export default async function CandidateDetailPage({
     latestReportResult,
     strengthAssessmentsResult,
     projectsResult,
+    savedIdeaSetsResult,
   ] =
     activeRoleId
       ? await Promise.all([
@@ -227,12 +241,21 @@ export default async function CandidateDetailPage({
               "title, description, difficulty, duration_days, applicable_roles, competencies_developed, strengths_leveraged, expected_outcomes, mentor_questions, evidence_of_success",
             )
             .or(`organization_id.is.null,organization_id.eq.${profile.organization_id}`),
+          supabase
+            .from("candidate_generated_mentoring_idea_sets")
+            .select(
+              "competency_id, ideas_json, selected_idea_title, selected_project_assignment_id, selected_development_record_id, generated_at, updated_at",
+            )
+            .eq("organization_id", profile.organization_id)
+            .eq("candidate_id", candidate.id)
+            .eq("role_id", activeRoleId),
         ])
       : [
           { data: null, error: null },
           { data: [], error: null },
           { data: [], error: null },
           { data: null, error: null },
+          { data: [], error: null },
           { data: [], error: null },
           { data: [], error: null },
         ];
@@ -244,8 +267,16 @@ export default async function CandidateDetailPage({
     latestReportResult,
     strengthAssessmentsResult,
     projectsResult,
+    savedIdeaSetsResult,
   ]) {
     if (result.error) {
+      if (
+        result === savedIdeaSetsResult &&
+        isMissingCandidateGeneratedMentoringIdeaSetTableError(result.error)
+      ) {
+        continue;
+      }
+
       throw new Error(result.error.message);
     }
   }
@@ -354,7 +385,7 @@ export default async function CandidateDetailPage({
     assessments.map((assessment) => [
       assessment.competencyId,
       rankMentoringIdeasForCompetency(developmentProjects, {
-        roleTitle: roleResult.data?.title ?? "",
+        roleTitle: canonicalizeRoleTitle(roleResult.data?.title ?? null),
         competencyName: assessment.competencyName,
         supportingStrengths: assessment.supportingStrengths,
         leverageStrengths,
@@ -365,8 +396,26 @@ export default async function CandidateDetailPage({
 
   const latestReport = (latestReportResult.data?.report_json ??
     null) as MentorReport | null;
+  const savedGeneratedIdeasByCompetencyId = new Map(
+    (savedIdeaSetsResult.data ?? []).map((row) => {
+      const parsedRow = parseCandidateGeneratedMentoringIdeaSetRow({
+        competency_id: row.competency_id,
+        ideas_json: Array.isArray(row.ideas_json) ? row.ideas_json : [],
+        selected_idea_title: row.selected_idea_title,
+        selected_project_assignment_id: row.selected_project_assignment_id,
+        selected_development_record_id: row.selected_development_record_id,
+        generated_at: row.generated_at,
+        updated_at: row.updated_at,
+      });
+
+      return [parsedRow.competency_id, parsedRow.ideas_json] as const;
+    }),
+  );
   const mentoringIdeasByCompetencyIdObject = Object.fromEntries(
     Array.from(mentoringIdeasByCompetencyId.entries()),
+  );
+  const savedGeneratedIdeasByCompetencyIdObject = Object.fromEntries(
+    Array.from(savedGeneratedIdeasByCompetencyId.entries()),
   );
 
   const sourceDocuments = await Promise.all(
@@ -401,9 +450,10 @@ export default async function CandidateDetailPage({
         ),
       )
     : [];
+  const activeRoleTitle = canonicalizeRoleTitle(roleResult.data?.title ?? null);
   const candidateWorkspaceDetailItems = [
     `Current title: ${candidate.current_title ?? "Not entered"}`,
-    `Active role: ${roleResult.data?.title ?? "No role selected"}`,
+    `Active role: ${activeRoleTitle || "No role selected"}`,
     `Weighted readiness: ${readiness.toFixed(2)} / 5`,
     `Mentors: ${
       activeRoleMentorNames.length > 0
@@ -433,7 +483,7 @@ export default async function CandidateDetailPage({
                       candidateName={candidate.full_name}
                       roles={(rolesResult.data ?? []).map((role) => ({
                         id: role.id,
-                        title: role.title,
+                        title: canonicalizeRoleTitle(role.title),
                       }))}
                       considerations={considerations.map((consideration) => {
                         const role = roleMap.get(consideration.role_id);
@@ -582,7 +632,7 @@ export default async function CandidateDetailPage({
                 <InterviewScoreEntryPanel
                   candidateId={candidate.id}
                   roleId={activeRoleId}
-                  roleTitle={roleResult.data?.title ?? null}
+                  roleTitle={activeRoleTitle || null}
                   readOnly={!canManageCandidate}
                   canEditTargetScores={canManageCandidate}
                   competencies={(competenciesResult.data ?? []).map((competency) => ({
@@ -776,6 +826,9 @@ export default async function CandidateDetailPage({
                     candidateId={candidate.id}
                     candidateName={candidate.full_name}
                     roleId={activeRoleId ?? undefined}
+                    savedGeneratedIdeasByCompetencyId={
+                      savedGeneratedIdeasByCompetencyIdObject
+                    }
                   />
                 </section>
               ),
@@ -841,6 +894,9 @@ export default async function CandidateDetailPage({
                         strengthsToLeverage={latestReport.strengths_to_leverage}
                         assessments={assessments}
                         libraryIdeasByCompetencyId={mentoringIdeasByCompetencyIdObject}
+                        savedGeneratedIdeasByCompetencyId={
+                          savedGeneratedIdeasByCompetencyIdObject
+                        }
                         candidateId={candidate.id}
                         candidateName={candidate.full_name}
                         roleId={activeRoleId}
