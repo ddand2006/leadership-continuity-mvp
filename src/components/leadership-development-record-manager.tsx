@@ -226,6 +226,30 @@ export function LeadershipDevelopmentRecordManager({
     selectedSourceProject ??
     findLinkedProjectForRecord(selectedRecord, currentSourceProjects);
 
+  useEffect(() => {
+    const nextAssignmentKey =
+      initialSelectedAssignmentKey &&
+      assignments.some(
+        (assignment) => getAssignmentKey(assignment) === initialSelectedAssignmentKey,
+      )
+        ? initialSelectedAssignmentKey
+        : null;
+
+    if (nextAssignmentKey && nextAssignmentKey !== selectedAssignmentKey) {
+      setSelectedAssignmentKey(nextAssignmentKey);
+    }
+
+    if (initialSelectedProjectId) {
+      setPendingInitialProjectId(initialSelectedProjectId);
+      setSelectedProjectId("");
+      setSelectedRecordId("");
+      setProjectDetailsOpen(true);
+      return;
+    }
+
+    setPendingInitialProjectId("");
+  }, [assignments, initialSelectedAssignmentKey, initialSelectedProjectId, selectedAssignmentKey]);
+
   function applySelectedRecord(
     nextSelectedAssignment: LeadershipDevelopmentAssignmentOption,
     records: LeadershipDevelopmentRecordRecord[],
@@ -340,12 +364,24 @@ export function LeadershipDevelopmentRecordManager({
             ? selectedRecordId
             : "";
 
+        if (initialProjectForRoute) {
+          const matchedProject =
+            sourceProjects.find((project) => project.id === initialProjectForRoute) ??
+            null;
+
+          if (matchedProject) {
+            applySelectedProject(selectedAssignment, matchedProject);
+            setPendingInitialProjectId("");
+            return;
+          }
+        }
+
         if (nextRecordId) {
           applySelectedRecord(selectedAssignment, records, nextRecordId);
           return;
         }
 
-        const nextProjectId = persistedSelectedProject || initialProjectForRoute;
+        const nextProjectId = persistedSelectedProject;
 
         if (nextProjectId) {
           const matchedProject =
