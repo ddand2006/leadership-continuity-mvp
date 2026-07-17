@@ -211,10 +211,12 @@ export function LeadershipDevelopmentRecordManager({
   assignments,
   initialSelectedAssignmentKey,
   initialSelectedProjectId,
+  initialSelectedRecordId,
 }: {
   assignments: LeadershipDevelopmentAssignmentOption[];
   initialSelectedAssignmentKey?: string | null;
   initialSelectedProjectId?: string | null;
+  initialSelectedRecordId?: string | null;
 }) {
   const [isPending, startTransition] = useTransition();
   const [isLoading, setIsLoading] = useState(false);
@@ -229,6 +231,9 @@ export function LeadershipDevelopmentRecordManager({
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [pendingInitialProjectId, setPendingInitialProjectId] = useState(
     initialSelectedProjectId ?? "",
+  );
+  const [pendingInitialRecordId, setPendingInitialRecordId] = useState(
+    initialSelectedRecordId ?? "",
   );
   const [projectDetailsOpen, setProjectDetailsOpen] = useState(
     Boolean(initialSelectedProjectId),
@@ -281,6 +286,13 @@ export function LeadershipDevelopmentRecordManager({
       setSelectedAssignmentKey(nextAssignmentKey);
     }
 
+    if (initialSelectedRecordId) {
+      setPendingInitialRecordId(initialSelectedRecordId);
+      setSelectedProjectId("");
+      setProjectDetailsOpen(false);
+      return;
+    }
+
     if (initialSelectedProjectId) {
       const matchingProject =
         selectedAssignment?.roleId
@@ -303,12 +315,14 @@ export function LeadershipDevelopmentRecordManager({
       return;
     }
 
+    setPendingInitialRecordId("");
     setPendingInitialProjectId("");
   }, [
     assignments,
     currentSourceProjects,
     initialSelectedAssignmentKey,
     initialSelectedProjectId,
+    initialSelectedRecordId,
     selectedAssignment,
     selectedAssignmentKey,
   ]);
@@ -428,10 +442,21 @@ export function LeadershipDevelopmentRecordManager({
           sourceProjects.some((project) => project.id === pendingInitialProjectId)
             ? pendingInitialProjectId
             : "";
+        const initialRecordForRoute =
+          pendingInitialRecordId &&
+          records.some((record) => record.id === pendingInitialRecordId)
+            ? pendingInitialRecordId
+            : "";
         const nextRecordId =
           selectedRecordId && records.some((record) => record.id === selectedRecordId)
             ? selectedRecordId
             : "";
+
+        if (initialRecordForRoute) {
+          applySelectedRecord(selectedAssignment, records, initialRecordForRoute);
+          setPendingInitialRecordId("");
+          return;
+        }
 
         if (initialProjectForRoute) {
           const matchedProject =
@@ -480,7 +505,12 @@ export function LeadershipDevelopmentRecordManager({
     loadRecords();
 
     return () => controller.abort();
-  }, [pendingInitialProjectId, selectedAssignment, selectedRecordId]);
+  }, [
+    pendingInitialProjectId,
+    pendingInitialRecordId,
+    selectedAssignment,
+    selectedRecordId,
+  ]);
 
   function toggleSection(sectionId: CollapsibleSectionId) {
     setOpenSections((current) => ({

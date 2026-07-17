@@ -6,7 +6,9 @@ import {
   requireApiWorkspaceProfile,
 } from "@/lib/api-route";
 import {
+  buildLeadershipDevelopmentRecordFromProject,
   buildCandidateSpecificProjectDescription,
+  buildMentoringSourceProject,
   buildMentoringProjectAssignmentNotes,
 } from "@/lib/mentoring-source-project";
 import { isAdminAppRole, mentorHasCandidateAccess } from "@/lib/mentor-access";
@@ -169,7 +171,7 @@ export async function POST(request: Request) {
       mentorProfileIds.length > 0
         ? await admin
             .from("profiles")
-            .select("id")
+            .select("id, full_name")
             .eq("organization_id", profile.organization_id)
             .in("id", mentorProfileIds)
         : { data: [], error: null };
@@ -180,6 +182,12 @@ export async function POST(request: Request) {
 
     const validMentorProfileIds = new Set(
       (mentorProfilesResult.data ?? []).map((mentorProfile) => mentorProfile.id),
+    );
+    const mentorNameById = new Map(
+      (mentorProfilesResult.data ?? []).map((mentorProfile) => [
+        mentorProfile.id,
+        mentorProfile.full_name ?? "",
+      ]),
     );
     const selectedMentorAssignment = choosePreferredMentorAssignment({
       activeAssignments: activeMentorAssignments,
@@ -226,7 +234,7 @@ export async function POST(request: Request) {
 
     const matchingAssignmentsResult = await admin
       .from("candidate_project_assignments")
-      .select("id, mentor_profile_id, status, created_at")
+      .select("id, mentor_profile_id, status, start_date, due_date, created_at")
       .eq("organization_id", profile.organization_id)
       .eq("candidate_id", payload.candidateId)
       .eq("development_project_id", developmentProjectId)
@@ -246,7 +254,7 @@ export async function POST(request: Request) {
       ? { data: [], error: null }
       : await admin
           .from("candidate_project_assignments")
-          .select("id, status, created_at")
+          .select("id, status, start_date, due_date, created_at")
           .eq("organization_id", profile.organization_id)
           .eq("candidate_id", payload.candidateId)
           .eq("development_project_id", developmentProjectId)
@@ -268,6 +276,10 @@ export async function POST(request: Request) {
     });
     let candidateProjectAssignmentId =
       reusableMatchingAssignment?.id ?? reusableUnscopedAssignment?.id ?? null;
+    let assignmentStartDate =
+      reusableMatchingAssignment?.start_date ?? reusableUnscopedAssignment?.start_date ?? null;
+    let assignmentDueDate =
+      reusableMatchingAssignment?.due_date ?? reusableUnscopedAssignment?.due_date ?? null;
 
     if (reusableUnscopedAssignment) {
       const updateAssignmentResult = await admin
@@ -279,7 +291,7 @@ export async function POST(request: Request) {
         })
         .eq("organization_id", profile.organization_id)
         .eq("id", reusableUnscopedAssignment.id)
-        .select("id")
+        .select("id, start_date, due_date")
         .single();
 
       if (updateAssignmentResult.error) {
@@ -287,6 +299,8 @@ export async function POST(request: Request) {
       }
 
       candidateProjectAssignmentId = updateAssignmentResult.data.id;
+      assignmentStartDate = updateAssignmentResult.data.start_date;
+      assignmentDueDate = updateAssignmentResult.data.due_date;
     } else if (!reusableMatchingAssignment) {
       const today = new Date();
       const dueDate = addDays(today, payload.idea.duration_days);
@@ -302,7 +316,7 @@ export async function POST(request: Request) {
           due_date: toIsoDate(dueDate),
           mentor_notes: assignmentNotes,
         })
-        .select("id")
+        .select("id, start_date, due_date")
         .single();
 
       if (assignmentResult.error) {
@@ -310,6 +324,8 @@ export async function POST(request: Request) {
       }
 
       candidateProjectAssignmentId = assignmentResult.data.id;
+      assignmentStartDate = assignmentResult.data.start_date;
+      assignmentDueDate = assignmentResult.data.due_date;
     } else {
       const updateAssignmentResult = await admin
         .from("candidate_project_assignments")
@@ -321,19 +337,148 @@ export async function POST(request: Request) {
               : reusableMatchingAssignment.status,
         })
         .eq("organization_id", profile.organization_id)
-        .eq("id", reusableMatchingAssignment.id);
+        .eq("id", reusableMatchingAssignment.id)
+        .select("id, start_date, due_date")
+        .single();
 
       if (updateAssignmentResult.error) {
         throw new ApiRouteError(updateAssignmentResult.error.message, 500);
+      }
+
+      assignmentStartDate = updateAssignmentResult.data.start_date;
+      assignmentDueDate = updateAssignmentResult.data.due_date;
+    }
+
+    const selectedProject = buildMentoringSourceProject({
+      id: candidateProjectAssignmentId ?? developmentProjectId,
+      projectId: developmentProjectId,
+      title: payload.idea.title,
+      description: projectDescription,
+      durationDays: payload.idea.duration_days,
+      competencyNames: [competencyResult.data.name],
+      applicableRoles: [roleTitle],
+      successMeasures: payload.idea.success_measures,
+      reflectionQuestions: payload.idea.reflection_questions,
+      successSignals: payload.idea.success_signals,
+      startDate: assignmentStartDate,
+      dueDate: assignmentDueDate,
+      status: "assigned",
+      mentorNotes: assignmentNotes,
+    });
+    const selectedProjectDraft = buildLeadershipDevelopmentRecordFromProject({
+      assignment: {
+        candidateId: payload.candidateId,
+        roleId: payload.roleId,
+        mentorProfileId: mentoringTrackMentorProfileId,
+        candidateName: candidateResult.data.full_name,
+        roleTitle,
+        mentorName: mentorNameById.get(mentoringTrackMentorProfileId) ?? "Unknown mentor",
+        startDate: assignmentStartDate,
+      },
+      project: selectedProject,
+    });
+    const timestamp = new Date().toISOString();
+    const existingDraftRecordResult = await admin
+      .from("development_records")
+      .select("id")
+      .eq("organization_id", profile.organization_id)
+      .eq("candidate_id", payload.candidateId)
+      .eq("role_id", payload.roleId)
+      .eq("mentor_id", mentoringTrackMentorProfileId)
+      .eq("experience_title", selectedProjectDraft.experienceTitle)
+      .in("status", ["assigned", "in_progress", "ready_for_review"])
+      .order("updated_at", { ascending: false })
+      .limit(1);
+
+    if (existingDraftRecordResult.error) {
+      throw new ApiRouteError(existingDraftRecordResult.error.message, 500);
+    }
+
+    const baseRecord = {
+      organization_id: profile.organization_id,
+      candidate_id: payload.candidateId,
+      role_id: payload.roleId,
+      mentor_id: mentoringTrackMentorProfileId,
+      target_role: roleTitle,
+      date_assigned: selectedProjectDraft.dateAssigned,
+      status: "assigned",
+      growth_areas: selectedProjectDraft.growthAreas,
+      assignment_reason: selectedProjectDraft.assignmentReason || null,
+      experience_title: selectedProjectDraft.experienceTitle,
+      mentee_task: selectedProjectDraft.menteeTask || null,
+      readiness_signal: null,
+      mentor_improvement_observed: null,
+      mentor_development_needed: null,
+      next_recommended_experience: null,
+      mentor_review_date: null,
+      average_feedback_score: null,
+      created_by_profile_id: profile.id,
+      updated_at: timestamp,
+    };
+    const existingDraftRecordId = existingDraftRecordResult.data?.[0]?.id ?? null;
+    const draftRecordResult = existingDraftRecordId
+      ? await admin
+          .from("development_records")
+          .update(baseRecord)
+          .eq("organization_id", profile.organization_id)
+          .eq("id", existingDraftRecordId)
+          .select("id")
+          .single()
+      : await admin
+          .from("development_records")
+          .insert({
+            ...baseRecord,
+            created_at: timestamp,
+          })
+          .select("id")
+          .single();
+
+    if (draftRecordResult.error) {
+      throw new ApiRouteError(draftRecordResult.error.message, 500);
+    }
+
+    const draftRecordId = draftRecordResult.data.id;
+
+    const deleteExistingLeadersResult = await admin
+      .from("development_record_leaders")
+      .delete()
+      .eq("development_record_id", draftRecordId);
+
+    if (deleteExistingLeadersResult.error) {
+      throw new ApiRouteError(deleteExistingLeadersResult.error.message, 500);
+    }
+
+    const filteredLeaderEngagements = selectedProjectDraft.leaderEngagements.filter(
+      (leader) => leader.leaderName.trim().length > 0,
+    );
+
+    if (filteredLeaderEngagements.length > 0) {
+      const insertLeadersResult = await admin
+        .from("development_record_leaders")
+        .insert(
+          filteredLeaderEngagements.map((leader) => ({
+            development_record_id: draftRecordId,
+            leader_name: leader.leaderName,
+            department: leader.department || null,
+            purpose: leader.purpose || null,
+            meeting_completed: leader.meetingCompleted,
+            created_at: timestamp,
+            updated_at: timestamp,
+          })),
+        );
+
+      if (insertLeadersResult.error) {
+        throw new ApiRouteError(insertLeadersResult.error.message, 500);
       }
     }
 
     return NextResponse.json({
       message: `"${payload.idea.title}" has been chosen for ${candidateResult.data.full_name}.`,
       navigation: {
-        href: `/mentoring?section=leadership-development-record&candidateId=${payload.candidateId}&roleId=${payload.roleId}&mentorProfileId=${mentoringTrackMentorProfileId}&projectId=${candidateProjectAssignmentId ?? developmentProjectId}`,
+        href: `/mentoring?section=leadership-development-record&candidateId=${payload.candidateId}&roleId=${payload.roleId}&mentorProfileId=${mentoringTrackMentorProfileId}&projectId=${candidateProjectAssignmentId ?? developmentProjectId}&recordId=${draftRecordId}`,
       },
       projectAssignmentId: candidateProjectAssignmentId,
+      recordId: draftRecordId,
     });
   } catch (error) {
     return createApiErrorResponse(error, "Unable to choose this mentoring project.");

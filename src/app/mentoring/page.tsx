@@ -22,6 +22,7 @@ type MentoringPageProps = {
     section?: string;
     candidateId?: string;
     projectId?: string;
+    recordId?: string;
     roleId?: string;
     mentorProfileId?: string;
   }>;
@@ -145,6 +146,7 @@ export default async function MentoringPage({
     candidateId: requestedCandidateId,
     mentorProfileId: requestedMentorProfileId,
     projectId: requestedProjectId,
+    recordId: requestedRecordId,
     roleId: requestedRoleId,
     section: requestedSection,
   } = await searchParams;
@@ -851,7 +853,7 @@ export default async function MentoringPage({
       label: "Leadership Development Record",
       content: (
         <LeadershipDevelopmentRecordManager
-          key={`${selectedAssignmentKey ?? "no-assignment"}:${requestedProjectId ?? "no-project"}`}
+          key={`${selectedAssignmentKey ?? "no-assignment"}:${requestedProjectId ?? "no-project"}:${requestedRecordId ?? "no-record"}`}
           assignments={visibleAssignments.map((assignment) => ({
             candidateId: assignment.candidate_id,
             roleId: assignment.role_id,
@@ -871,6 +873,7 @@ export default async function MentoringPage({
           }))}
           initialSelectedAssignmentKey={selectedAssignmentKey}
           initialSelectedProjectId={requestedProjectId ?? null}
+          initialSelectedRecordId={requestedRecordId ?? null}
         />
       ),
     },
