@@ -212,6 +212,24 @@ function findLinkedProjectForRecord(
   );
 }
 
+function clearStickySelectionParamsFromUrl() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const nextUrl = new URL(window.location.href);
+  const hadProjectId = nextUrl.searchParams.has("projectId");
+  const hadRecordId = nextUrl.searchParams.has("recordId");
+
+  if (!hadProjectId && !hadRecordId) {
+    return;
+  }
+
+  nextUrl.searchParams.delete("projectId");
+  nextUrl.searchParams.delete("recordId");
+  window.history.replaceState(window.history.state, "", nextUrl.toString());
+}
+
 export function LeadershipDevelopmentRecordManager({
   assignments,
   initialSelectedAssignmentKey,
@@ -491,6 +509,7 @@ export function LeadershipDevelopmentRecordManager({
             setPendingInitialRecordId("");
             clearPendingMentoringProjectTransfer();
             setPendingTransferredProject(null);
+            clearStickySelectionParamsFromUrl();
             return;
           }
         }
@@ -507,6 +526,7 @@ export function LeadershipDevelopmentRecordManager({
           applySelectedProject(selectedAssignment, matchedTransferredProject);
           clearPendingMentoringProjectTransfer();
           setPendingTransferredProject(null);
+          clearStickySelectionParamsFromUrl();
           return;
         }
 
@@ -966,6 +986,7 @@ export function LeadershipDevelopmentRecordManager({
                         applySelectedProject(selectedAssignment, nextProject, {
                           userInitiated: true,
                         });
+                        clearStickySelectionParamsFromUrl();
                       }
 
                       return;
@@ -977,6 +998,7 @@ export function LeadershipDevelopmentRecordManager({
                     applySelectedRecord(selectedAssignment, currentRecords, nextRecordId, {
                       userInitiated: true,
                     });
+                    clearStickySelectionParamsFromUrl();
                   }}
                   className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500"
                 >
