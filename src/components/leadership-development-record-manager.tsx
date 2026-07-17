@@ -489,6 +489,8 @@ export function LeadershipDevelopmentRecordManager({
             applySelectedProject(selectedAssignment, matchedProject);
             setPendingInitialProjectId("");
             setPendingInitialRecordId("");
+            clearPendingMentoringProjectTransfer();
+            setPendingTransferredProject(null);
             return;
           }
         }
@@ -550,11 +552,8 @@ export function LeadershipDevelopmentRecordManager({
 
     return () => controller.abort();
   }, [
-    pendingInitialProjectId,
-    pendingInitialRecordId,
     pendingTransferredProject,
     selectedAssignment,
-    selectedRecordId,
   ]);
 
   function toggleSection(sectionId: CollapsibleSectionId) {
