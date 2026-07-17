@@ -20,6 +20,11 @@ import {
   buildLeadershipDevelopmentRecordFromProject,
   type MentoringSourceProject,
 } from "@/lib/mentoring-source-project";
+import {
+  buildPendingMentoringTransferProject,
+  clearPendingMentoringProjectTransfer,
+  readPendingMentoringProjectTransfer,
+} from "@/lib/pending-mentoring-project-transfer";
 
 type LeadershipDevelopmentAssignmentOption = {
   candidateId: string;
@@ -245,6 +250,8 @@ export function LeadershipDevelopmentRecordManager({
   const [sourceProjectsByAssignmentKey, setSourceProjectsByAssignmentKey] = useState<
     Record<string, MentoringSourceProject[]>
   >({});
+  const [pendingTransferredProject, setPendingTransferredProject] =
+    useState<MentoringSourceProject | null>(null);
   const [formState, setFormState] = useState<LeadershipDevelopmentRecordPayload | null>(
     null,
   );
@@ -265,13 +272,52 @@ export function LeadershipDevelopmentRecordManager({
   const currentSourceProjects = selectedAssignment
     ? sourceProjectsByAssignmentKey[getAssignmentKey(selectedAssignment)] ?? []
     : [];
+  const visibleSourceProjects =
+    pendingTransferredProject &&
+    !currentSourceProjects.some(
+      (project) =>
+        project.id === pendingTransferredProject.id ||
+        project.projectId === pendingTransferredProject.projectId,
+    )
+      ? [pendingTransferredProject, ...currentSourceProjects]
+      : currentSourceProjects;
   const selectedRecord =
     currentRecords.find((record) => record.id === selectedRecordId) ?? null;
   const selectedSourceProject =
-    currentSourceProjects.find((project) => project.id === selectedProjectId) ?? null;
+    visibleSourceProjects.find((project) => project.id === selectedProjectId) ?? null;
   const linkedSourceProject =
     selectedSourceProject ??
-    findLinkedProjectForRecord(selectedRecord, currentSourceProjects);
+    findLinkedProjectForRecord(selectedRecord, visibleSourceProjects);
+
+  useEffect(() => {
+    if (!selectedAssignment) {
+      return;
+    }
+
+    const pendingTransfer = readPendingMentoringProjectTransfer();
+
+    if (!pendingTransfer) {
+      setPendingTransferredProject(null);
+      return;
+    }
+
+    if (
+      pendingTransfer.candidateId !== selectedAssignment.candidateId ||
+      pendingTransfer.roleId !== selectedAssignment.roleId ||
+      (pendingTransfer.mentorProfileId &&
+        pendingTransfer.mentorProfileId !== selectedAssignment.mentorProfileId)
+    ) {
+      return;
+    }
+
+    setPendingTransferredProject(
+      buildPendingMentoringTransferProject({
+        roleTitle: selectedAssignment.roleTitle,
+        startDate: selectedAssignment.startDate,
+        transfer: pendingTransfer,
+      }),
+    );
+  }, [selectedAssignment]);
 
   useEffect(() => {
     const nextAssignmentKey =
@@ -470,6 +516,21 @@ export function LeadershipDevelopmentRecordManager({
           }
         }
 
+        if (pendingTransferredProject) {
+          const matchedTransferredProject =
+            sourceProjects.find(
+              (project) =>
+                project.id === pendingTransferredProject.id ||
+                project.projectId === pendingTransferredProject.projectId ||
+                project.title === pendingTransferredProject.title,
+            ) ?? pendingTransferredProject;
+
+          applySelectedProject(selectedAssignment, matchedTransferredProject);
+          clearPendingMentoringProjectTransfer();
+          setPendingTransferredProject(null);
+          return;
+        }
+
         if (nextRecordId) {
           applySelectedRecord(selectedAssignment, records, nextRecordId);
           return;
@@ -508,6 +569,7 @@ export function LeadershipDevelopmentRecordManager({
   }, [
     pendingInitialProjectId,
     pendingInitialRecordId,
+    pendingTransferredProject,
     selectedAssignment,
     selectedRecordId,
   ]);
@@ -925,7 +987,7 @@ export function LeadershipDevelopmentRecordManager({
                   className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500"
                 >
                   <option value="">Create a new development record</option>
-                  {currentSourceProjects.map((project) => (
+                  {visibleSourceProjects.map((project) => (
                     <option key={project.id} value={`project:${project.id}`}>
                       Start from project: {createProjectLabel(project)}
                     </option>

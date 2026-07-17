@@ -379,6 +379,7 @@ export function CandidateInsightExplorer({
             candidateName={candidateName}
             roleId={roleId}
             competencyId={activeAssessment.competencyId}
+            competencyName={activeAssessment.competencyName}
           />
         </section>
       ) : null}

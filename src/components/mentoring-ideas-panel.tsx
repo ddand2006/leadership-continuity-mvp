@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { GeneratedCandidateMentoringIdea } from "@/lib/candidate-mentoring-ideas";
 import type { RankedProjectMatch } from "@/lib/fit-analysis";
+import { storePendingMentoringProjectTransfer } from "@/lib/pending-mentoring-project-transfer";
 
 function projectTypeLabel(projectType: GeneratedCandidateMentoringIdea["project_type"]) {
   return projectType === "cross_departmental"
@@ -17,6 +18,7 @@ export function MentoringIdeasPanel({
   candidateName,
   roleId,
   competencyId,
+  competencyName,
 }: {
   ideas: RankedProjectMatch[];
   canGenerateCandidateIdeas?: boolean;
@@ -24,6 +26,7 @@ export function MentoringIdeasPanel({
   candidateName?: string;
   roleId?: string;
   competencyId?: string;
+  competencyName?: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [generatedIdeas, setGeneratedIdeas] = useState<
@@ -71,6 +74,17 @@ export function MentoringIdeasPanel({
       }
 
       if (payload.navigation?.href) {
+        const navigationUrl = new URL(payload.navigation.href, window.location.origin);
+        storePendingMentoringProjectTransfer({
+          candidateId,
+          roleId,
+          mentorProfileId: navigationUrl.searchParams.get("mentorProfileId"),
+          competencyName: competencyName ?? "",
+          idea,
+          projectId: navigationUrl.searchParams.get("projectId"),
+          recordId: navigationUrl.searchParams.get("recordId"),
+          savedAt: new Date().toISOString(),
+        });
         window.location.assign(payload.navigation.href);
         return;
       }

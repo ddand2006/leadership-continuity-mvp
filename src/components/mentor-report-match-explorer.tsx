@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import type { GeneratedCandidateMentoringIdea } from "@/lib/candidate-mentoring-ideas";
 import type { RankedProjectMatch } from "@/lib/fit-analysis";
 import { buildDevelopmentPriorityEvidenceSummary } from "@/lib/mentor-report";
+import { storePendingMentoringProjectTransfer } from "@/lib/pending-mentoring-project-transfer";
 import { sanitizeAppText, sanitizeAppTextList } from "@/lib/text-sanitizer";
 
 type RoleMatch = {
@@ -304,6 +305,17 @@ export function MentorReportMatchExplorer({
       }
 
       if (payload.navigation?.href) {
+        const navigationUrl = new URL(payload.navigation.href, window.location.origin);
+        storePendingMentoringProjectTransfer({
+          candidateId,
+          roleId,
+          mentorProfileId: navigationUrl.searchParams.get("mentorProfileId"),
+          competencyName: selectedAssessment.competencyName,
+          idea,
+          projectId: navigationUrl.searchParams.get("projectId"),
+          recordId: navigationUrl.searchParams.get("recordId"),
+          savedAt: new Date().toISOString(),
+        });
         window.location.assign(payload.navigation.href);
         return;
       }
