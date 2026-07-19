@@ -5,6 +5,7 @@ import { isAdminAppRole, isMentorAppUser } from "@/lib/mentor-access";
 import { parseCoachingGuidance, type CoachingRequestRecord } from "@/lib/coaching-support";
 import type { PersonalLeadershipNarrative } from "@/lib/personal-leadership-composite";
 import type { RoleComposite } from "@/lib/role-composite";
+import { canonicalizeRoleTitle } from "@/lib/role-title";
 import {
   isMissingRoleSurveyTablesError,
   type RoleSurveyRecipientRecord,
@@ -182,6 +183,11 @@ export async function loadPersonalDevelopmentWorkspaceData(): Promise<PersonalDe
     }
   }
 
+  const roles = ((rolesResult.data ?? []) as PersonalDevelopmentRoleOption[]).map((role) => ({
+    ...role,
+    title: canonicalizeRoleTitle(role.title),
+  }));
+
   if (personalProfileResult.error) {
     if (isMissingPersonalDevelopmentTablesError(personalProfileResult.error)) {
       return {
@@ -191,7 +197,7 @@ export async function loadPersonalDevelopmentWorkspaceData(): Promise<PersonalDe
         hasOpenAI: hasOpenAIEnv(),
         migrationReady: false,
         profilePositionTitle: profileDetailsResult.data?.position_title ?? null,
-        roles: (rolesResult.data ?? []) as PersonalDevelopmentRoleOption[],
+        roles,
         personalProfile: null,
         roleProfile: null,
         latestComposite: null,
@@ -215,7 +221,7 @@ export async function loadPersonalDevelopmentWorkspaceData(): Promise<PersonalDe
       hasOpenAI: hasOpenAIEnv(),
       migrationReady: true,
       profilePositionTitle: profileDetailsResult.data?.position_title ?? null,
-      roles: (rolesResult.data ?? []) as PersonalDevelopmentRoleOption[],
+      roles,
       personalProfile: null,
       roleProfile: null,
       latestComposite: null,
@@ -279,10 +285,15 @@ export async function loadPersonalDevelopmentWorkspaceData(): Promise<PersonalDe
     hasOpenAI: hasOpenAIEnv(),
     migrationReady: true,
     profilePositionTitle: profileDetailsResult.data?.position_title ?? null,
-    roles: (rolesResult.data ?? []) as PersonalDevelopmentRoleOption[],
+    roles,
     personalProfile,
     roleProfile:
-      (roleProfileResult.data as PersonalRoleProfileRecord | null) ?? null,
+      roleProfileResult.data
+        ? {
+            ...(roleProfileResult.data as PersonalRoleProfileRecord),
+            title: canonicalizeRoleTitle(roleProfileResult.data.title),
+          }
+        : null,
     latestComposite:
       (latestCompositeResult.data as PersonalLeadershipCompositeRecord | null) ?? null,
     strengthsCount: strengthsCountResult.count ?? 0,

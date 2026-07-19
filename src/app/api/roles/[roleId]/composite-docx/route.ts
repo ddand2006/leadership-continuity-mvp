@@ -4,6 +4,7 @@ import {
   createApiErrorResponse,
   requireApiWorkspaceProfile,
 } from "@/lib/api-route";
+import { canonicalizeRoleTitle } from "@/lib/role-title";
 import { assertAcceptedFileType } from "@/lib/upload-file-utils";
 import {
   buildRoleCompositeDocumentStoragePath,
@@ -212,6 +213,7 @@ export async function POST(request: Request, context: RouteContext) {
       );
     }
 
+    const roleTitle = canonicalizeRoleTitle(roleResult.data.title);
     await replaceStoredCompositeDocument({
       admin,
       organizationId: profile.organization_id,
@@ -221,7 +223,7 @@ export async function POST(request: Request, context: RouteContext) {
     });
 
     return NextResponse.json({
-      message: `Manual role composite uploaded for "${roleResult.data.title}". This role composite is now maintained through Word uploads only.`,
+      message: `Manual role composite uploaded for "${roleTitle}". This role composite is now maintained through Word uploads only.`,
     });
   } catch (error) {
     return createApiErrorResponse(

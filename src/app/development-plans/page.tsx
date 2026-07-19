@@ -1,5 +1,6 @@
 import { DevelopmentPlanGeneratorCard } from "@/components/development-plan-generator-card";
 import { hasOpenAIEnv } from "@/lib/env";
+import { canonicalizeRoleTitle } from "@/lib/role-title";
 import { requirePaidWorkspaceProfile } from "@/lib/workspace";
 
 export default async function DevelopmentPlansPage() {
@@ -49,7 +50,7 @@ export default async function DevelopmentPlansPage() {
         <DevelopmentPlanGeneratorCard
           roles={(rolesResult.data ?? []).map((role) => ({
             id: role.id,
-            title: role.title,
+            title: canonicalizeRoleTitle(role.title),
             department: role.department,
           }))}
           canGenerate={canGenerate}
@@ -80,7 +81,9 @@ export default async function DevelopmentPlansPage() {
                 <div className="rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-700">
                   <p className="font-semibold text-slate-900">Applicable roles</p>
                   <p className="mt-2 leading-7">
-                    {(plan.applicable_roles as string[]).join(" • ")}
+                    {((plan.applicable_roles as string[]) ?? [])
+                      .map((roleTitle) => canonicalizeRoleTitle(roleTitle))
+                      .join(" • ")}
                   </p>
                 </div>
                 <div className="rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-700">

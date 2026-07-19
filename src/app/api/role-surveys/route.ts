@@ -9,6 +9,7 @@ import {
   roleSurveyStatusSchema,
   isMissingRoleSurveyTablesError,
 } from "@/lib/role-competency-surveys";
+import { canonicalizeRoleTitle } from "@/lib/role-title";
 import { sanitizeAppText } from "@/lib/text-sanitizer";
 
 const upsertRoleSurveySchema = z.object({
@@ -49,6 +50,7 @@ export async function POST(request: Request) {
       throw new ApiRouteError("The selected role could not be found.", 404);
     }
 
+    const roleTitle = canonicalizeRoleTitle(roleResult.data.title);
     const now = new Date().toISOString();
     let existingSurvey:
       | {
@@ -120,7 +122,7 @@ export async function POST(request: Request) {
       }
 
       return NextResponse.json({
-        message: `Survey updated for ${roleResult.data.title}.`,
+        message: `Survey updated for ${roleTitle}.`,
         surveyId: updateResult.data.id,
       });
     }
@@ -155,7 +157,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({
-      message: `Survey created for ${roleResult.data.title}.`,
+      message: `Survey created for ${roleTitle}.`,
       surveyId: insertResult.data.id,
     });
   } catch (error) {

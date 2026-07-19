@@ -5,6 +5,7 @@ import {
   createApiErrorResponse,
   requireApiWorkspaceProfile,
 } from "@/lib/api-route";
+import { canonicalizeRoleTitle } from "@/lib/role-title";
 
 const savePersonalRoleProfileSchema = z.object({
   currentPositionTitle: z.string().trim().max(200).optional().default(""),
@@ -25,7 +26,7 @@ export async function POST(request: Request) {
     });
     const payload = savePersonalRoleProfileSchema.parse(await request.json());
 
-    let roleTitle = payload.title.trim();
+    let roleTitle = canonicalizeRoleTitle(payload.title);
     let roleDepartment = payload.department.trim() || null;
     let roleDescription = payload.description.trim();
     let currentRoleId: string | null = null;
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
         throw new ApiRouteError("The selected organizational role could not be found.", 404);
       }
 
-      roleTitle = roleResult.data.title;
+      roleTitle = canonicalizeRoleTitle(roleResult.data.title);
       roleDepartment = roleResult.data.department ?? null;
       roleDescription = roleResult.data.description ?? "";
       currentRoleId = roleResult.data.id;

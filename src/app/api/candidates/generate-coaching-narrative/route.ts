@@ -14,6 +14,7 @@ import {
   type DevelopmentProjectRecord,
 } from "@/lib/fit-analysis";
 import { isAdminAppRole, mentorHasCandidateAccess } from "@/lib/mentor-access";
+import { canonicalizeRoleTitle } from "@/lib/role-title";
 
 const payloadSchema = z.object({
   candidateId: z.string().uuid(),
@@ -127,6 +128,8 @@ export async function POST(request: Request) {
       throw new ApiRouteError("Role could not be found.", 404);
     }
 
+    const roleTitle = canonicalizeRoleTitle(roleResult.data.title);
+
     const mentorHasAccess = mentorHasCandidateAccess({
       profileId: profile.id,
       candidateId: payload.candidateId,
@@ -205,7 +208,7 @@ export async function POST(request: Request) {
       }),
     );
     const referenceIdeas = rankMentoringIdeasForCompetency(developmentProjects, {
-      roleTitle: roleResult.data.title,
+      roleTitle,
       competencyName: competencyAssessment.competencyName,
       supportingStrengths: competencyAssessment.supportingStrengths,
       leverageStrengths: topStrengths,
@@ -255,7 +258,7 @@ export async function POST(request: Request) {
         status: candidateResult.data.status,
       },
       role: {
-        title: roleResult.data.title,
+        title: roleTitle,
         description: roleResult.data.description,
       },
       competency: {

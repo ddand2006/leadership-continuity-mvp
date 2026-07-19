@@ -6,6 +6,7 @@ import {
 } from "@/lib/api-route";
 import { hasResendEnv } from "@/lib/env";
 import { isMissingRoleSurveyTablesError } from "@/lib/role-competency-surveys";
+import { canonicalizeRoleTitle } from "@/lib/role-title";
 import { buildRoleSurveyInviteEmail } from "@/lib/role-survey-email";
 import { ResendSendError, sendResendEmail } from "@/lib/resend";
 
@@ -95,7 +96,7 @@ export async function POST(_request: Request, context: RouteContext) {
     const email = buildRoleSurveyInviteEmail({
       recipientName: recipientResult.data.recipient_name,
       survey: surveyResult.data,
-      roleTitle: roleResult.data?.title ?? "this role",
+      roleTitle: canonicalizeRoleTitle(roleResult.data?.title ?? "this role"),
       surveyToken: recipientResult.data.access_token,
     });
 

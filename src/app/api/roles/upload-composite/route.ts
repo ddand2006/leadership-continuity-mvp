@@ -4,9 +4,107 @@ import {
   createApiErrorResponse,
   requireApiWorkspaceProfile,
 } from "@/lib/api-route";
-import { invalidateRoleInterviewScorecard } from "@/lib/role-interview-scorecard-store";
 import { assertAcceptedFileType, extractTextFromUploadedFile } from "@/lib/file-parsers";
 import { extractRoleCompositeFromText } from "@/lib/role-composite";
+import { invalidateRoleInterviewScorecard } from "@/lib/role-interview-scorecard-store";
+import { canonicalizeRoleTitle } from "@/lib/role-title";
+
+type ExistingRoleRecord = {
+  id: string;
+  title: string;
+  department: string | null;
+  description: string | null;
+};
+
+function normalizeRoleTitle(value: string) {
+  return canonicalizeRoleTitle(value)
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/\bchief executive officer\b/g, "ceo")
+    .replace(/\bchief financial officer\b/g, "cfo")
+    .replace(/\bchief nursing officer\b/g, "cno")
+    .replace(/\bvice president\b/g, "vp")
+    .replace(/\bhuman resources\b/g, "hr")
+    .replace(/\bmedical\b/g, "med")
+    .replace(/\bpatient care services\b/g, "pcs")
+    .replace(/\bservice delivery\b/g, " ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\bof\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function tokenizeRoleTitle(value: string) {
+  return normalizeRoleTitle(value)
+    .split(" ")
+    .map((token) => token.trim())
+    .filter(Boolean);
+}
+
+function getRoleTitleMatchScore(sourceTitle: string, targetTitle: string) {
+  const normalizedSource = normalizeRoleTitle(sourceTitle);
+  const normalizedTarget = normalizeRoleTitle(targetTitle);
+
+  if (!normalizedSource || !normalizedTarget) {
+    return 0;
+  }
+
+  if (normalizedSource === normalizedTarget) {
+    return 100;
+  }
+
+  const sourceTokens = tokenizeRoleTitle(sourceTitle);
+  const targetTokens = tokenizeRoleTitle(targetTitle);
+  const targetTokenSet = new Set(targetTokens);
+  const sourceTokenSet = new Set(sourceTokens);
+  const overlapCount = sourceTokens.filter((token) => targetTokenSet.has(token)).length;
+
+  if (overlapCount === 0) {
+    return 0;
+  }
+
+  const sourceCovered = overlapCount === sourceTokenSet.size;
+  const targetCovered = overlapCount === targetTokenSet.size;
+
+  if (sourceCovered || targetCovered) {
+    return 90 - Math.abs(sourceTokenSet.size - targetTokenSet.size);
+  }
+
+  const overlapRatio =
+    overlapCount / Math.max(sourceTokenSet.size, targetTokenSet.size);
+
+  if (overlapRatio >= 0.8 && overlapCount >= 2) {
+    return 70 - Math.abs(sourceTokenSet.size - targetTokenSet.size);
+  }
+
+  return 0;
+}
+
+function resolveExistingRoleMatch(
+  sourceTitle: string,
+  existingRoles: ExistingRoleRecord[],
+) {
+  const rankedMatches = existingRoles
+    .map((role) => ({
+      role,
+      score: getRoleTitleMatchScore(sourceTitle, role.title),
+    }))
+    .filter((entry) => entry.score > 0)
+    .sort((left, right) => right.score - left.score);
+
+  if (rankedMatches.length === 0) {
+    return null;
+  }
+
+  if (
+    rankedMatches.length > 1 &&
+    rankedMatches[0].score === rankedMatches[1].score
+  ) {
+    return null;
+  }
+
+  return rankedMatches[0].role;
+}
 
 export async function POST(request: Request) {
   try {
@@ -40,31 +138,20 @@ export async function POST(request: Request) {
       fileName: file.name,
       text: compositeText,
     });
+    const normalizedExtractedRoleTitle = canonicalizeRoleTitle(
+      extractedComposite.title,
+    );
     const isScorecardImport =
       extractedComposite.source_document_type === "interview_scorecard";
 
     let currentRoleId = roleId;
-    let resolvedRoleTitle = extractedComposite.title;
+    let resolvedRoleTitle = normalizedExtractedRoleTitle;
+    let existingRoleRecord: ExistingRoleRecord | null = null;
 
-    if (currentRoleId) {
-      const existingRoleResult = await admin
-        .from("roles")
-        .select("id, title, department, description")
-        .eq("organization_id", profile.organization_id)
-        .eq("id", currentRoleId)
-        .maybeSingle();
-
-      if (existingRoleResult.error) {
-        throw new ApiRouteError(existingRoleResult.error.message, 500);
-      }
-
-      if (!existingRoleResult.data) {
-        throw new ApiRouteError("Selected role could not be found.", 404);
-      }
-
+    async function replaceExistingRole(existingRole: ExistingRoleRecord) {
       const nextRoleTitle = isScorecardImport
-        ? existingRoleResult.data.title
-        : extractedComposite.title;
+        ? canonicalizeRoleTitle(existingRole.title)
+        : normalizedExtractedRoleTitle;
       resolvedRoleTitle = nextRoleTitle;
 
       const conflictingRoleResult = await admin
@@ -72,7 +159,7 @@ export async function POST(request: Request) {
         .select("id")
         .eq("organization_id", profile.organization_id)
         .eq("title", nextRoleTitle)
-        .neq("id", currentRoleId)
+        .neq("id", existingRole.id)
         .maybeSingle();
 
       if (conflictingRoleResult.error) {
@@ -92,16 +179,16 @@ export async function POST(request: Request) {
           title: nextRoleTitle,
           department:
             extractedComposite.department ??
-            existingRoleResult.data.department ??
+            existingRole.department ??
             null,
           description:
-            isScorecardImport && existingRoleResult.data.description?.trim()
-              ? existingRoleResult.data.description
+            isScorecardImport && existingRole.description?.trim()
+              ? existingRole.description
               : extractedComposite.description,
           status,
         })
         .eq("organization_id", profile.organization_id)
-        .eq("id", currentRoleId);
+        .eq("id", existingRole.id);
 
       if (updateResult.error) {
         throw new ApiRouteError(updateResult.error.message, 500);
@@ -111,7 +198,7 @@ export async function POST(request: Request) {
         .from("role_competencies")
         .delete()
         .eq("organization_id", profile.organization_id)
-        .eq("role_id", currentRoleId);
+        .eq("role_id", existingRole.id);
 
       if (deleteCompetenciesResult.error) {
         throw new ApiRouteError(deleteCompetenciesResult.error.message, 500);
@@ -121,7 +208,7 @@ export async function POST(request: Request) {
         .from("role_composite_documents")
         .select("storage_bucket, storage_path")
         .eq("organization_id", profile.organization_id)
-        .eq("role_id", currentRoleId)
+        .eq("role_id", existingRole.id)
         .maybeSingle();
 
       if (existingCompositeDocumentResult.error) {
@@ -132,7 +219,7 @@ export async function POST(request: Request) {
         .from("role_composite_documents")
         .delete()
         .eq("organization_id", profile.organization_id)
-        .eq("role_id", currentRoleId);
+        .eq("role_id", existingRole.id);
 
       if (deleteCompositeDocumentResult.error) {
         throw new ApiRouteError(deleteCompositeDocumentResult.error.message, 500);
@@ -148,49 +235,70 @@ export async function POST(request: Request) {
 
         if (removeStoredDocumentResult.error) {
           console.error("Unable to remove superseded role composite document", {
-            roleId: currentRoleId,
+            roleId: existingRole.id,
             storagePath: existingCompositeDocumentResult.data.storage_path,
             error: removeStoredDocumentResult.error,
           });
         }
       }
-    } else {
+      currentRoleId = existingRole.id;
+    }
+
+    if (currentRoleId) {
       const existingRoleResult = await admin
         .from("roles")
-        .select("id")
+        .select("id, title, department, description")
         .eq("organization_id", profile.organization_id)
-        .eq("title", extractedComposite.title)
+        .eq("id", currentRoleId)
         .maybeSingle();
 
       if (existingRoleResult.error) {
         throw new ApiRouteError(existingRoleResult.error.message, 500);
       }
 
-      if (existingRoleResult.data) {
-        throw new ApiRouteError(
-          "A role with the extracted title already exists. Select that role in the upload form to update it.",
-          409,
-        );
+      if (!existingRoleResult.data) {
+        throw new ApiRouteError("Selected role could not be found.", 404);
       }
 
-      const insertRoleResult = await admin
+      existingRoleRecord = existingRoleResult.data;
+      await replaceExistingRole(existingRoleRecord);
+    } else {
+      const existingRolesResult = await admin
         .from("roles")
-        .insert({
-          organization_id: profile.organization_id,
-          title: extractedComposite.title,
-          department: extractedComposite.department,
-          description: extractedComposite.description,
-          status,
-        })
-        .select("id")
-        .single();
+        .select("id, title, department, description")
+        .eq("organization_id", profile.organization_id);
 
-      if (insertRoleResult.error) {
-        throw new ApiRouteError(insertRoleResult.error.message, 500);
+      if (existingRolesResult.error) {
+        throw new ApiRouteError(existingRolesResult.error.message, 500);
       }
 
-      currentRoleId = insertRoleResult.data.id;
-      resolvedRoleTitle = extractedComposite.title;
+      existingRoleRecord = resolveExistingRoleMatch(
+        extractedComposite.title,
+        existingRolesResult.data ?? [],
+      );
+
+      if (existingRoleRecord) {
+        await replaceExistingRole(existingRoleRecord);
+      } else {
+        const insertRoleResult = await admin
+          .from("roles")
+          .insert({
+            organization_id: profile.organization_id,
+            title: normalizedExtractedRoleTitle,
+            department: extractedComposite.department,
+            description: extractedComposite.description,
+            status,
+          })
+          .select("id")
+          .single();
+
+        if (insertRoleResult.error) {
+          throw new ApiRouteError(insertRoleResult.error.message, 500);
+        }
+
+        currentRoleId = insertRoleResult.data.id;
+        resolvedRoleTitle = normalizedExtractedRoleTitle;
+      }
     }
 
     const insertCompetenciesResult = await admin.from("role_competencies").insert(

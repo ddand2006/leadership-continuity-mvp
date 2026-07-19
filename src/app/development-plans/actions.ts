@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { hasOpenAIEnv } from "@/lib/env";
 import { generateDevelopmentPlansForRole } from "@/lib/development-plan-generator";
+import { canonicalizeRoleTitle } from "@/lib/role-title";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { requirePaidWorkspaceProfile } from "@/lib/workspace";
 import type { GenerateDevelopmentPlansState } from "@/app/development-plans/action-state";
@@ -95,6 +96,8 @@ export async function generateDevelopmentPlansAction(
     };
   }
 
+  const roleTitle = canonicalizeRoleTitle(role.title);
+
   if ((competenciesResult.data ?? []).length === 0) {
     return {
       status: "error",
@@ -107,7 +110,7 @@ export async function generateDevelopmentPlansAction(
   try {
     const generatedPlans = await generateDevelopmentPlansForRole({
       role: {
-        title: role.title,
+        title: roleTitle,
         department: role.department,
         description: role.description,
       },
@@ -156,7 +159,7 @@ export async function generateDevelopmentPlansAction(
         description: plan.description,
         difficulty: plan.difficulty,
         duration_days: plan.duration_days,
-        applicable_roles: [role.title],
+        applicable_roles: [roleTitle],
         competencies_developed: plan.competencies_developed,
         strengths_leveraged: plan.strengths_leveraged,
         expected_outcomes: plan.expected_outcomes,
@@ -178,7 +181,7 @@ export async function generateDevelopmentPlansAction(
 
     return {
       status: "success",
-      message: `Generated ${uniquePlans.length} development plan ideas for ${role.title}.`,
+      message: `Generated ${uniquePlans.length} development plan ideas for ${roleTitle}.`,
       generatedTitles: uniquePlans.map((plan) => plan.title),
     };
   } catch (error) {

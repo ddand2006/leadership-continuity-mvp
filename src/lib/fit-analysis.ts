@@ -1,3 +1,4 @@
+import { canonicalizeRoleTitle } from "@/lib/role-title";
 import { sanitizeAppText, sanitizeAppTextList } from "@/lib/text-sanitizer";
 
 type ScoreRecord = {
@@ -199,6 +200,7 @@ export function rankDevelopmentProjects(
   readiness: number,
 ) {
   const preferredDifficulties = getPreferredDifficulties(readiness);
+  const normalizedRoleTitle = canonicalizeRoleTitle(roleTitle);
 
   return projects
     .map((project) => {
@@ -208,7 +210,10 @@ export function rankDevelopmentProjects(
       const strengthMatches = project.strengths_leveraged.filter((strength) =>
         leverageStrengths.includes(strength),
       );
-      const roleMatch = project.applicable_roles.includes(roleTitle);
+      const roleMatch = project.applicable_roles.some(
+        (applicableRole) =>
+          canonicalizeRoleTitle(applicableRole) === normalizedRoleTitle,
+      );
       const difficultyScore = Math.max(
         0,
         preferredDifficulties.length - preferredDifficulties.indexOf(project.difficulty),
@@ -249,6 +254,7 @@ export function rankMentoringIdeasForCompetency(
 ) {
   const preferredDifficulties = getPreferredDifficulties(options.readiness);
   const normalizedCompetencyName = normalizeText(options.competencyName);
+  const normalizedRoleTitle = canonicalizeRoleTitle(options.roleTitle);
   const competencyTokens = new Set(tokenize(options.competencyName));
   const prioritizedStrengths = Array.from(
     new Set([...options.supportingStrengths, ...options.leverageStrengths]),
@@ -275,7 +281,10 @@ export function rankMentoringIdeasForCompetency(
       const strengthMatches = project.strengths_leveraged.filter((strength) =>
         prioritizedStrengths.includes(strength),
       );
-      const roleMatch = project.applicable_roles.includes(options.roleTitle);
+      const roleMatch = project.applicable_roles.some(
+        (applicableRole) =>
+          canonicalizeRoleTitle(applicableRole) === normalizedRoleTitle,
+      );
       const difficultyIndex = preferredDifficulties.indexOf(project.difficulty);
       const difficultyScore =
         difficultyIndex >= 0

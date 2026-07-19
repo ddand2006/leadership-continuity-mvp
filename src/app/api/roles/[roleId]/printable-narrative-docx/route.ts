@@ -13,6 +13,7 @@ import {
   buildPrintableRoleNarrativeDocumentBuffer,
   resolvePrintableRoleNarrative,
 } from "@/lib/role-printable-narrative";
+import { canonicalizeRoleTitle } from "@/lib/role-title";
 
 type RouteContext = {
   params: Promise<{
@@ -107,6 +108,8 @@ export async function GET(_request: Request, context: RouteContext) {
       throw new ApiRouteError("Selected role could not be found.", 404);
     }
 
+    const roleTitle = canonicalizeRoleTitle(roleResult.data.title);
+
     let compositeNarrativeParagraphs: string[] = [];
 
     if (compositeDocumentResult.data?.storage_bucket && compositeDocumentResult.data.storage_path) {
@@ -156,7 +159,7 @@ export async function GET(_request: Request, context: RouteContext) {
     );
 
     const narrative = resolvePrintableRoleNarrative({
-      roleTitle: roleResult.data.title,
+      roleTitle,
       roleDepartment: roleResult.data.department,
       roleDescription: roleResult.data.description,
       roleStatus: roleResult.data.status,
@@ -185,7 +188,7 @@ export async function GET(_request: Request, context: RouteContext) {
       headers: {
         "Content-Type":
           "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "Content-Disposition": `attachment; filename="${createSafeFileName(roleResult.data.title)}-printable-role-narrative.docx"`,
+        "Content-Disposition": `attachment; filename="${createSafeFileName(roleTitle)}-printable-role-narrative.docx"`,
       },
     });
   } catch (error) {

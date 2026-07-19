@@ -6,6 +6,7 @@ import {
   requireApiWorkspaceProfile,
 } from "@/lib/api-route";
 import { isAdminAppRole } from "@/lib/mentor-access";
+import { canonicalizeRoleTitle } from "@/lib/role-title";
 
 const payloadSchema = z.object({
   panelId: z.string().uuid().nullable().optional(),
@@ -89,6 +90,8 @@ export async function POST(request: Request) {
     if (!candidateResult.data || !roleResult.data) {
       throw new ApiRouteError("The candidate or role could not be found.", 404);
     }
+
+    const roleTitle = canonicalizeRoleTitle(roleResult.data.title);
 
     if (payload.panelId && !editablePanelResult.data) {
       throw new ApiRouteError(
@@ -182,8 +185,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       message: payload.panelId
-        ? `Interview scores updated for "${candidateResult.data.full_name}" in ${roleResult.data.title}.`
-        : `Interview scores saved for "${candidateResult.data.full_name}" in ${roleResult.data.title}.`,
+        ? `Interview scores updated for "${candidateResult.data.full_name}" in ${roleTitle}.`
+        : `Interview scores saved for "${candidateResult.data.full_name}" in ${roleTitle}.`,
       panelId,
     });
   } catch (error) {

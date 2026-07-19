@@ -5,6 +5,7 @@ import {
   createApiErrorResponse,
   requireApiWorkspaceProfile,
 } from "@/lib/api-route";
+import { canonicalizeRoleTitle } from "@/lib/role-title";
 
 const createRoleMentorAssignmentSchema = z.object({
   roleId: z.string().uuid(),
@@ -43,6 +44,8 @@ export async function POST(request: Request) {
     if (!roleResult.data) {
       throw new ApiRouteError("Selected role could not be found.", 404);
     }
+
+    const roleTitle = canonicalizeRoleTitle(roleResult.data.title);
 
     if (!mentorResult.data || mentorResult.data.role !== "mentor") {
       throw new ApiRouteError("Selected mentor could not be found.", 404);
@@ -99,8 +102,8 @@ export async function POST(request: Request) {
     return NextResponse.json({
       message:
         candidateAssignments.length > 0
-          ? `${mentorResult.data.full_name} is now attached to ${roleResult.data.title} and connected to ${candidateAssignments.length} candidate role track${candidateAssignments.length === 1 ? "" : "s"}.`
-          : `${mentorResult.data.full_name} is now attached to ${roleResult.data.title}.`,
+          ? `${mentorResult.data.full_name} is now attached to ${roleTitle} and connected to ${candidateAssignments.length} candidate role track${candidateAssignments.length === 1 ? "" : "s"}.`
+          : `${mentorResult.data.full_name} is now attached to ${roleTitle}.`,
     });
   } catch (error) {
     return createApiErrorResponse(

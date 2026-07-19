@@ -1,6 +1,7 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { RoleSurveyResponseForm } from "@/components/role-survey-response-form";
 import { isMissingRoleSurveyTablesError } from "@/lib/role-competency-surveys";
+import { canonicalizeRoleTitle } from "@/lib/role-title";
 
 type RoleSurveyPageProps = {
   params: Promise<{
@@ -105,7 +106,7 @@ export default async function RoleSurveyPage({ params }: RoleSurveyPageProps) {
           token={token}
           recipientName={recipientResult.data.recipient_name}
           surveyTitle={surveyResult.data.title}
-          roleTitle={roleResult.data?.title ?? "this role"}
+          roleTitle={canonicalizeRoleTitle(roleResult.data?.title ?? "this role")}
           introMessage={surveyResult.data.intro_message}
           thankYouMessage={surveyResult.data.thank_you_message}
           surveyStatus={surveyResult.data.status as "draft" | "active" | "closed"}

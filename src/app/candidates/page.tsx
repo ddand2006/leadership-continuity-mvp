@@ -6,6 +6,7 @@ import {
   computeOverallReadiness,
 } from "@/lib/fit-analysis";
 import { getAccessibleCandidateIds, isAdminAppRole } from "@/lib/mentor-access";
+import { canonicalizeRoleTitle } from "@/lib/role-title";
 import { requirePaidWorkspaceProfile } from "@/lib/workspace";
 
 type CandidatesPageProps = {
@@ -183,7 +184,15 @@ export default async function CandidatesPage({
     throw new Error(scoresResult.error.message);
   }
 
-  const roleMap = new Map((rolesResult.data ?? []).map((role) => [role.id, role]));
+  const roleMap = new Map(
+    (rolesResult.data ?? []).map((role) => [
+      role.id,
+      {
+        ...role,
+        title: canonicalizeRoleTitle(role.title),
+      },
+    ]),
+  );
   const strengthsByCandidate = new Map<string, typeof strengthsResult.data>();
   const panelIdsByCandidateAndRole = new Map<string, string[]>();
   const considerationsByCandidate = new Map<

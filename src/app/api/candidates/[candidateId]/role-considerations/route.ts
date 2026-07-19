@@ -5,6 +5,7 @@ import {
   createApiErrorResponse,
   requireApiWorkspaceProfile,
 } from "@/lib/api-route";
+import { canonicalizeRoleTitle } from "@/lib/role-title";
 
 type RouteContext = {
   params: Promise<{
@@ -236,7 +237,7 @@ export async function POST(request: Request, context: RouteContext) {
     });
 
     return NextResponse.json({
-      message: `${role.title} is now attached to ${candidate.full_name}.`,
+      message: `${canonicalizeRoleTitle(role.title)} is now attached to ${candidate.full_name}.`,
     });
   } catch (error) {
     return createApiErrorResponse(error, "Unable to assign this position.");
@@ -317,7 +318,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     });
 
     return NextResponse.json({
-      message: `${role.title} was updated for ${candidate.full_name}.`,
+      message: `${canonicalizeRoleTitle(role.title)} was updated for ${candidate.full_name}.`,
     });
   } catch (error) {
     return createApiErrorResponse(error, "Unable to update this position.");

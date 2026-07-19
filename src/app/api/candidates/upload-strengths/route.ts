@@ -14,6 +14,7 @@ import {
   extractTextFromUploadedFile,
   getFileExtension,
 } from "@/lib/file-parsers";
+import { canonicalizeRoleTitle } from "@/lib/role-title";
 import { syncCandidateRoleStrengthAssessments } from "@/lib/strengths-role-fit";
 import { analyzeStrengthsDocuments } from "@/lib/strengths-upload";
 
@@ -264,13 +265,14 @@ export async function POST(request: Request) {
             continue;
           }
 
+          const roleTitle = canonicalizeRoleTitle(roleResult.data.title);
           await syncCandidateRoleStrengthAssessments({
             admin,
             organizationId: profile.organization_id,
             candidateId,
             roleId,
             candidateName: candidateResult.data.full_name,
-            roleTitle: roleResult.data.title,
+            roleTitle,
             roleDescription: roleResult.data.description,
             competencies: (competenciesResult.data ?? []).map((competency) => ({
               ...competency,

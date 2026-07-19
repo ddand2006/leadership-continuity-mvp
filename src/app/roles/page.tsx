@@ -18,6 +18,7 @@ import {
   type RoleSurveyResponseRecord,
 } from "@/lib/role-competency-surveys";
 import { groupCharacteristicsByCategory } from "@/lib/role-characteristics";
+import { canonicalizeRoleTitle } from "@/lib/role-title";
 import { requirePaidWorkspaceProfile } from "@/lib/workspace";
 
 type RolesPageProps = {
@@ -343,7 +344,10 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
     }
   }
 
-  const roles = rolesResult.data ?? [];
+  const roles = (rolesResult.data ?? []).map((role) => ({
+    ...role,
+    title: canonicalizeRoleTitle(role.title),
+  }));
   const resolvedSharedLibrary: Array<{
     id: string;
     category: "talent" | "skill" | "behavior";

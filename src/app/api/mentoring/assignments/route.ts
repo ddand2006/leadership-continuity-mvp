@@ -6,6 +6,7 @@ import {
   requireApiWorkspaceProfile,
 } from "@/lib/api-route";
 import { isAdminAppRole } from "@/lib/mentor-access";
+import { canonicalizeRoleTitle } from "@/lib/role-title";
 
 const createAssignmentSchema = z.object({
   candidateId: z.string().uuid(),
@@ -158,7 +159,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({
-      message: `${mentorResult.data.full_name} is now assigned to ${candidateResult.data.full_name} for ${roleResult.data.title}.`,
+      message: `${mentorResult.data.full_name} is now assigned to ${candidateResult.data.full_name} for ${canonicalizeRoleTitle(roleResult.data.title)}.`,
     });
   } catch (error) {
     return createApiErrorResponse(error, "Unexpected mentor assignment failure.");

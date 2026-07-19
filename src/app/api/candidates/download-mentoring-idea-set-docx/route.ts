@@ -7,6 +7,7 @@ import {
 } from "@/lib/api-route";
 import { isAdminAppRole, mentorHasCandidateAccess } from "@/lib/mentor-access";
 import { buildCandidateMentoringIdeaSetDocumentBuffer } from "@/lib/candidate-mentoring-idea-set-document";
+import { canonicalizeRoleTitle } from "@/lib/role-title";
 
 const ideaSchema = z.object({
   title: z.string().min(1),
@@ -118,9 +119,10 @@ export async function POST(request: Request) {
       );
     }
 
+    const roleTitle = canonicalizeRoleTitle(roleResult.data.title);
     const buffer = await buildCandidateMentoringIdeaSetDocumentBuffer({
       candidateName: candidateResult.data.full_name,
-      roleTitle: roleResult.data.title,
+      roleTitle,
       competencyName: competencyResult.data.name,
       ideas: payload.ideas,
     });

@@ -4,6 +4,7 @@ import { MentorFlowPanel } from "@/components/mentor-flow-panel";
 import { MentoringCrossDepartmentalProjectWorksheetManager } from "@/components/mentoring-cross-departmental-project-worksheet-manager";
 import { MentoringDepartmentalProjectWorksheetManager } from "@/components/mentoring-departmental-project-worksheet-manager";
 import { MentoringPreparationWorksheetManager } from "@/components/mentoring-preparation-worksheet-manager";
+import { MentoringReadinessReview } from "@/components/mentoring-readiness-review";
 import { LeadershipDevelopmentRecordManager } from "@/components/leadership-development-record-manager";
 import { MentoringWorkspaceMenu } from "@/components/mentoring-workspace-menu";
 import { isMissingCrossDepartmentalProjectWorksheetTableError } from "@/lib/mentoring-cross-departmental-project-worksheet";
@@ -13,6 +14,8 @@ import {
   isCandidateAppUser,
   isMentorAppUser,
 } from "@/lib/mentor-access";
+import { isMissingLeadershipDevelopmentRecordTableError, type LeadershipDevelopmentRecordRecord } from "@/lib/leadership-development-record";
+import { mentorReportSchema, type MentorReport } from "@/lib/mentor-report";
 import { isMissingPreparationWorksheetTableError } from "@/lib/mentoring-preparation-worksheet";
 import { canonicalizeRoleTitle } from "@/lib/role-title";
 import { requirePaidWorkspaceProfile } from "@/lib/workspace";
@@ -182,6 +185,7 @@ export default async function MentoringPage({
     selectedSectionId === "departmental-project";
   const needsCrossDepartmentalProjectWorksheets =
     selectedSectionId === "cross-departmental-project";
+  const needsReadinessReview = selectedSectionId === "readiness-review";
   const [
     candidatesResult,
     reportsResult,
@@ -299,6 +303,61 @@ export default async function MentoringPage({
     requestedCandidateId && requestedRoleId && requestedMentorProfileId
       ? `${requestedCandidateId}:${requestedRoleId}:${requestedMentorProfileId}`
       : null;
+  const readinessCandidateIds = Array.from(
+    new Set(orderedVisibleAssignments.map((assignment) => assignment.candidate_id)),
+  );
+  const readinessRoleIds = Array.from(
+    new Set(orderedVisibleAssignments.map((assignment) => assignment.role_id)),
+  );
+  const readinessMentorIds = Array.from(
+    new Set(
+      orderedVisibleAssignments
+        .map((assignment) => assignment.mentor_profile_id)
+        .filter((mentorId): mentorId is string => Boolean(mentorId)),
+    ),
+  );
+  const [readinessReportsResult, readinessRecordsResult] =
+    needsReadinessReview &&
+    readinessCandidateIds.length > 0 &&
+    readinessRoleIds.length > 0
+      ? await Promise.all([
+          supabase
+            .from("mentor_reports")
+            .select("id, candidate_id, role_id, version, created_at, report_json")
+            .eq("organization_id", profile.organization_id)
+            .in("candidate_id", readinessCandidateIds)
+            .in("role_id", readinessRoleIds)
+            .order("version", { ascending: false })
+            .order("created_at", { ascending: false }),
+          readinessMentorIds.length > 0
+            ? supabase
+                .from("development_records")
+                .select(
+                  "id, candidate_id, role_id, mentor_id, status, growth_areas, assignment_reason, experience_title, readiness_signal, next_recommended_experience, mentor_review_date, average_feedback_score, mentor_improvement_observed, mentor_development_needed, date_assigned, updated_at",
+                )
+                .eq("organization_id", profile.organization_id)
+                .in("candidate_id", readinessCandidateIds)
+                .in("role_id", readinessRoleIds)
+                .in("mentor_id", readinessMentorIds)
+                .order("updated_at", { ascending: false })
+            : Promise.resolve({ data: [], error: null }),
+        ])
+      : [
+          { data: [], error: null },
+          { data: [], error: null },
+        ];
+
+  if (readinessReportsResult.error) {
+    throw new Error(readinessReportsResult.error.message);
+  }
+
+  if (
+    readinessRecordsResult.error &&
+    !isMissingLeadershipDevelopmentRecordTableError(readinessRecordsResult.error)
+  ) {
+    throw new Error(readinessRecordsResult.error.message);
+  }
+
   const worksheetStorageReady = !isMissingPreparationWorksheetTableError(
     preparationWorksheetsResult.error,
   );
@@ -668,6 +727,134 @@ export default async function MentoringPage({
         : null,
     };
   });
+  const readinessVisibleCandidateRolePairs = new Set(
+    orderedVisibleAssignments.map(
+      (assignment) => `${assignment.candidate_id}:${assignment.role_id}`,
+    ),
+  );
+  const latestMentorReportByCandidateRole = new Map<
+    string,
+    {
+      id: string;
+      version: number;
+      createdAt: string;
+      report: MentorReport;
+    }
+  >();
+
+  for (const reportRow of readinessReportsResult.data ?? []) {
+    const candidateRoleKey = `${reportRow.candidate_id}:${reportRow.role_id}`;
+
+    if (
+      latestMentorReportByCandidateRole.has(candidateRoleKey) ||
+      !readinessVisibleCandidateRolePairs.has(candidateRoleKey)
+    ) {
+      continue;
+    }
+
+    const parsedReport = mentorReportSchema.safeParse(reportRow.report_json);
+
+    if (!parsedReport.success) {
+      continue;
+    }
+
+    latestMentorReportByCandidateRole.set(candidateRoleKey, {
+      id: reportRow.id,
+      version: reportRow.version,
+      createdAt: reportRow.created_at,
+      report: parsedReport.data,
+    });
+  }
+
+  const latestDevelopmentRecordByAssignment = new Map<
+    string,
+    {
+      id: string;
+      status: LeadershipDevelopmentRecordRecord["status"];
+      experienceTitle: string;
+      dateAssigned: string;
+      readinessSignal: LeadershipDevelopmentRecordRecord["readinessSignal"];
+      averageFeedbackScore: number | null;
+      mentorReviewDate: string;
+      updatedAt: string;
+      growthAreas: LeadershipDevelopmentRecordRecord["growthAreas"];
+      assignmentReason: string;
+      mentorImprovementObserved: string;
+      mentorDevelopmentNeeded: string;
+      nextRecommendedExperience: string;
+    }
+  >();
+
+  for (const record of readinessRecordsResult.data ?? []) {
+    const assignmentKey = getAssignmentKey({
+      candidate_id: record.candidate_id,
+      role_id: record.role_id,
+      mentor_profile_id: record.mentor_id,
+    });
+
+    if (latestDevelopmentRecordByAssignment.has(assignmentKey)) {
+      continue;
+    }
+
+    latestDevelopmentRecordByAssignment.set(assignmentKey, {
+      id: record.id,
+      status:
+        record.status === "completed" ||
+        record.status === "ready_for_review" ||
+        record.status === "in_progress"
+          ? record.status
+          : "assigned",
+      experienceTitle: record.experience_title,
+      dateAssigned: record.date_assigned,
+      readinessSignal:
+        record.readiness_signal === "developing" ||
+        record.readiness_signal === "progressing" ||
+        record.readiness_signal === "near_role_ready" ||
+        record.readiness_signal === "role_ready"
+          ? record.readiness_signal
+          : "",
+      averageFeedbackScore:
+        typeof record.average_feedback_score === "number"
+          ? record.average_feedback_score
+          : null,
+      mentorReviewDate: record.mentor_review_date ?? "",
+      updatedAt: record.updated_at,
+      growthAreas: Array.isArray(record.growth_areas)
+        ? (record.growth_areas.filter(
+            (value): value is LeadershipDevelopmentRecordRecord["growthAreas"][number] =>
+              typeof value === "string" && value.trim().length > 0,
+          ) as LeadershipDevelopmentRecordRecord["growthAreas"])
+        : [],
+      assignmentReason: record.assignment_reason ?? "",
+      mentorImprovementObserved: record.mentor_improvement_observed ?? "",
+      mentorDevelopmentNeeded: record.mentor_development_needed ?? "",
+      nextRecommendedExperience: record.next_recommended_experience ?? "",
+    });
+  }
+
+  const readinessReviewAssignments = orderedVisibleAssignments.map((assignment) => ({
+    assignmentKey: getAssignmentKey(assignment),
+    candidateId: assignment.candidate_id,
+    roleId: assignment.role_id,
+    mentorProfileId: assignment.mentor_profile_id,
+    candidateName:
+      candidateMap.get(assignment.candidate_id)?.full_name ?? "Unknown candidate",
+    currentTitle:
+      candidateMap.get(assignment.candidate_id)?.current_title ?? null,
+    roleTitle: roleMap.get(assignment.role_id)?.title ?? "Unknown role",
+    mentorName:
+      mentorMap.get(assignment.mentor_profile_id)?.full_name ?? "Unknown mentor",
+    mentorPositionTitle:
+      mentorMap.get(assignment.mentor_profile_id)?.position_title ?? null,
+    startDate: assignment.start_date,
+    latestMentorReport:
+      latestMentorReportByCandidateRole.get(
+        `${assignment.candidate_id}:${assignment.role_id}`,
+      ) ?? null,
+    latestDevelopmentRecord:
+      latestDevelopmentRecordByAssignment.get(getAssignmentKey(assignment)) ?? null,
+  }));
+
   const mentoringWorkspaceDetailItems = [
     `${new Set(orderedVisibleAssignments.map((assignment) => assignment.candidate_id)).size} candidates in active mentoring`,
     `${orderedVisibleAssignments.length} active mentor assignments`,
@@ -905,18 +1092,10 @@ export default async function MentoringPage({
       id: "readiness-review",
       label: "Readiness Review",
       content: (
-        <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
-          <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
-            Future Worksheet
-          </p>
-          <h2 className="mt-3 font-display text-3xl text-slate-900">
-            Readiness review worksheet
-          </h2>
-          <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600">
-            This section can later hold readiness review notes and scoring
-            conversations that pull from the completed mentoring worksheets.
-          </p>
-        </section>
+        <MentoringReadinessReview
+          assignments={readinessReviewAssignments}
+          selectedAssignmentKey={selectedAssignmentKey}
+        />
       ),
     },
   ] satisfies Array<{

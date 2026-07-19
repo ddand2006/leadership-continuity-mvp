@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getAccessibleCandidateIds } from "@/lib/mentor-access";
+import { canonicalizeRoleTitle } from "@/lib/role-title";
 import { requirePaidWorkspaceProfile } from "@/lib/workspace";
 
 export default async function ReportsFormsPage() {
@@ -66,7 +67,15 @@ export default async function ReportsFormsPage() {
   const candidateMap = new Map(
     visibleCandidates.map((candidate) => [candidate.id, candidate]),
   );
-  const roleMap = new Map((rolesResult.data ?? []).map((role) => [role.id, role]));
+  const roleMap = new Map(
+    (rolesResult.data ?? []).map((role) => [
+      role.id,
+      {
+        ...role,
+        title: canonicalizeRoleTitle(role.title),
+      },
+    ]),
+  );
 
   return (
     <main className="app-page">

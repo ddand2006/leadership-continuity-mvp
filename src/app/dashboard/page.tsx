@@ -15,6 +15,7 @@ import { WorkspaceSetupForm } from "@/components/workspace-setup-form";
 import { createWorkspaceSetupToken } from "@/lib/workspace-setup-token";
 import { isMissingLeadershipDevelopmentRecordTableError } from "@/lib/leadership-development-record";
 import { isMissingOrganizationIndustryColumnError } from "@/lib/organization-industry";
+import { canonicalizeRoleTitle } from "@/lib/role-title";
 
 type DashboardPageProps = {
   searchParams: Promise<{
@@ -1587,7 +1588,10 @@ async function getDashboardSnapshot(
   }
 
   const isMentorView = profileResult.data.role === "mentor";
-  const rawRoles = (rolesResult.data ?? []) as DashboardRole[];
+  const rawRoles = ((rolesResult.data ?? []) as DashboardRole[]).map((role) => ({
+    ...role,
+    title: canonicalizeRoleTitle(role.title),
+  }));
   const rawMentors = (mentorsResult.data ?? []) as DashboardMentor[];
   const rawCandidates = candidatesResult.data ?? [];
   const rawConsiderations = considerationsResult.data ?? [];

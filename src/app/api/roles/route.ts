@@ -9,6 +9,7 @@ import { invalidateRoleInterviewScorecard } from "@/lib/role-interview-scorecard
 import { syncRoleCharacteristicLibrary } from "@/lib/role-characteristic-library";
 import { ROLE_CHARACTERISTIC_CATEGORIES } from "@/lib/role-characteristics";
 import { normalizeRoleCandidateCharacteristics } from "@/lib/role-characteristics-normalizer";
+import { canonicalizeRoleTitle } from "@/lib/role-title";
 
 const createRoleSchema = z.object({
   roleId: z.string().uuid().optional(),
@@ -28,12 +29,13 @@ export async function POST(request: Request) {
       requireAdmin: true,
     });
     const payload = createRoleSchema.parse(await request.json());
+    const normalizedRoleTitle = canonicalizeRoleTitle(payload.title);
 
     const existingRoleResult = await admin
       .from("roles")
       .select("id")
       .eq("organization_id", profile.organization_id)
-      .eq("title", payload.title.trim())
+      .eq("title", normalizedRoleTitle)
       .maybeSingle();
 
     if (existingRoleResult.error) {
@@ -99,7 +101,7 @@ export async function POST(request: Request) {
       const updateResult = await admin
         .from("roles")
         .update({
-          title: payload.title.trim(),
+          title: normalizedRoleTitle,
           department: payload.department?.trim() || null,
           description: payload.description.trim(),
           status: payload.status,
@@ -129,7 +131,7 @@ export async function POST(request: Request) {
         .from("roles")
         .insert({
           organization_id: profile.organization_id,
-          title: payload.title.trim(),
+          title: normalizedRoleTitle,
           department: payload.department?.trim() || null,
           description: payload.description.trim(),
           status: payload.status,

@@ -9,6 +9,7 @@ import {
   splitRoleCompositeNarrative,
 } from "@/lib/role-composite-documents";
 import { resolvePrintableRoleNarrative } from "@/lib/role-printable-narrative";
+import { canonicalizeRoleTitle } from "@/lib/role-title";
 import { requirePaidWorkspaceProfile } from "@/lib/workspace";
 
 type PrintRoleCompositePageProps = {
@@ -104,6 +105,7 @@ export default async function PrintRoleCompositePage({
   }
 
   const role = roleResult.data;
+  const roleTitle = canonicalizeRoleTitle(role.title);
   const characteristics = groupCharacteristicsByCategory(
     characteristicsResult.data ?? [],
   );
@@ -152,7 +154,7 @@ export default async function PrintRoleCompositePage({
     ),
   );
   const printableNarrative = resolvePrintableRoleNarrative({
-    roleTitle: role.title,
+    roleTitle,
     roleDepartment: role.department,
     roleDescription: role.description,
     roleStatus: role.status,
@@ -180,7 +182,7 @@ export default async function PrintRoleCompositePage({
               Printable Role Narrative
             </p>
             <h1 className="mt-2 font-display text-3xl text-slate-900">
-              {role.title}
+              {roleTitle}
             </h1>
           </div>
           <div className="flex gap-3">
@@ -201,7 +203,7 @@ export default async function PrintRoleCompositePage({
                 {role.department || "Role Narrative"}
               </p>
               <h2 className="mt-3 font-display text-5xl leading-tight text-slate-900">
-                {role.title}
+                {roleTitle}
               </h2>
               {role.description ? (
                 <p className="mt-4 max-w-3xl text-base leading-8 text-slate-700">

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { AdministrationPanel } from "@/components/administration-panel";
 import { isAdminAppRole } from "@/lib/mentor-access";
 import { loadAdministrationUsers } from "@/lib/organization-user-admin";
+import { canonicalizeRoleTitle } from "@/lib/role-title";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { requireWorkspaceProfile } from "@/lib/workspace";
 
@@ -169,7 +170,7 @@ export default async function AdministrationPage({
             })),
             roles: (rolesResult.data ?? []).map((role) => ({
               id: role.id,
-              title: role.title,
+              title: canonicalizeRoleTitle(role.title),
             })),
             mentors: (mentorsResult.data ?? []).map((mentor) => ({
               id: mentor.id,

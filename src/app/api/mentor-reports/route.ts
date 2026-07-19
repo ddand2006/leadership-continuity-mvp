@@ -15,6 +15,7 @@ import {
 } from "@/lib/mentor-report";
 import { estimateOpenAICost } from "@/lib/openaiCost";
 import { createOpenAIClient, serializeModelInput } from "@/lib/openai";
+import { canonicalizeRoleTitle } from "@/lib/role-title";
 import { syncCandidateRoleStrengthAssessments } from "@/lib/strengths-role-fit";
 import { createApiErrorResponse, requireApiWorkspaceProfile } from "@/lib/api-route";
 import { isAdminAppRole, mentorHasCandidateAccess } from "@/lib/mentor-access";
@@ -226,6 +227,7 @@ export async function POST(request: Request) {
     const strengthThemeNames = new Set(
       (strengthsResult.data ?? []).map((strength) => strength.theme_name),
     );
+    const roleTitle = canonicalizeRoleTitle(role.title);
     const relevantStrengthsLibrary = (strengthsLibraryResult.data ?? []).filter((theme) =>
       strengthThemeNames.has(theme.theme_name),
     );
@@ -244,7 +246,7 @@ export async function POST(request: Request) {
             candidateId: candidate.id,
             roleId: role.id,
             candidateName: candidate.full_name,
-            roleTitle: role.title,
+            roleTitle,
             roleDescription: role.description,
             competencies: (competenciesResult.data ?? []).map((competency) => ({
               ...competency,
@@ -285,7 +287,7 @@ export async function POST(request: Request) {
         mentor_questions: (project.mentor_questions as string[]) ?? [],
         evidence_of_success: (project.evidence_of_success as string[]) ?? [],
       })),
-      role.title,
+      roleTitle,
       developmentPriorities.map((priority) => priority.competencyName),
       leverageStrengths,
       readiness,
@@ -305,7 +307,7 @@ export async function POST(request: Request) {
           role: "user",
           content: serializeModelInput({
             role: {
-              title: role.title,
+              title: roleTitle,
               description: role.description,
               competencies: competenciesResult.data,
             },
@@ -313,7 +315,7 @@ export async function POST(request: Request) {
               full_name: candidate.full_name,
               current_title: candidate.current_title,
               status: candidate.status,
-              target_role_title: role.title,
+              target_role_title: roleTitle,
             },
             readiness_score: readiness,
             competency_assessments: competencyAssessments,
