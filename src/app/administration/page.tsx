@@ -127,16 +127,12 @@ export default async function AdministrationPage({
 
           <div className="mt-8 flex flex-wrap gap-3">
             {[
-              { id: "organization-controls", label: "Organization Controls" },
-              { id: "user-access", label: "Give Access" },
+              { id: "user-access", label: "Add Users" },
               { id: "assign-mentors", label: "Assign Mentors" },
+              { id: "organization-controls", label: "Organization Controls" },
             ].map((tab) => {
-              const isActive =
-                (requestedSection ?? "organization-controls") === tab.id;
-              const href =
-                tab.id === "organization-controls"
-                  ? `/administration?organizationId=${encodeURIComponent(selectedOrganization.id)}`
-                  : `/administration?organizationId=${encodeURIComponent(selectedOrganization.id)}&section=${encodeURIComponent(tab.id)}`;
+              const isActive = (requestedSection ?? "user-access") === tab.id;
+              const href = `/administration?organizationId=${encodeURIComponent(selectedOrganization.id)}&section=${encodeURIComponent(tab.id)}`;
 
               return (
                 <Link
@@ -159,9 +155,11 @@ export default async function AdministrationPage({
           initialTab={
             requestedSection === "assign-mentors"
               ? "assign-mentors"
-              : requestedSection === "user-access"
+              : requestedSection === "organization-controls"
+                ? "organization-controls"
+                : requestedSection === "user-access"
                 ? "user-access"
-                : "organization-controls"
+                : "user-access"
           }
           mentorAssignmentOptions={{
             candidates: (candidatesResult.data ?? []).map((candidate) => ({
