@@ -16,6 +16,10 @@ import { createWorkspaceSetupToken } from "@/lib/workspace-setup-token";
 import { isMissingLeadershipDevelopmentRecordTableError } from "@/lib/leadership-development-record";
 import { isMissingOrganizationIndustryColumnError } from "@/lib/organization-industry";
 import { canonicalizeRoleTitle } from "@/lib/role-title";
+import {
+  buildCompetencyAssessments,
+  computeRoleGoalReadiness,
+} from "@/lib/fit-analysis";
 
 type DashboardPageProps = {
   searchParams: Promise<{
@@ -126,6 +130,37 @@ type DevelopmentFeedbackRow = {
   development_record_id: string;
 };
 
+type DashboardRoleCompetencyRow = {
+  role_id: string;
+  id: string;
+  name: string;
+  target_score: number;
+  weight: number;
+};
+
+type DashboardInterviewPanelRow = {
+  id: string;
+  candidate_id: string;
+  role_id: string;
+};
+
+type DashboardInterviewScoreRow = {
+  panel_id: string;
+  competency_id: string;
+  score_numeric: number;
+  evidence_notes: string | null;
+  concern_notes: string | null;
+};
+
+type DashboardStrengthAssessmentRow = {
+  candidate_id: string;
+  role_id: string;
+  competency_id: string;
+  strength_score: number;
+  supporting_strengths: string[] | null;
+  rationale: string | null;
+};
+
 type SuccessorSummary = {
   candidateId: string;
   name: string;
@@ -139,7 +174,7 @@ type RoleRiskRow = {
   roleTitle: string;
   department: string | null;
   candidateCount: number;
-  highestReadinessScore: number | null;
+  highestReadinessPercent: number | null;
   lastDevelopmentActivity: string | null;
   riskLevel: RiskLevel;
   candidateLinks: SuccessorSummary[];
@@ -256,6 +291,7 @@ type DashboardTrack = {
   mentorIds: string[];
   mentorNames: string[];
   records: DevelopmentRecordRow[];
+  roleGoalReadinessPercent: number | null;
 };
 
 function getSetupDefaultFullName(user: Awaited<ReturnType<typeof requireUser>>) {
@@ -431,6 +467,14 @@ function formatScore(value: number | null) {
   }
 
   return value.toFixed(1);
+}
+
+function formatReadinessPercent(value: number | null) {
+  if (value === null) {
+    return "-";
+  }
+
+  return `${value.toFixed(1)}%`;
 }
 
 function formatDate(value: string | null) {
@@ -648,6 +692,10 @@ function buildDashboardIntelligence(options: {
   developmentRecords: DevelopmentRecordRow[];
   developmentCompetencies: DevelopmentCompetencyRow[];
   developmentFeedback: DevelopmentFeedbackRow[];
+  roleCompetencies: DashboardRoleCompetencyRow[];
+  interviewPanels: DashboardInterviewPanelRow[];
+  interviewScores: DashboardInterviewScoreRow[];
+  strengthAssessments: DashboardStrengthAssessmentRow[];
   filters: DashboardFilters;
   developmentStorageReady: boolean;
 }) : DashboardIntelligence {
@@ -684,11 +732,44 @@ function buildDashboardIntelligence(options: {
 
   const roleById = new Map(options.roles.map((role) => [role.id, role]));
   const mentorById = new Map(options.mentors.map((mentor) => [mentor.id, mentor]));
+  const roleCompetenciesByRoleId = new Map<string, DashboardRoleCompetencyRow[]>();
+  const trackKeyByPanelId = new Map<string, string>();
+  const interviewScoresByTrackKey = new Map<string, DashboardInterviewScoreRow[]>();
+  const strengthAssessmentsByTrackKey = new Map<string, DashboardStrengthAssessmentRow[]>();
   const assignmentsByTrackKey = new Map<
     string,
     { mentorIds: Set<string>; mentorNames: Set<string> }
   >();
   const recordsByTrackKey = new Map<string, DevelopmentRecordRow[]>();
+
+  for (const competency of options.roleCompetencies) {
+    const current = roleCompetenciesByRoleId.get(competency.role_id) ?? [];
+    current.push(competency);
+    roleCompetenciesByRoleId.set(competency.role_id, current);
+  }
+
+  for (const panel of options.interviewPanels) {
+    trackKeyByPanelId.set(panel.id, `${panel.candidate_id}:${panel.role_id}`);
+  }
+
+  for (const score of options.interviewScores) {
+    const trackKey = trackKeyByPanelId.get(score.panel_id);
+
+    if (!trackKey) {
+      continue;
+    }
+
+    const current = interviewScoresByTrackKey.get(trackKey) ?? [];
+    current.push(score);
+    interviewScoresByTrackKey.set(trackKey, current);
+  }
+
+  for (const assessment of options.strengthAssessments) {
+    const trackKey = `${assessment.candidate_id}:${assessment.role_id}`;
+    const current = strengthAssessmentsByTrackKey.get(trackKey) ?? [];
+    current.push(assessment);
+    strengthAssessmentsByTrackKey.set(trackKey, current);
+  }
 
   for (const assignment of options.mentorAssignments) {
     const key = `${assignment.candidate_id}:${assignment.role_id}`;
@@ -730,6 +811,34 @@ function buildDashboardIntelligence(options: {
       const records = (recordsByTrackKey.get(key) ?? []).slice().sort((left, right) =>
         right.updated_at.localeCompare(left.updated_at),
       );
+      const competencies = roleCompetenciesByRoleId.get(roleId) ?? [];
+      const interviewScores = interviewScoresByTrackKey.get(key) ?? [];
+      const strengthAssessments = strengthAssessmentsByTrackKey.get(key) ?? [];
+      const roleGoalReadinessPercent =
+        competencies.length > 0
+          ? computeRoleGoalReadiness(
+              buildCompetencyAssessments(
+                competencies.map((competency) => ({
+                  id: competency.id,
+                  name: competency.name,
+                  target_score: competency.target_score,
+                  weight: competency.weight,
+                })),
+                interviewScores.map((score) => ({
+                  competency_id: score.competency_id,
+                  score_numeric: score.score_numeric,
+                  evidence_notes: score.evidence_notes,
+                  concern_notes: score.concern_notes,
+                })),
+                strengthAssessments.map((assessment) => ({
+                  competency_id: assessment.competency_id,
+                  strength_score: Number(assessment.strength_score),
+                  supporting_strengths: assessment.supporting_strengths,
+                  rationale: assessment.rationale,
+                })),
+              ),
+            ).readinessPercent
+          : null;
 
       tracks.push({
         key,
@@ -743,6 +852,7 @@ function buildDashboardIntelligence(options: {
         mentorIds: assignmentData ? Array.from(assignmentData.mentorIds) : [],
         mentorNames: assignmentData ? Array.from(assignmentData.mentorNames) : [],
         records,
+        roleGoalReadinessPercent,
       });
     }
   }
@@ -892,11 +1002,23 @@ function buildDashboardIntelligence(options: {
 
   const riskByRole = visibleRoles.map((role) => {
     const roleTracks = visibleTracks.filter((track) => track.roleId === role.id);
-    const highestReadinessScore = average(
+    const mentorReadinessScoreForRisk = average(
       roleTracks
         .map((track) => getRecordNumericReadiness(track.records[0] ?? null))
         .filter((value): value is number => value !== null),
     );
+    const highestReadinessPercent =
+      roleTracks.length > 0
+        ? roleTracks.reduce<number | null>(
+            (currentHighest, track) =>
+              track.roleGoalReadinessPercent === null
+                ? currentHighest
+                : currentHighest === null
+                  ? track.roleGoalReadinessPercent
+                  : Math.max(currentHighest, track.roleGoalReadinessPercent),
+            null,
+          )
+        : null;
     const lastDevelopmentActivity = roleTracks
       .flatMap((track) => track.records.map((record) => record.updated_at))
       .sort((left, right) => right.localeCompare(left))[0] ?? null;
@@ -912,7 +1034,7 @@ function buildDashboardIntelligence(options: {
     if (
       roleTracks.length === 0 ||
       !hasRecentActivity ||
-      (highestReadinessScore ?? 0) <= 3
+      (mentorReadinessScoreForRisk ?? 0) <= 3
     ) {
       riskLevel = "High Risk";
     } else if (hasNearOrReadyCandidate && hasRecentActivity && hasMentorReview) {
@@ -924,7 +1046,7 @@ function buildDashboardIntelligence(options: {
       roleTitle: role.title,
       department: role.department,
       candidateCount: roleTracks.length,
-      highestReadinessScore: roundToTenth(highestReadinessScore),
+      highestReadinessPercent: roundToTenth(highestReadinessPercent),
       lastDevelopmentActivity,
       riskLevel,
       candidateLinks: roleTracks.map((track) => ({
@@ -1644,12 +1766,79 @@ async function getDashboardSnapshot(
   const projectAssignmentsSource = rawAssignments.filter((record) =>
     visibleCandidateIdSet.has(record.candidate_id),
   );
+  const visibleRoleIds = roles.map((role) => role.id);
+  const visibleCandidateIds = candidatesSource.map((candidate) => candidate.id);
   developmentRecords = isMentorView
     ? developmentRecords.filter((record) => record.mentor_id === profileResult.data?.id)
     : developmentRecords;
 
   let developmentCompetencies: DevelopmentCompetencyRow[] = [];
   let developmentFeedback: DevelopmentFeedbackRow[] = [];
+  let roleCompetencies: DashboardRoleCompetencyRow[] = [];
+  let interviewPanels: DashboardInterviewPanelRow[] = [];
+  let interviewScores: DashboardInterviewScoreRow[] = [];
+  let strengthAssessments: DashboardStrengthAssessmentRow[] = [];
+
+  if (visibleRoleIds.length > 0 && visibleCandidateIds.length > 0) {
+    const [roleCompetenciesResult, interviewPanelsResult, strengthAssessmentsResult] =
+      await Promise.all([
+        admin
+          .from("role_competencies")
+          .select("role_id, id, name, target_score, weight")
+          .eq("organization_id", organizationId)
+          .in("role_id", visibleRoleIds),
+        admin
+          .from("interview_panels")
+          .select("id, candidate_id, role_id")
+          .eq("organization_id", organizationId)
+          .in("candidate_id", visibleCandidateIds)
+          .in("role_id", visibleRoleIds),
+        admin
+          .from("candidate_role_strength_assessments")
+          .select(
+            "candidate_id, role_id, competency_id, strength_score, supporting_strengths, rationale",
+          )
+          .eq("organization_id", organizationId)
+          .in("candidate_id", visibleCandidateIds)
+          .in("role_id", visibleRoleIds),
+      ]);
+
+    for (const result of [
+      roleCompetenciesResult,
+      interviewPanelsResult,
+      strengthAssessmentsResult,
+    ]) {
+      if (result.error) {
+        throw new Error(result.error.message);
+      }
+    }
+
+    roleCompetencies = (roleCompetenciesResult.data ?? []) as DashboardRoleCompetencyRow[];
+    interviewPanels = (interviewPanelsResult.data ?? []).filter((panel) =>
+      isMentorView
+        ? mentorVisibleTrackKeys.has(`${panel.candidate_id}:${panel.role_id}`)
+        : true,
+    ) as DashboardInterviewPanelRow[];
+    strengthAssessments = (strengthAssessmentsResult.data ?? []).filter((assessment) =>
+      isMentorView
+        ? mentorVisibleTrackKeys.has(`${assessment.candidate_id}:${assessment.role_id}`)
+        : true,
+    ) as DashboardStrengthAssessmentRow[];
+
+    const panelIds = interviewPanels.map((panel) => panel.id);
+    if (panelIds.length > 0) {
+      const interviewScoresResult = await admin
+        .from("interview_scores")
+        .select("panel_id, competency_id, score_numeric, evidence_notes, concern_notes")
+        .in("panel_id", panelIds);
+
+      if (interviewScoresResult.error) {
+        throw new Error(interviewScoresResult.error.message);
+      }
+
+      interviewScores = (interviewScoresResult.data ?? []) as DashboardInterviewScoreRow[];
+    }
+  }
 
   if (developmentStorageReady && developmentRecords.length > 0) {
     const recordIds = developmentRecords.map((record) => record.id);
@@ -1788,6 +1977,10 @@ async function getDashboardSnapshot(
       developmentRecords,
       developmentCompetencies,
       developmentFeedback,
+      roleCompetencies,
+      interviewPanels,
+      interviewScores,
+      strengthAssessments,
       filters,
       developmentStorageReady,
     }),
@@ -2174,7 +2367,7 @@ export default async function DashboardPage({
                                   </div>
                                 </td>
                                 <td className="py-4 pr-4 align-top font-semibold text-slate-900">
-                                  {formatScore(row.highestReadinessScore)}
+                                  {formatReadinessPercent(row.highestReadinessPercent)}
                                 </td>
                                 <td className="py-4 pr-4 align-top text-slate-600">
                                   {formatDate(row.lastDevelopmentActivity)}
