@@ -593,6 +593,22 @@ function getRecordNumericReadiness(record: DevelopmentRecordRow | null | undefin
   return getReadinessScore(record.readiness_signal);
 }
 
+function getRoleGoalReadinessStatus(readinessPercent: number | null) {
+  if (readinessPercent === null) {
+    return null;
+  }
+
+  if (readinessPercent >= 100) {
+    return "role_ready" as const;
+  }
+
+  if (readinessPercent >= 90) {
+    return "near_role_ready" as const;
+  }
+
+  return null;
+}
+
 function inferExperienceType(title: string) {
   const normalized = title.trim().toLowerCase();
 
@@ -983,6 +999,12 @@ function buildDashboardIntelligence(options: {
   for (const track of visibleTracks) {
     const latestRecord = track.records[0] ?? null;
     const mentorId = track.mentorIds[0] ?? latestRecord?.mentor_id ?? null;
+    const readinessStatus =
+      getRoleGoalReadinessStatus(track.roleGoalReadinessPercent) ??
+      ((latestRecord?.readiness_signal ?? null) === "near_role_ready" ||
+      (latestRecord?.readiness_signal ?? null) === "role_ready"
+        ? (latestRecord?.readiness_signal as "near_role_ready" | "role_ready")
+        : null);
     const successor = {
       candidateId: track.candidateId,
       name: track.candidateName,
@@ -991,11 +1013,11 @@ function buildDashboardIntelligence(options: {
       mentorId,
     };
 
-    if (latestRecord?.readiness_signal === "near_role_ready") {
+    if (readinessStatus === "near_role_ready") {
       readySuccessors.near.push(successor);
     }
 
-    if (latestRecord?.readiness_signal === "role_ready") {
+    if (readinessStatus === "role_ready") {
       readySuccessors.ready.push(successor);
     }
   }
@@ -1023,8 +1045,14 @@ function buildDashboardIntelligence(options: {
       .flatMap((track) => track.records.map((record) => record.updated_at))
       .sort((left, right) => right.localeCompare(left))[0] ?? null;
     const hasNearOrReadyCandidate = roleTracks.some((track) => {
+      const derivedStatus = getRoleGoalReadinessStatus(track.roleGoalReadinessPercent);
       const signal = track.records[0]?.readiness_signal ?? null;
-      return signal === "near_role_ready" || signal === "role_ready";
+      return (
+        derivedStatus === "near_role_ready" ||
+        derivedStatus === "role_ready" ||
+        signal === "near_role_ready" ||
+        signal === "role_ready"
+      );
     });
     const hasRecentActivity = isWithinLastDays(lastDevelopmentActivity, 90);
     const hasMentorReview = roleTracks.some((track) => Boolean(track.records[0]?.mentor_review_date));
