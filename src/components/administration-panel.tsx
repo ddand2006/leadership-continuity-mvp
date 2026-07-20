@@ -1,6 +1,5 @@
 "use client";
 
-import type { Dispatch, SetStateAction } from "react";
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { MentorAssignmentManager } from "@/components/mentor-assignment-manager";
@@ -175,8 +174,6 @@ export function AdministrationPanel({
     organizations.find((organization) => organization.id === selectedOrganizationId) ??
     organizations[0] ??
     null;
-  const [nameFilter, setNameFilter] = useState("");
-  const [emailFilter, setEmailFilter] = useState("");
   const [candidateFilter, setCandidateFilter] = useState(false);
   const [mentorFilter, setMentorFilter] = useState(false);
   const [ceoAdminFilter, setCeoAdminFilter] = useState(false);
@@ -236,25 +233,6 @@ export function AdministrationPanel({
       : activeTab === "user-access"
         ? "&section=user-access"
         : "";
-  const toggleFilters: Array<{
-    label: string;
-    value: boolean;
-    setValue: Dispatch<SetStateAction<boolean>>;
-  }> = [
-    { label: "Candidate", value: candidateFilter, setValue: setCandidateFilter },
-    { label: "Mentor", value: mentorFilter, setValue: setMentorFilter },
-    { label: "CEO Admin", value: ceoAdminFilter, setValue: setCeoAdminFilter },
-    {
-      label: "Manager Admin",
-      value: managerAdminFilter,
-      setValue: setManagerAdminFilter,
-    },
-    { label: "Active", value: activeFilter, setValue: setActiveFilter },
-    { label: "Invited", value: invitedFilter, setValue: setInvitedFilter },
-    { label: "Suspended", value: suspendedFilter, setValue: setSuspendedFilter },
-    { label: "Archived", value: archivedFilter, setValue: setArchivedFilter },
-  ];
-
   const statusFilters = [
     activeFilter ? "active" : null,
     invitedFilter ? "invited" : null,
@@ -264,12 +242,6 @@ export function AdministrationPanel({
 
   const filteredUsers = users.filter((user) => {
     const fullName = `${user.first_name} ${user.last_name}`.toLowerCase();
-    const matchesName =
-      nameFilter.trim().length === 0 ||
-      fullName.includes(nameFilter.trim().toLowerCase());
-    const matchesEmail =
-      emailFilter.trim().length === 0 ||
-      user.email.toLowerCase().includes(emailFilter.trim().toLowerCase());
     const matchesCandidate = !candidateFilter || user.is_candidate;
     const matchesMentor = !mentorFilter || user.is_mentor;
     const matchesCeoAdmin = !ceoAdminFilter || user.admin_role === "ceo_admin";
@@ -279,8 +251,6 @@ export function AdministrationPanel({
       statusFilters.length === 0 || statusFilters.includes(user.status);
 
     return (
-      matchesName &&
-      matchesEmail &&
       matchesCandidate &&
       matchesMentor &&
       matchesCeoAdmin &&
@@ -297,9 +267,7 @@ export function AdministrationPanel({
     !managerAdminFilter &&
     !invitedFilter &&
     !suspendedFilter &&
-    !archivedFilter &&
-    nameFilter.trim().length === 0 &&
-    emailFilter.trim().length === 0
+    !archivedFilter
       ? "active-candidates"
       : mentorFilter &&
           activeFilter &&
@@ -308,9 +276,7 @@ export function AdministrationPanel({
           !managerAdminFilter &&
           !invitedFilter &&
           !suspendedFilter &&
-          !archivedFilter &&
-          nameFilter.trim().length === 0 &&
-          emailFilter.trim().length === 0
+          !archivedFilter
         ? "active-mentors"
         : suspendedFilter &&
             !candidateFilter &&
@@ -319,9 +285,7 @@ export function AdministrationPanel({
             !managerAdminFilter &&
             !activeFilter &&
             !invitedFilter &&
-            !archivedFilter &&
-            nameFilter.trim().length === 0 &&
-            emailFilter.trim().length === 0
+            !archivedFilter
           ? "suspended-users"
           : invitedFilter &&
               !candidateFilter &&
@@ -330,15 +294,11 @@ export function AdministrationPanel({
               !managerAdminFilter &&
               !activeFilter &&
               !suspendedFilter &&
-              !archivedFilter &&
-              nameFilter.trim().length === 0 &&
-              emailFilter.trim().length === 0
+              !archivedFilter
             ? "pending-invitations"
             : null;
 
   function activateSummaryFilter(filter: SummaryFilterKey) {
-    setNameFilter("");
-    setEmailFilter("");
     setCandidateFilter(filter === "active-candidates");
     setMentorFilter(filter === "active-mentors");
     setCeoAdminFilter(false);
@@ -1041,7 +1001,7 @@ export function AdministrationPanel({
             <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
               <div>
                 <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
-                  Search And Filters
+                  User Access
                 </p>
                 <h2 className="mt-3 font-display text-3xl text-slate-900">
                   Manage access without losing history
@@ -1057,14 +1017,14 @@ export function AdministrationPanel({
                 <button
                   type="button"
                   onClick={() => openComposer("create")}
-                  className="interactive-contrast rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-900"
+                  className="interactive-contrast min-w-[11rem] rounded-[1.25rem] bg-slate-950 px-7 py-4 text-base font-semibold text-white transition hover:bg-teal-900"
                 >
                   Add User
                 </button>
                 <button
                   type="button"
                   onClick={() => openComposer("invite")}
-                  className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-teal-200 hover:text-teal-900"
+                  className="min-w-[11rem] rounded-[1.25rem] border border-slate-200 bg-white px-7 py-4 text-base font-semibold text-slate-700 transition hover:border-teal-200 hover:text-teal-900"
                 >
                   Invite User
                 </button>
@@ -1088,49 +1048,6 @@ export function AdministrationPanel({
               </div>
             ) : null}
 
-            <div className="mt-8 grid gap-4 lg:grid-cols-2">
-              <label className="block">
-                <span className="mb-2 block text-sm font-semibold text-slate-700">
-                  Name
-                </span>
-                <input
-                  value={nameFilter}
-                  onChange={(event) => setNameFilter(event.target.value)}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
-                  type="text"
-                  placeholder="Search by first or last name"
-                />
-              </label>
-              <label className="block">
-                <span className="mb-2 block text-sm font-semibold text-slate-700">
-                  Email
-                </span>
-                <input
-                  value={emailFilter}
-                  onChange={(event) => setEmailFilter(event.target.value)}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
-                  type="text"
-                  placeholder="Search by email"
-                />
-              </label>
-            </div>
-
-            <div className="mt-6 flex flex-wrap gap-3">
-              {toggleFilters.map((filter) => (
-                <button
-                  key={filter.label}
-                  type="button"
-                  onClick={() => filter.setValue(!filter.value)}
-                  className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
-                    filter.value
-                      ? "border-slate-950 bg-slate-950 text-white"
-                      : "border-slate-200 bg-white text-slate-700 hover:border-teal-200 hover:text-teal-900"
-                  }`}
-                >
-                  {filter.label}
-                </button>
-              ))}
-            </div>
           </section>
 
           <section className="theme-panel-strong overflow-hidden rounded-[2rem]">
