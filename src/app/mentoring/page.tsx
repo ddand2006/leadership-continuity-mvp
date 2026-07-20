@@ -1128,7 +1128,7 @@ export default async function MentoringPage({
             </h1>
             <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">
               {canManageMentorAssignments
-                ? "Mentors are now attached to the candidate through a specific role. That means one candidate can sit in more than one role track, with a different mentor assigned to each track when needed."
+                ? "Mentors should use this worksheet to give the candidates projects where they can develop, grow and improve their skillsets in preparation for a future role. Mentors should feel free to customize the source project below to ensure the project is right for the candidate and the organization."
                 : "Your mentoring workspace is limited to role tracks assigned to your candidate account, so you can review your own development work without seeing anyone else's information."}
             </p>
           </section>
