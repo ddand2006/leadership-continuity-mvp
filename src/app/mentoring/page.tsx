@@ -1116,24 +1116,6 @@ export default async function MentoringPage({
   return (
     <main className="app-page">
       <div className="mx-auto flex w-full max-w-[1380px] flex-col gap-8 px-6 py-12 sm:px-10 lg:px-12">
-        {!isResourceSection ? (
-          <section className="theme-panel-strong rounded-[2rem] p-8">
-            <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">
-              Mentoring Workflow
-            </p>
-            <h1 className="mt-3 font-display text-5xl leading-tight text-slate-900">
-              {canManageMentorAssignments
-                ? "Manage mentoring by candidate and role"
-                : "View your mentoring by role"}
-            </h1>
-            <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">
-              {canManageMentorAssignments
-                ? "Mentors should use this worksheet to give the candidates projects where they can develop, grow and improve their skillsets in preparation for a future role. Mentors should feel free to customize the source project below to ensure the project is right for the candidate and the organization."
-                : "Your mentoring workspace is limited to role tracks assigned to your candidate account, so you can review your own development work without seeing anyone else's information."}
-            </p>
-          </section>
-        ) : null}
-
         {selectedSectionId === "overview" ? (
           <MentorFlowPanel
             assignments={visibleAssignmentsWithWorksheet.map((assignment) => ({
@@ -1182,6 +1164,24 @@ export default async function MentoringPage({
             sections={workspaceMenuSections}
           />
         )}
+
+        {!isResourceSection ? (
+          <section className="theme-panel-strong rounded-[2rem] p-8">
+            <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">
+              Mentoring Workflow
+            </p>
+            <h1 className="mt-3 font-display text-5xl leading-tight text-slate-900">
+              {canManageMentorAssignments
+                ? "Manage mentoring by candidate and role"
+                : "View your mentoring by role"}
+            </h1>
+            <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">
+              {canManageMentorAssignments
+                ? "Mentors should use this worksheet to give the candidates projects where they can develop, grow and improve their skillsets in preparation for a future role. Mentors should feel free to customize the source project below to ensure the project is right for the candidate and the organization."
+                : "Your mentoring workspace is limited to role tracks assigned to your candidate account, so you can review your own development work without seeing anyone else's information."}
+            </p>
+          </section>
+        ) : null}
       </div>
     </main>
   );
