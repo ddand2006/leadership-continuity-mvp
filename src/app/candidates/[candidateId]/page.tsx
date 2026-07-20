@@ -25,6 +25,8 @@ import {
   rankMentoringIdeasForCompetency,
   type DevelopmentProjectRecord,
 } from "@/lib/fit-analysis";
+import { computeCandidateAward } from "@/lib/candidate-awards";
+import { isMissingLeadershipDevelopmentRecordTableError } from "@/lib/leadership-development-record";
 import { isAdminAppRole, isCandidateSelfAccess } from "@/lib/mentor-access";
 import {
   buildRoleMatchesWeakestToStrongest,
@@ -207,6 +209,7 @@ export default async function CandidateDetailPage({
     strengthAssessmentsResult,
     projectsResult,
     savedIdeaSetsResult,
+    developmentRecordsResult,
   ] =
     activeRoleId
       ? await Promise.all([
@@ -257,12 +260,19 @@ export default async function CandidateDetailPage({
             .eq("organization_id", profile.organization_id)
             .eq("candidate_id", candidate.id)
             .eq("role_id", activeRoleId),
+          supabase
+            .from("development_records")
+            .select("id, mentor_review_date")
+            .eq("organization_id", profile.organization_id)
+            .eq("candidate_id", candidate.id)
+            .eq("role_id", activeRoleId),
         ])
       : [
           { data: null, error: null },
           { data: [], error: null },
           { data: [], error: null },
           { data: null, error: null },
+          { data: [], error: null },
           { data: [], error: null },
           { data: [], error: null },
           { data: [], error: null },
@@ -276,7 +286,7 @@ export default async function CandidateDetailPage({
     strengthAssessmentsResult,
     projectsResult,
     savedIdeaSetsResult,
-  ]) {
+  ] as const) {
     if (result.error) {
       if (
         result === savedIdeaSetsResult &&
@@ -300,6 +310,16 @@ export default async function CandidateDetailPage({
 
   if (scoresResult.error) {
     throw new Error(scoresResult.error.message);
+  }
+
+  let developmentRecords = developmentRecordsResult.data ?? [];
+
+  if (developmentRecordsResult.error) {
+    if (isMissingLeadershipDevelopmentRecordTableError(developmentRecordsResult.error)) {
+      developmentRecords = [];
+    } else {
+      throw new Error(developmentRecordsResult.error.message);
+    }
   }
 
   const strengthAssessments = (strengthAssessmentsResult.data ?? []).map((assessment) => ({
@@ -477,11 +497,26 @@ export default async function CandidateDetailPage({
       null
     : null;
   const activeRoleTitle = canonicalizeRoleTitle(roleResult.data?.title ?? null);
+  const hasActiveRoleMentorAssigned =
+    activeRoleId !== null &&
+    displayableMentorAssignments.some(
+      (assignment) =>
+        assignment.role_id === activeRoleId && assignment.status === "active",
+    );
+  const candidateAward = computeCandidateAward({
+    readinessPercent: roleGoalReadiness.readinessPercent,
+    hasMentorAssigned: hasActiveRoleMentorAssigned,
+    hasDevelopmentRecord: developmentRecords.length > 0,
+    hasCompletedMentorReview: developmentRecords.some((record) =>
+      Boolean(record.mentor_review_date),
+    ),
+  });
   const candidateWorkspaceDetailItems = [
     `Current title: ${candidate.current_title ?? "Not entered"}`,
     `Active role: ${activeRoleTitle || "No role selected"}`,
     `Weighted readiness: ${readiness.toFixed(2)} / 5`,
     `Role-goal readiness: ${roleGoalReadiness.readinessPercent.toFixed(1)}%`,
+    `Candidate award: ${candidateAward.label}`,
     `Mentors: ${
       activeRoleMentorNames.length > 0
         ? activeRoleMentorNames.join(", ")
@@ -857,6 +892,7 @@ export default async function CandidateDetailPage({
                     savedGeneratedIdeasByCompetencyId={
                       savedGeneratedIdeasByCompetencyIdObject
                     }
+                    award={candidateAward}
                   />
                 </section>
               ),

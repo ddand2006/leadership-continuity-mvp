@@ -21,6 +21,8 @@ type CandidateFlowPanelProps = {
     primaryRoleTitle: string;
     primaryRoleId: string | null;
     readiness: number;
+    roleGoalReadinessPercent: number;
+    awardLabel: string;
   }[];
   selectedCandidateId: string | null;
   canCreateCandidates: boolean;
@@ -332,7 +334,9 @@ export function CandidateFlowPanel({
           {selectedCandidate.primaryRoleTitle
             ? ` • ${selectedCandidate.primaryRoleTitle}`
             : ""}{" "}
-          is currently tracking at {selectedCandidate.readiness.toFixed(2)} / 5.
+          is currently tracking at {selectedCandidate.readiness.toFixed(2)} / 5,
+          with {selectedCandidate.roleGoalReadinessPercent.toFixed(1)}% role-goal
+          readiness and a {selectedCandidate.awardLabel} recognition level.
         </div>
       ) : null}
     </section>

@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { CandidateAwardBadge } from "@/components/candidate-award-badge";
+import type { CandidateAward } from "@/lib/candidate-awards";
 import { CompetencyCoachingNarrativePanel } from "@/components/competency-coaching-narrative-panel";
 import { MentoringIdeasPanel } from "@/components/mentoring-ideas-panel";
 import type { GeneratedCandidateMentoringIdea } from "@/lib/candidate-mentoring-ideas";
@@ -46,6 +48,7 @@ type CandidateInsightExplorerProps = {
   roleId?: string;
   mentorProfileId?: string;
   savedGeneratedIdeasByCompetencyId?: Record<string, GeneratedCandidateMentoringIdea[]>;
+  award: CandidateAward;
 };
 
 type SelectedInsight =
@@ -63,6 +66,7 @@ export function CandidateInsightExplorer({
   roleId,
   mentorProfileId,
   savedGeneratedIdeasByCompetencyId = {},
+  award,
 }: CandidateInsightExplorerProps) {
   const [selectedInsight, setSelectedInsight] = useState<SelectedInsight>(() => {
     if (assessments[0]) {
@@ -120,9 +124,12 @@ export function CandidateInsightExplorer({
             </p>
           </div>
           <div className="rounded-3xl border border-[rgba(82,140,94,0.2)] bg-[rgba(239,251,241,0.96)] p-6 text-[#183822] shadow-[0_20px_60px_rgba(36,64,216,0.1)]">
-            <p className="text-sm font-semibold tracking-[0.16em] text-[#24512f] uppercase">
-              Role-Goal Readiness
-            </p>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <p className="text-sm font-semibold tracking-[0.16em] text-[#24512f] uppercase">
+                Role-Goal Readiness
+              </p>
+              <CandidateAwardBadge award={award} size="sm" />
+            </div>
             <p className="mt-3 text-4xl font-semibold text-[#14361d]">
               {roleGoalReadiness.readinessPercent.toFixed(1)}%
             </p>
@@ -134,6 +141,12 @@ export function CandidateInsightExplorer({
               Each competency at or above the role goal counts as 100%. Scores
               below goal count as the percent of the role goal achieved, then the
               percentages are averaged across the chart.
+            </p>
+            <p className="mt-3 text-sm leading-7 text-[#24512f]">
+              {award.shortDescription}
+            </p>
+            <p className="mt-3 text-sm leading-7 text-[#24512f]">
+              {award.nextStep}
             </p>
           </div>
         </div>

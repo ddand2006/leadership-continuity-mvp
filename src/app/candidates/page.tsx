@@ -1,10 +1,14 @@
 import Link from "next/link";
+import { CandidateAwardBadge } from "@/components/candidate-award-badge";
 import { CandidateFlowPanel } from "@/components/candidate-flow-panel";
 import { CandidateManagementPanel } from "@/components/candidate-management-panel";
 import {
   buildCompetencyAssessments,
   computeOverallReadiness,
+  computeRoleGoalReadiness,
 } from "@/lib/fit-analysis";
+import { computeCandidateAward } from "@/lib/candidate-awards";
+import { isMissingLeadershipDevelopmentRecordTableError } from "@/lib/leadership-development-record";
 import { getAccessibleCandidateIds, isAdminAppRole } from "@/lib/mentor-access";
 import { canonicalizeRoleTitle } from "@/lib/role-title";
 import { requirePaidWorkspaceProfile } from "@/lib/workspace";
@@ -86,6 +90,7 @@ export default async function CandidatesPage({
     mentorAssignmentsResult,
     panelsResult,
     strengthAssessmentsResult,
+    developmentRecordsResult,
   ] = await Promise.all([
     supabase
       .from("roles")
@@ -109,7 +114,7 @@ export default async function CandidatesPage({
     hasVisibleCandidates
       ? supabase
           .from("mentor_role_assignments")
-          .select("candidate_id, role_id, mentor_profile_id")
+          .select("candidate_id, role_id, mentor_profile_id, status")
           .eq("organization_id", profile.organization_id)
           .in("candidate_id", visibleCandidateIds)
       : Promise.resolve({ data: [], error: null }),
@@ -129,6 +134,13 @@ export default async function CandidatesPage({
           .eq("organization_id", profile.organization_id)
           .in("candidate_id", visibleCandidateIds)
       : Promise.resolve({ data: [], error: null }),
+    hasVisibleCandidates
+      ? supabase
+          .from("development_records")
+          .select("candidate_id, role_id, mentor_review_date")
+          .eq("organization_id", profile.organization_id)
+          .in("candidate_id", visibleCandidateIds)
+      : Promise.resolve({ data: [], error: null }),
   ]);
 
   for (const result of [
@@ -138,9 +150,19 @@ export default async function CandidatesPage({
     mentorAssignmentsResult,
     panelsResult,
     strengthAssessmentsResult,
-  ]) {
+  ] as const) {
     if (result.error) {
       throw new Error(result.error.message);
+    }
+  }
+
+  let developmentRecords = developmentRecordsResult.data ?? [];
+
+  if (developmentRecordsResult.error) {
+    if (isMissingLeadershipDevelopmentRecordTableError(developmentRecordsResult.error)) {
+      developmentRecords = [];
+    } else {
+      throw new Error(developmentRecordsResult.error.message);
     }
   }
 
@@ -201,7 +223,16 @@ export default async function CandidatesPage({
   >();
   const mentorAssignmentsByCandidate = new Map<
     string,
-    { candidate_id: string; role_id: string; mentor_profile_id: string }[]
+    {
+      candidate_id: string;
+      role_id: string;
+      mentor_profile_id: string;
+      status: string | null;
+    }[]
+  >();
+  const developmentRecordsByCandidateAndRole = new Map<
+    string,
+    { candidate_id: string; role_id: string; mentor_review_date: string | null }[]
   >();
   const strengthAssessmentsByCandidateAndRole = new Map<
     string,
@@ -238,6 +269,13 @@ export default async function CandidatesPage({
     const current = mentorAssignmentsByCandidate.get(assignment.candidate_id) ?? [];
     current.push(assignment);
     mentorAssignmentsByCandidate.set(assignment.candidate_id, current);
+  }
+
+  for (const record of developmentRecords) {
+    const key = `${record.candidate_id}:${record.role_id}`;
+    const current = developmentRecordsByCandidateAndRole.get(key) ?? [];
+    current.push(record);
+    developmentRecordsByCandidateAndRole.set(key, current);
   }
 
   for (const assessment of strengthAssessmentsResult.data ?? []) {
@@ -296,6 +334,27 @@ export default async function CandidatesPage({
       strengthAssessments,
     );
     const readiness = computeOverallReadiness(assessments);
+    const roleGoalReadiness = computeRoleGoalReadiness(assessments);
+    const mentorAssignments =
+      mentorAssignmentsByCandidate.get(candidate.id)?.filter(
+        (assignment) =>
+          primaryConsideration &&
+          assignment.role_id === primaryConsideration.role_id &&
+          assignment.status === "active",
+      ) ?? [];
+    const roleDevelopmentRecords = primaryConsideration
+      ? developmentRecordsByCandidateAndRole.get(
+          `${candidate.id}:${primaryConsideration.role_id}`,
+        ) ?? []
+      : [];
+    const award = computeCandidateAward({
+      readinessPercent: roleGoalReadiness.readinessPercent,
+      hasMentorAssigned: mentorAssignments.length > 0,
+      hasDevelopmentRecord: roleDevelopmentRecords.length > 0,
+      hasCompletedMentorReview: roleDevelopmentRecords.some((record) =>
+        Boolean(record.mentor_review_date),
+      ),
+    });
     const topGap = assessments[0];
 
     return {
@@ -306,6 +365,8 @@ export default async function CandidatesPage({
       primaryRoleId: primaryRole?.id ?? null,
       status: candidate.status,
       readiness,
+      roleGoalReadinessPercent: roleGoalReadiness.readinessPercent,
+      award,
       topGap: topGap?.competencyName ?? "None",
     };
   });
@@ -341,6 +402,8 @@ export default async function CandidatesPage({
                   primaryRoleTitle: candidate.primaryRoleTitle,
                   primaryRoleId: candidate.primaryRoleId,
                   readiness: candidate.readiness,
+                  roleGoalReadinessPercent: candidate.roleGoalReadinessPercent,
+                  awardLabel: candidate.award.label,
                 }))}
                 selectedCandidateId={selectedCandidateId}
                 canCreateCandidates={canCreateCandidates}
@@ -367,10 +430,11 @@ export default async function CandidatesPage({
                 </div>
               ) : (
                 <div className="mt-6 overflow-hidden rounded-3xl border border-slate-200">
-                  <div className="hidden grid-cols-[1.3fr_1.1fr_0.8fr_1fr_0.8fr] gap-3 bg-slate-50 px-4 py-3 text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase md:grid">
+                  <div className="hidden grid-cols-[1.2fr_1fr_1fr_0.9fr_0.9fr_0.8fr] gap-3 bg-slate-50 px-4 py-3 text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase md:grid">
                     <span>Candidate</span>
                     <span>Role</span>
                     <span>Readiness</span>
+                    <span>Award</span>
                     <span>Biggest Gap</span>
                     <span>Status</span>
                   </div>
@@ -381,7 +445,7 @@ export default async function CandidatesPage({
                         href={`/candidates/${candidate.id}`}
                         className="block transition hover:bg-slate-50"
                       >
-                        <div className="grid gap-2 px-4 py-4 md:grid-cols-[1.3fr_1.1fr_0.8fr_1fr_0.8fr] md:items-center md:gap-3">
+                        <div className="grid gap-2 px-4 py-4 md:grid-cols-[1.2fr_1fr_1fr_0.9fr_0.9fr_0.8fr] md:items-center md:gap-3">
                           <div className="min-w-0">
                             <p className="truncate text-sm font-semibold text-slate-900">
                               {candidate.fullName}
@@ -393,9 +457,17 @@ export default async function CandidatesPage({
                           <p className="truncate text-sm text-slate-700">
                             {candidate.primaryRoleTitle}
                           </p>
-                          <p className="text-sm font-semibold text-slate-900">
-                            {candidate.readiness.toFixed(2)} / 5
-                          </p>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-slate-900">
+                              {candidate.readiness.toFixed(2)} / 5
+                            </p>
+                            <p className="truncate text-xs text-slate-500">
+                              {candidate.roleGoalReadinessPercent.toFixed(1)}% role-goal
+                            </p>
+                          </div>
+                          <div>
+                            <CandidateAwardBadge award={candidate.award} size="sm" />
+                          </div>
                           <p className="truncate text-sm text-slate-700">
                             {candidate.topGap}
                           </p>
