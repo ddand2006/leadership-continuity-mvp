@@ -62,7 +62,8 @@ type AdministrationPanelProps = {
     leadership_help_tier: string;
   }>;
   selectedOrganizationId: string;
-  canManageOrganizations: boolean;
+  canEditOrganizationAccess: boolean;
+  canCreateOrganizations: boolean;
 };
 
 type ComposerMode = "create" | "invite" | "edit" | "password";
@@ -166,7 +167,8 @@ export function AdministrationPanel({
   summary,
   organizations,
   selectedOrganizationId,
-  canManageOrganizations,
+  canEditOrganizationAccess,
+  canCreateOrganizations,
 }: AdministrationPanelProps) {
   const router = useRouter();
   const selectedOrganization =
@@ -706,7 +708,7 @@ export function AdministrationPanel({
                         organizationName: event.target.value,
                       }))
                     }
-                    disabled={!canManageOrganizations}
+                    disabled={!canEditOrganizationAccess}
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white disabled:cursor-not-allowed disabled:opacity-70"
                     type="text"
                   />
@@ -723,7 +725,7 @@ export function AdministrationPanel({
                         industryName: event.target.value,
                       }))
                     }
-                    disabled={!canManageOrganizations}
+                    disabled={!canEditOrganizationAccess}
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white disabled:cursor-not-allowed disabled:opacity-70"
                     type="text"
                   />
@@ -743,7 +745,7 @@ export function AdministrationPanel({
                         billingContactEmail: event.target.value,
                       }))
                     }
-                    disabled={!canManageOrganizations}
+                    disabled={!canEditOrganizationAccess}
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white disabled:cursor-not-allowed disabled:opacity-70"
                     type="email"
                   />
@@ -760,7 +762,7 @@ export function AdministrationPanel({
                         subscriptionStatus: event.target.value,
                       }))
                     }
-                    disabled={!canManageOrganizations}
+                    disabled={!canEditOrganizationAccess}
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     <option value="trialing">Trialing</option>
@@ -782,7 +784,7 @@ export function AdministrationPanel({
                           leadershipContinuityEnabled: event.target.checked,
                         }))
                       }
-                      disabled={!canManageOrganizations}
+                      disabled={!canEditOrganizationAccess}
                       type="checkbox"
                     />
                     Leadership Continuity
@@ -795,7 +797,7 @@ export function AdministrationPanel({
                         leadershipContinuityTier: event.target.value,
                       }))
                     }
-                    disabled={!canManageOrganizations}
+                    disabled={!canEditOrganizationAccess}
                     className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white disabled:cursor-not-allowed disabled:opacity-70"
                     type="text"
                     placeholder="organization"
@@ -812,7 +814,7 @@ export function AdministrationPanel({
                           leadershipHelpEnabled: event.target.checked,
                         }))
                       }
-                      disabled={!canManageOrganizations}
+                      disabled={!canEditOrganizationAccess}
                       type="checkbox"
                     />
                     Personal Development
@@ -825,7 +827,7 @@ export function AdministrationPanel({
                         leadershipHelpTier: event.target.value,
                       }))
                     }
-                    disabled={!canManageOrganizations}
+                    disabled={!canEditOrganizationAccess}
                     className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white disabled:cursor-not-allowed disabled:opacity-70"
                     type="text"
                     placeholder="none"
@@ -833,7 +835,7 @@ export function AdministrationPanel({
                 </fieldset>
               </div>
 
-              {canManageOrganizations ? (
+              {canEditOrganizationAccess ? (
                 <button
                   type="button"
                   onClick={submitOrganizationUpdate}
@@ -844,12 +846,12 @@ export function AdministrationPanel({
                 </button>
               ) : (
                 <p className="text-sm text-slate-500">
-                  Organization access settings are managed by the system administrator.
+                  Organization access settings are managed by an administrator for this organization.
                 </p>
               )}
             </div>
 
-            {canManageOrganizations ? (
+            {canCreateOrganizations ? (
               <div className="space-y-4 rounded-[1.5rem] border border-slate-200/80 bg-white/70 p-5">
                 <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
                   Create Company

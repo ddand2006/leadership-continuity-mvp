@@ -194,7 +194,8 @@ export default async function AdministrationPage({
             leadership_help_tier: organization.leadership_help_tier,
           }))}
           selectedOrganizationId={selectedOrganization.id}
-          canManageOrganizations={isSystemAdmin}
+          canEditOrganizationAccess={isAdminAppRole(profile.role)}
+          canCreateOrganizations={isSystemAdmin}
         />
       </div>
     </main>

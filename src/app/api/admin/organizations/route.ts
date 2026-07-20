@@ -5,6 +5,7 @@ import {
   createApiErrorResponse,
   requireApiWorkspaceProfile,
 } from "@/lib/api-route";
+import { isAdminAppRole } from "@/lib/mentor-access";
 import { normalizeEmail } from "@/lib/organization-users";
 import {
   ORGANIZATION_SUBSCRIPTION_STATUSES,
@@ -40,6 +41,15 @@ function assertSystemAdmin(role: string) {
   if (role !== "system_admin") {
     throw new ApiRouteError(
       "Only system administrators can manage organizations across the system.",
+      403,
+    );
+  }
+}
+
+function assertOrganizationAdmin(role: string) {
+  if (!isAdminAppRole(role)) {
+    throw new ApiRouteError(
+      "Only organization administrators can manage organization settings.",
       403,
     );
   }
@@ -122,9 +132,20 @@ export async function PATCH(request: Request) {
       requireAdmin: true,
       requirePaid: false,
     });
-    assertSystemAdmin(context.profile.role);
+    assertOrganizationAdmin(context.profile.role);
 
     const payload = updateOrganizationSchema.parse(await request.json());
+
+    if (
+      context.profile.role !== "system_admin" &&
+      payload.organizationId !== context.profile.organization_id
+    ) {
+      throw new ApiRouteError(
+        "You can only update the organization attached to your admin account.",
+        403,
+      );
+    }
+
     const updateResult = await context.admin
       .from("organizations")
       .update(buildOrganizationPayload(payload))
