@@ -1250,6 +1250,7 @@ export function AdministrationPanel({
             ) : (
               <form
                 className="mt-6 space-y-4"
+                autoComplete="off"
                 onSubmit={(event) => {
                   event.preventDefault();
                   submitUserForm();
@@ -1291,6 +1292,8 @@ export function AdministrationPanel({
                     onChange={(event) => updateField("email", event.target.value)}
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
                     type="email"
+                    name="managed-user-email"
+                    autoComplete="off"
                     required
                   />
                 </label>
@@ -1305,6 +1308,8 @@ export function AdministrationPanel({
                       onChange={(event) => updateField("password", event.target.value)}
                       className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
                       type="password"
+                      name="managed-user-password"
+                      autoComplete="new-password"
                       minLength={8}
                       required
                     />
