@@ -87,6 +87,7 @@ type DashboardCandidate = {
   id: string;
   full_name: string;
   current_title: string | null;
+  created_at: string;
   role_ids: string[];
   role_titles: string[];
   mentor_profile_ids: string[];
@@ -100,6 +101,8 @@ type MentorAssignment = {
   role_id: string;
   mentor_profile_id: string;
   status: string | null;
+  start_date: string | null;
+  created_at: string;
 };
 
 type DevelopmentRecordRow = {
@@ -283,6 +286,7 @@ type DashboardTrack = {
   key: string;
   candidateId: string;
   candidateName: string;
+  candidateCreatedAt: string;
   currentTitle: string | null;
   candidateStatus: string;
   roleId: string;
@@ -290,6 +294,7 @@ type DashboardTrack = {
   department: string | null;
   mentorIds: string[];
   mentorNames: string[];
+  assignmentActivityDates: string[];
   records: DevelopmentRecordRow[];
   roleGoalReadinessPercent: number | null;
 };
@@ -609,6 +614,18 @@ function getRoleGoalReadinessStatus(readinessPercent: number | null) {
   return null;
 }
 
+function getTrackReadinessStatus(track: Pick<DashboardTrack, "records" | "roleGoalReadinessPercent">) {
+  const latestRecord = track.records[0] ?? null;
+
+  return (
+    getRoleGoalReadinessStatus(track.roleGoalReadinessPercent) ??
+    ((latestRecord?.readiness_signal ?? null) === "near_role_ready" ||
+    (latestRecord?.readiness_signal ?? null) === "role_ready"
+      ? (latestRecord?.readiness_signal as "near_role_ready" | "role_ready")
+      : null)
+  );
+}
+
 function inferExperienceType(title: string) {
   const normalized = title.trim().toLowerCase();
 
@@ -754,7 +771,11 @@ function buildDashboardIntelligence(options: {
   const strengthAssessmentsByTrackKey = new Map<string, DashboardStrengthAssessmentRow[]>();
   const assignmentsByTrackKey = new Map<
     string,
-    { mentorIds: Set<string>; mentorNames: Set<string> }
+    {
+      mentorIds: Set<string>;
+      mentorNames: Set<string>;
+      activityDates: Set<string>;
+    }
   >();
   const recordsByTrackKey = new Map<string, DevelopmentRecordRow[]>();
 
@@ -791,7 +812,11 @@ function buildDashboardIntelligence(options: {
     const key = `${assignment.candidate_id}:${assignment.role_id}`;
     const current =
       assignmentsByTrackKey.get(key) ??
-      ({ mentorIds: new Set<string>(), mentorNames: new Set<string>() });
+      ({
+        mentorIds: new Set<string>(),
+        mentorNames: new Set<string>(),
+        activityDates: new Set<string>(),
+      });
 
     if (assignment.mentor_profile_id) {
       current.mentorIds.add(assignment.mentor_profile_id);
@@ -800,6 +825,12 @@ function buildDashboardIntelligence(options: {
       if (mentorName) {
         current.mentorNames.add(mentorName);
       }
+    }
+
+    const assignmentActivityDate = assignment.start_date ?? assignment.created_at;
+
+    if (assignmentActivityDate) {
+      current.activityDates.add(assignmentActivityDate);
     }
 
     assignmentsByTrackKey.set(key, current);
@@ -860,6 +891,7 @@ function buildDashboardIntelligence(options: {
         key,
         candidateId: candidate.id,
         candidateName: candidate.full_name,
+        candidateCreatedAt: candidate.created_at,
         currentTitle: candidate.current_title,
         candidateStatus: candidate.status,
         roleId,
@@ -867,6 +899,9 @@ function buildDashboardIntelligence(options: {
         department: role.department,
         mentorIds: assignmentData ? Array.from(assignmentData.mentorIds) : [],
         mentorNames: assignmentData ? Array.from(assignmentData.mentorNames) : [],
+        assignmentActivityDates: assignmentData
+          ? Array.from(assignmentData.activityDates)
+          : [],
         records,
         roleGoalReadinessPercent,
       });
@@ -999,12 +1034,7 @@ function buildDashboardIntelligence(options: {
   for (const track of visibleTracks) {
     const latestRecord = track.records[0] ?? null;
     const mentorId = track.mentorIds[0] ?? latestRecord?.mentor_id ?? null;
-    const readinessStatus =
-      getRoleGoalReadinessStatus(track.roleGoalReadinessPercent) ??
-      ((latestRecord?.readiness_signal ?? null) === "near_role_ready" ||
-      (latestRecord?.readiness_signal ?? null) === "role_ready"
-        ? (latestRecord?.readiness_signal as "near_role_ready" | "role_ready")
-        : null);
+    const readinessStatus = getTrackReadinessStatus(track);
     const successor = {
       candidateId: track.candidateId,
       name: track.candidateName,
@@ -1024,11 +1054,6 @@ function buildDashboardIntelligence(options: {
 
   const riskByRole = visibleRoles.map((role) => {
     const roleTracks = visibleTracks.filter((track) => track.roleId === role.id);
-    const mentorReadinessScoreForRisk = average(
-      roleTracks
-        .map((track) => getRecordNumericReadiness(track.records[0] ?? null))
-        .filter((value): value is number => value !== null),
-    );
     const highestReadinessPercent =
       roleTracks.length > 0
         ? roleTracks.reduce<number | null>(
@@ -1042,31 +1067,31 @@ function buildDashboardIntelligence(options: {
           )
         : null;
     const lastDevelopmentActivity = roleTracks
-      .flatMap((track) => track.records.map((record) => record.updated_at))
+      .flatMap((track) => [
+        track.candidateCreatedAt,
+        ...track.assignmentActivityDates,
+        ...track.records.map((record) => record.updated_at),
+      ])
       .sort((left, right) => right.localeCompare(left))[0] ?? null;
-    const hasNearOrReadyCandidate = roleTracks.some((track) => {
-      const derivedStatus = getRoleGoalReadinessStatus(track.roleGoalReadinessPercent);
-      const signal = track.records[0]?.readiness_signal ?? null;
-      return (
-        derivedStatus === "near_role_ready" ||
-        derivedStatus === "role_ready" ||
-        signal === "near_role_ready" ||
-        signal === "role_ready"
-      );
-    });
-    const hasRecentActivity = isWithinLastDays(lastDevelopmentActivity, 90);
-    const hasMentorReview = roleTracks.some((track) => Boolean(track.records[0]?.mentor_review_date));
+    const readinessStatuses = roleTracks.map((track) => getTrackReadinessStatus(track));
+    const roleReadyCount = readinessStatuses.filter(
+      (status) => status === "role_ready",
+    ).length;
+    const nearReadyCount = readinessStatuses.filter(
+      (status) => status === "near_role_ready",
+    ).length;
+    const readinessDepthScore = roleReadyCount * 2 + nearReadyCount;
 
     let riskLevel: RiskLevel = "Moderate Risk";
 
-    if (
-      roleTracks.length === 0 ||
-      !hasRecentActivity ||
-      (mentorReadinessScoreForRisk ?? 0) <= 3
-    ) {
+    if (roleTracks.length === 0) {
       riskLevel = "High Risk";
-    } else if (hasNearOrReadyCandidate && hasRecentActivity && hasMentorReview) {
+    } else if (roleReadyCount >= 1 || readinessDepthScore >= 2) {
       riskLevel = "Low Risk";
+    } else if (nearReadyCount >= 1 || (highestReadinessPercent ?? 0) >= 75) {
+      riskLevel = "Moderate Risk";
+    } else {
+      riskLevel = "High Risk";
     }
 
     return {
@@ -1688,7 +1713,7 @@ async function getDashboardSnapshot(
       .order("created_at", { ascending: true }),
     admin
       .from("candidates")
-      .select("id, full_name, current_title, target_role_id, mentor_profile_id, status")
+      .select("id, full_name, current_title, target_role_id, mentor_profile_id, status, created_at")
       .eq("organization_id", organizationId)
       .order("created_at", { ascending: true }),
     admin
@@ -1697,7 +1722,7 @@ async function getDashboardSnapshot(
       .eq("organization_id", organizationId),
     admin
       .from("mentor_role_assignments")
-      .select("candidate_id, role_id, mentor_profile_id, status")
+      .select("candidate_id, role_id, mentor_profile_id, status, start_date, created_at")
       .eq("organization_id", organizationId),
     admin
       .from("mentor_reports")
@@ -1982,6 +2007,7 @@ async function getDashboardSnapshot(
       id: candidate.id,
       full_name: candidate.full_name,
       current_title: candidate.current_title,
+      created_at: candidate.created_at,
       role_ids: roleIds,
       role_titles: roleIds
         .map((roleId) => roleMap.get(roleId))
