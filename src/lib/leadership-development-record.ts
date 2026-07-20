@@ -29,9 +29,36 @@ export const LEADERSHIP_DEVELOPMENT_READINESS_SIGNALS = [
 const scoreInputSchema = z
   .string()
   .trim()
-  .refine((value) => value === "" || /^[1-5]$/.test(value), {
-    message: "Scores must be whole numbers from 1 to 5.",
-  });
+  .refine(
+    (value) =>
+      value === "" ||
+      /^(?:[1-4](?:\.\d{1,2})?|5(?:\.0{1,2})?)$/.test(value),
+    {
+      message: "Scores must be numbers from 1 to 5, with up to 2 decimals.",
+    },
+  );
+
+export function formatLeadershipDevelopmentScore(value: number | null) {
+  if (value === null) {
+    return "";
+  }
+
+  return value.toFixed(2).replace(/\.00$/, "");
+}
+
+export function formatLeadershipDevelopmentScoreDelta(value: number | null) {
+  if (value === null) {
+    return "Pending";
+  }
+
+  return value.toFixed(2).replace(/\.00$/, "");
+}
+
+export type LeadershipDevelopmentCompetencyReference = {
+  competencyName: string;
+  baselineScore: string;
+  targetScore: string;
+};
 
 const leadershipDevelopmentTextListSchema = z
   .array(z.string().trim().min(1).max(300))

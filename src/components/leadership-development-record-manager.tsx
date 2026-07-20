@@ -11,6 +11,8 @@ import {
   createEmptyLeadershipDevelopmentFeedback,
   createEmptyLeadershipDevelopmentLeader,
   createEmptyLeadershipDevelopmentRecord,
+  formatLeadershipDevelopmentScore,
+  formatLeadershipDevelopmentScoreDelta,
   isLeadershipDevelopmentMentorReviewComplete,
   normalizeLeadershipDevelopmentRecord,
   type LeadershipDevelopmentRecordPayload,
@@ -39,6 +41,13 @@ type LeadershipDevelopmentAssignmentOption = {
   startDate: string | null;
 };
 
+type LeadershipDevelopmentCompetencyOption = {
+  competencyId: string;
+  competencyName: string;
+  candidateScore: number;
+  targetScore: number;
+};
+
 type CollapsibleSectionId =
   | "candidate-information"
   | "development-focus"
@@ -64,6 +73,65 @@ function createOpenSectionState() {
     "leader-feedback": true,
     "mentor-review": true,
   } as Record<CollapsibleSectionId, boolean>;
+}
+
+function normalizeCompetencyName(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function buildCompetencyOptionMap(
+  options: LeadershipDevelopmentCompetencyOption[],
+) {
+  return new Map(
+    options.map((option) => [normalizeCompetencyName(option.competencyName), option]),
+  );
+}
+
+function applyCompetencyScoreDefaults(
+  competencies: LeadershipDevelopmentRecordPayload["competencies"],
+  options: LeadershipDevelopmentCompetencyOption[],
+) {
+  if (options.length === 0) {
+    return competencies;
+  }
+
+  const optionMap = buildCompetencyOptionMap(options);
+
+  return competencies.map((competency) => {
+    const matchedOption = optionMap.get(
+      normalizeCompetencyName(competency.competencyName),
+    );
+
+    if (!matchedOption) {
+      return competency;
+    }
+
+    return {
+      ...competency,
+      competencyName: matchedOption.competencyName,
+      baselineScore:
+        competency.baselineScore.trim().length > 0
+          ? competency.baselineScore
+          : formatLeadershipDevelopmentScore(matchedOption.candidateScore),
+      targetScore:
+        competency.targetScore.trim().length > 0
+          ? competency.targetScore
+          : formatLeadershipDevelopmentScore(matchedOption.targetScore),
+    };
+  });
+}
+
+function createPrefilledCompetencyFromOption(
+  option: LeadershipDevelopmentCompetencyOption | null,
+) {
+  return option
+    ? {
+        ...createEmptyLeadershipDevelopmentCompetency(),
+        competencyName: option.competencyName,
+        baselineScore: formatLeadershipDevelopmentScore(option.candidateScore),
+        targetScore: formatLeadershipDevelopmentScore(option.targetScore),
+      }
+    : createEmptyLeadershipDevelopmentCompetency();
 }
 
 function getStatusLabel(status: LeadershipDevelopmentRecordRecord["status"]) {
@@ -114,8 +182,9 @@ function getDraftStatus(
 
 function createDraftRecordForAssignment(
   selectedAssignment: LeadershipDevelopmentAssignmentOption,
+  competencyOptions: LeadershipDevelopmentCompetencyOption[] = [],
 ) {
-  return createEmptyLeadershipDevelopmentRecord({
+  const draft = createEmptyLeadershipDevelopmentRecord({
     candidateId: selectedAssignment.candidateId,
     roleId: selectedAssignment.roleId,
     mentorId: selectedAssignment.mentorProfileId,
@@ -125,6 +194,17 @@ function createDraftRecordForAssignment(
     dateAssigned:
       selectedAssignment.startDate ?? new Date().toISOString().slice(0, 10),
   });
+
+  if (competencyOptions.length === 0) {
+    return draft;
+  }
+
+  return {
+    ...draft,
+    competencies: competencyOptions.map((option) =>
+      createPrefilledCompetencyFromOption(option),
+    ),
+  };
 }
 
 function syncRecordWithAssignment(
@@ -137,6 +217,18 @@ function syncRecordWithAssignment(
     targetRole: assignment.roleTitle,
     primaryMentor: assignment.mentorName,
   };
+}
+
+function withAssignmentCompetencyDefaults<
+  T extends LeadershipDevelopmentRecordPayload | LeadershipDevelopmentRecordRecord,
+>(
+  record: T,
+  competencyOptions: LeadershipDevelopmentCompetencyOption[],
+) {
+  return {
+    ...record,
+    competencies: applyCompetencyScoreDefaults(record.competencies, competencyOptions),
+  } satisfies T;
 }
 
 function createSelectorValue(options: {
@@ -379,6 +471,8 @@ export function LeadershipDevelopmentRecordManager({
   const [recordsByAssignmentKey, setRecordsByAssignmentKey] = useState<
     Record<string, LeadershipDevelopmentRecordRecord[]>
   >({});
+  const [competencyOptionsByAssignmentKey, setCompetencyOptionsByAssignmentKey] =
+    useState<Record<string, LeadershipDevelopmentCompetencyOption[]>>({});
   const [sourceProjectsByAssignmentKey, setSourceProjectsByAssignmentKey] = useState<
     Record<string, MentoringSourceProject[]>
   >({});
@@ -389,6 +483,10 @@ export function LeadershipDevelopmentRecordManager({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const selectionRevisionRef = useRef(0);
+  const selectedProjectIdRef = useRef(selectedProjectId);
+  const selectedRecordIdRef = useRef(selectedRecordId);
+  const pendingInitialProjectIdRef = useRef(pendingInitialProjectId);
+  const pendingInitialRecordIdRef = useRef(pendingInitialRecordId);
 
   const selectedAssignment = useMemo(
     () =>
@@ -402,6 +500,9 @@ export function LeadershipDevelopmentRecordManager({
     : [];
   const currentSourceProjects = selectedAssignment
     ? sourceProjectsByAssignmentKey[getAssignmentKey(selectedAssignment)] ?? []
+    : [];
+  const currentCompetencyOptions = selectedAssignment
+    ? competencyOptionsByAssignmentKey[getAssignmentKey(selectedAssignment)] ?? []
     : [];
   const pendingTransferredProject = useMemo(() => {
     if (!selectedAssignment) {
@@ -465,10 +566,27 @@ export function LeadershipDevelopmentRecordManager({
     }
   }, [assignments, initialSelectedAssignmentKey, selectedAssignmentKey]);
 
+  useEffect(() => {
+    selectedProjectIdRef.current = selectedProjectId;
+  }, [selectedProjectId]);
+
+  useEffect(() => {
+    selectedRecordIdRef.current = selectedRecordId;
+  }, [selectedRecordId]);
+
+  useEffect(() => {
+    pendingInitialProjectIdRef.current = pendingInitialProjectId;
+  }, [pendingInitialProjectId]);
+
+  useEffect(() => {
+    pendingInitialRecordIdRef.current = pendingInitialRecordId;
+  }, [pendingInitialRecordId]);
+
   function applySelectedRecord(
     nextSelectedAssignment: LeadershipDevelopmentAssignmentOption,
     records: LeadershipDevelopmentRecordRecord[],
     nextRecordId: string,
+    competencyOptions: LeadershipDevelopmentCompetencyOption[] = [],
     options?: {
       userInitiated?: boolean;
     },
@@ -480,8 +598,11 @@ export function LeadershipDevelopmentRecordManager({
     setSelectedProjectId("");
     setSelectedRecordId(nextRecordId);
     const nextRecord = nextRecordId
-      ? normalizeLeadershipDevelopmentRecord(
-          records.find((record) => record.id === nextRecordId) ?? records[0],
+      ? withAssignmentCompetencyDefaults(
+          normalizeLeadershipDevelopmentRecord(
+            records.find((record) => record.id === nextRecordId) ?? records[0],
+          ),
+          competencyOptions,
         )
       : null;
     const matchingSourceProject = nextRecord
@@ -493,24 +614,28 @@ export function LeadershipDevelopmentRecordManager({
 
     setFormState(
       nextRecord
-        ? syncRecordWithAssignment(
-            hasTransferredProjectDetails(nextRecord) || !matchingSourceProject
-              ? nextRecord
-              : {
-                  ...nextRecord,
-                  ...buildLeadershipDevelopmentRecordProjectDetails(
-                    matchingSourceProject,
-                  ),
-                },
-            nextSelectedAssignment,
+        ? withAssignmentCompetencyDefaults(
+            syncRecordWithAssignment(
+              hasTransferredProjectDetails(nextRecord) || !matchingSourceProject
+                ? nextRecord
+                : {
+                    ...nextRecord,
+                    ...buildLeadershipDevelopmentRecordProjectDetails(
+                      matchingSourceProject,
+                    ),
+                  },
+              nextSelectedAssignment,
+            ),
+            competencyOptions,
           )
-        : createDraftRecordForAssignment(nextSelectedAssignment),
+        : createDraftRecordForAssignment(nextSelectedAssignment, competencyOptions),
     );
   }
 
   function applySelectedProject(
     nextSelectedAssignment: LeadershipDevelopmentAssignmentOption,
     project: MentoringSourceProject,
+    competencyOptions: LeadershipDevelopmentCompetencyOption[] = [],
     options?: {
       userInitiated?: boolean;
     },
@@ -529,10 +654,13 @@ export function LeadershipDevelopmentRecordManager({
     setSelectedProjectId(project.id);
     setProjectDetailsOpen(true);
     setFormState(
-      buildLeadershipDevelopmentRecordFromProject({
-        assignment: nextSelectedAssignment,
-        project,
-      }),
+      withAssignmentCompetencyDefaults(
+        buildLeadershipDevelopmentRecordFromProject({
+          assignment: nextSelectedAssignment,
+          project,
+        }),
+        competencyOptions,
+      ),
     );
   }
 
@@ -555,7 +683,7 @@ export function LeadershipDevelopmentRecordManager({
         mentorId: selectedAssignment.mentorProfileId,
       });
 
-      const requestedProjectId = pendingInitialProjectId;
+      const requestedProjectId = pendingInitialProjectIdRef.current;
 
       if (requestedProjectId) {
         params.set("projectId", requestedProjectId);
@@ -572,7 +700,9 @@ export function LeadershipDevelopmentRecordManager({
           error?: string;
           records?: LeadershipDevelopmentRecordRecord[];
           projects?: MentoringSourceProject[];
+          competencyAssessments?: LeadershipDevelopmentCompetencyOption[];
         };
+        const assignmentKey = getAssignmentKey(selectedAssignment);
 
         if (!response.ok) {
           if (response.status === 503) {
@@ -585,9 +715,15 @@ export function LeadershipDevelopmentRecordManager({
           }));
           setSourceProjectsByAssignmentKey((current) => ({
             ...current,
-            [getAssignmentKey(selectedAssignment)]: [],
+            [assignmentKey]: [],
           }));
-          applySelectedRecord(selectedAssignment, [], "");
+          setCompetencyOptionsByAssignmentKey((current) => ({
+            ...current,
+            [assignmentKey]: [],
+          }));
+          setSelectedProjectId("");
+          setSelectedRecordId("");
+          setFormState(createDraftRecordForAssignment(selectedAssignment, []));
           setError(payload.error ?? "Unable to load leadership development records.");
           return;
         }
@@ -599,7 +735,7 @@ export function LeadershipDevelopmentRecordManager({
           ),
         );
         const sourceProjects = payload.projects ?? [];
-        const assignmentKey = getAssignmentKey(selectedAssignment);
+        const competencyOptions = payload.competencyAssessments ?? [];
 
         setRecordsByAssignmentKey((current) => ({
           ...current,
@@ -609,25 +745,84 @@ export function LeadershipDevelopmentRecordManager({
           ...current,
           [assignmentKey]: sourceProjects,
         }));
+        setCompetencyOptionsByAssignmentKey((current) => ({
+          ...current,
+          [assignmentKey]: competencyOptions,
+        }));
+
+        const applyLoadedRecord = (nextRecordId: string) => {
+          setSelectedProjectId("");
+          setSelectedRecordId(nextRecordId);
+          const nextRecord = nextRecordId
+            ? withAssignmentCompetencyDefaults(
+                normalizeLeadershipDevelopmentRecord(
+                  records.find((record) => record.id === nextRecordId) ?? records[0],
+                ),
+                competencyOptions,
+              )
+            : null;
+          const matchingSourceProject = nextRecord
+            ? findLinkedProjectForRecord(nextRecord, sourceProjects)
+            : null;
+
+          setFormState(
+            nextRecord
+              ? withAssignmentCompetencyDefaults(
+                  syncRecordWithAssignment(
+                    hasTransferredProjectDetails(nextRecord) || !matchingSourceProject
+                      ? nextRecord
+                      : {
+                          ...nextRecord,
+                          ...buildLeadershipDevelopmentRecordProjectDetails(
+                            matchingSourceProject,
+                          ),
+                        },
+                    selectedAssignment,
+                  ),
+                  competencyOptions,
+                )
+              : createDraftRecordForAssignment(selectedAssignment, competencyOptions),
+          );
+        };
+
+        const applyLoadedProject = (project: MentoringSourceProject) => {
+          const matchingRecord = findRecordForProject(project, records) ?? null;
+
+          setSelectedRecordId(matchingRecord?.id ?? "");
+          setSelectedProjectId(project.id);
+          setProjectDetailsOpen(true);
+          setFormState(
+            withAssignmentCompetencyDefaults(
+              buildLeadershipDevelopmentRecordFromProject({
+                assignment: selectedAssignment,
+                project,
+              }),
+              competencyOptions,
+            ),
+          );
+        };
 
         const persistedSelectedProject =
-          selectedProjectId &&
-          sourceProjects.some((project) => project.id === selectedProjectId)
-            ? selectedProjectId
+          selectedProjectIdRef.current &&
+          sourceProjects.some((project) => project.id === selectedProjectIdRef.current)
+            ? selectedProjectIdRef.current
             : "";
         const initialProjectForRoute =
-          pendingInitialProjectId &&
-          sourceProjects.some((project) => project.id === pendingInitialProjectId)
-            ? pendingInitialProjectId
+          pendingInitialProjectIdRef.current &&
+          sourceProjects.some(
+            (project) => project.id === pendingInitialProjectIdRef.current,
+          )
+            ? pendingInitialProjectIdRef.current
             : "";
         const initialRecordForRoute =
-          pendingInitialRecordId &&
-          records.some((record) => record.id === pendingInitialRecordId)
-            ? pendingInitialRecordId
+          pendingInitialRecordIdRef.current &&
+          records.some((record) => record.id === pendingInitialRecordIdRef.current)
+            ? pendingInitialRecordIdRef.current
             : "";
         const nextRecordId =
-          selectedRecordId && records.some((record) => record.id === selectedRecordId)
-            ? selectedRecordId
+          selectedRecordIdRef.current &&
+          records.some((record) => record.id === selectedRecordIdRef.current)
+            ? selectedRecordIdRef.current
             : "";
         const shouldPreserveUserSelection =
           selectionRevisionRef.current !== selectionRevisionAtLoad;
@@ -642,7 +837,7 @@ export function LeadershipDevelopmentRecordManager({
             null;
 
           if (matchedProject) {
-            applySelectedProject(selectedAssignment, matchedProject);
+            applyLoadedProject(matchedProject);
             setPendingInitialProjectId("");
             setPendingInitialRecordId("");
             clearPendingMentoringProjectTransfer();
@@ -660,20 +855,20 @@ export function LeadershipDevelopmentRecordManager({
                 project.title === pendingTransferredProject.title,
             ) ?? pendingTransferredProject;
 
-          applySelectedProject(selectedAssignment, matchedTransferredProject);
+          applyLoadedProject(matchedTransferredProject);
           clearPendingMentoringProjectTransfer();
           clearStickySelectionParamsFromUrl();
           return;
         }
 
         if (initialRecordForRoute) {
-          applySelectedRecord(selectedAssignment, records, initialRecordForRoute);
+          applyLoadedRecord(initialRecordForRoute);
           setPendingInitialRecordId("");
           return;
         }
 
         if (nextRecordId) {
-          applySelectedRecord(selectedAssignment, records, nextRecordId);
+          applyLoadedRecord(nextRecordId);
           return;
         }
 
@@ -684,7 +879,7 @@ export function LeadershipDevelopmentRecordManager({
             sourceProjects.find((project) => project.id === nextProjectId) ?? null;
 
           if (matchedProject) {
-            applySelectedProject(selectedAssignment, matchedProject);
+            applyLoadedProject(matchedProject);
             if (initialProjectForRoute === nextProjectId) {
               setPendingInitialProjectId("");
             }
@@ -692,7 +887,7 @@ export function LeadershipDevelopmentRecordManager({
           }
         }
 
-        applySelectedRecord(selectedAssignment, records, records[0]?.id ?? "");
+        applyLoadedRecord(records[0]?.id ?? "");
       } catch (loadError) {
         if ((loadError as Error).name === "AbortError") {
           return;
@@ -736,11 +931,35 @@ export function LeadershipDevelopmentRecordManager({
         return current;
       }
 
+      const nextCompetencies = current.competencies.map((competency, competencyIndex) => {
+        if (competencyIndex !== index) {
+          return competency;
+        }
+
+        if (field !== "competencyName") {
+          return { ...competency, [field]: value };
+        }
+
+        const matchedOption =
+          buildCompetencyOptionMap(currentCompetencyOptions).get(
+            normalizeCompetencyName(value),
+          ) ?? null;
+
+        return matchedOption
+          ? {
+              ...competency,
+              competencyName: matchedOption.competencyName,
+              baselineScore: formatLeadershipDevelopmentScore(
+                matchedOption.candidateScore,
+              ),
+              targetScore: formatLeadershipDevelopmentScore(matchedOption.targetScore),
+            }
+          : { ...competency, competencyName: value };
+      });
+
       return {
         ...current,
-        competencies: current.competencies.map((competency, competencyIndex) =>
-          competencyIndex === index ? { ...competency, [field]: value } : competency,
-        ),
+        competencies: nextCompetencies,
       };
     });
   }
@@ -839,7 +1058,19 @@ export function LeadershipDevelopmentRecordManager({
             ...current,
             competencies: [
               ...current.competencies,
-              createEmptyLeadershipDevelopmentCompetency(),
+              createPrefilledCompetencyFromOption(
+                currentCompetencyOptions.find((option) => {
+                  const usedCompetencyNames = new Set(
+                    current.competencies.map((competency) =>
+                      normalizeCompetencyName(competency.competencyName),
+                    ),
+                  );
+
+                  return !usedCompetencyNames.has(
+                    normalizeCompetencyName(option.competencyName),
+                  );
+                }) ?? null,
+              ),
             ],
           }
         : current,
@@ -913,7 +1144,9 @@ export function LeadershipDevelopmentRecordManager({
     setError(null);
     setSuccess(null);
     setOpenSections(createOpenSectionState());
-    setFormState(createDraftRecordForAssignment(selectedAssignment));
+    setFormState(
+      createDraftRecordForAssignment(selectedAssignment, currentCompetencyOptions),
+    );
   }
 
   function handleSave(nextStatus: LeadershipDevelopmentRecordPayload["status"]) {
@@ -1061,7 +1294,13 @@ export function LeadershipDevelopmentRecordManager({
                 setSuccess(null);
 
                 if (nextAssignment) {
-                  setFormState(createDraftRecordForAssignment(nextAssignment));
+                  setFormState(
+                    createDraftRecordForAssignment(
+                      nextAssignment,
+                      competencyOptionsByAssignmentKey[getAssignmentKey(nextAssignment)] ??
+                        [],
+                    ),
+                  );
                 }
               }}
               className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
@@ -1121,9 +1360,14 @@ export function LeadershipDevelopmentRecordManager({
                         ) ?? null;
 
                       if (nextProject) {
-                        applySelectedProject(selectedAssignment, nextProject, {
-                          userInitiated: true,
-                        });
+                        applySelectedProject(
+                          selectedAssignment,
+                          nextProject,
+                          currentCompetencyOptions,
+                          {
+                            userInitiated: true,
+                          },
+                        );
                         clearStickySelectionParamsFromUrl();
                       }
 
@@ -1133,9 +1377,15 @@ export function LeadershipDevelopmentRecordManager({
                     const nextRecordId = nextValue.startsWith("record:")
                       ? nextValue.slice("record:".length)
                       : nextValue;
-                    applySelectedRecord(selectedAssignment, currentRecords, nextRecordId, {
-                      userInitiated: true,
-                    });
+                    applySelectedRecord(
+                      selectedAssignment,
+                      currentRecords,
+                      nextRecordId,
+                      currentCompetencyOptions,
+                      {
+                        userInitiated: true,
+                      },
+                    );
                     clearStickySelectionParamsFromUrl();
                   }}
                   className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500"
@@ -1538,7 +1788,9 @@ export function LeadershipDevelopmentRecordManager({
                           Competencies being developed
                         </p>
                         <p className="mt-1 text-sm text-slate-600">
-                          Scores use the 1–5 development scale. Current score may stay blank until a review is completed.
+                          Candidate score and role goal auto-fill from the candidate
+                          workspace when available. Current score may stay blank until a
+                          review is completed.
                         </p>
                       </div>
                       <button
@@ -1558,6 +1810,11 @@ export function LeadershipDevelopmentRecordManager({
                         competency.targetScore,
                         competency.currentScore,
                       );
+                      const competencyHasMatchingOption = currentCompetencyOptions.some(
+                        (option) =>
+                          normalizeCompetencyName(option.competencyName) ===
+                          normalizeCompetencyName(competency.competencyName),
+                      );
 
                       return (
                         <article
@@ -1569,37 +1826,81 @@ export function LeadershipDevelopmentRecordManager({
                               <span className="mb-2 block text-sm font-semibold text-slate-700">
                                 Competency Name
                               </span>
-                              <input
-                                value={competency.competencyName}
-                                onChange={(event) =>
-                                  updateCompetency(index, "competencyName", event.target.value)
-                                }
-                                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500"
-                              />
+                              {currentCompetencyOptions.length > 0 ? (
+                                <select
+                                  value={competency.competencyName}
+                                  onChange={(event) =>
+                                    updateCompetency(
+                                      index,
+                                      "competencyName",
+                                      event.target.value,
+                                    )
+                                  }
+                                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500"
+                                >
+                                  <option value="">Select competency</option>
+                                  {competency.competencyName &&
+                                  !competencyHasMatchingOption ? (
+                                    <option value={competency.competencyName}>
+                                      {competency.competencyName}
+                                    </option>
+                                  ) : null}
+                                  {currentCompetencyOptions.map((option) => (
+                                    <option
+                                      key={option.competencyId}
+                                      value={option.competencyName}
+                                    >
+                                      {option.competencyName}
+                                    </option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <input
+                                  value={competency.competencyName}
+                                  onChange={(event) =>
+                                    updateCompetency(
+                                      index,
+                                      "competencyName",
+                                      event.target.value,
+                                    )
+                                  }
+                                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500"
+                                />
+                              )}
                             </label>
                             {[
-                              { label: "Baseline", field: "baselineScore" as const, allowBlank: false },
-                              { label: "Target", field: "targetScore" as const, allowBlank: false },
-                              { label: "Current", field: "currentScore" as const, allowBlank: true },
+                              {
+                                label: "Candidate Score",
+                                field: "baselineScore" as const,
+                                placeholder: "Auto-filled",
+                              },
+                              {
+                                label: "Role Goal",
+                                field: "targetScore" as const,
+                                placeholder: "Auto-filled",
+                              },
+                              {
+                                label: "Current Score",
+                                field: "currentScore" as const,
+                                placeholder: "Blank",
+                              },
                             ].map((item) => (
                               <label key={`${item.field}-${index}`} className="block">
                                 <span className="mb-2 block text-sm font-semibold text-slate-700">
-                                  {item.label} Score
+                                  {item.label}
                                 </span>
-                                <select
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max="5"
+                                  step="0.01"
                                   value={competency[item.field]}
                                   onChange={(event) =>
                                     updateCompetency(index, item.field, event.target.value)
                                   }
+                                  placeholder={item.placeholder}
                                   className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500"
-                                >
-                                  <option value="">{item.allowBlank ? "Blank" : "Select"}</option>
-                                  {[1, 2, 3, 4, 5].map((score) => (
-                                    <option key={score} value={String(score)}>
-                                      {score}
-                                    </option>
-                                  ))}
-                                </select>
+                                />
                               </label>
                             ))}
                             <article className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
@@ -1607,7 +1908,7 @@ export function LeadershipDevelopmentRecordManager({
                                 Improvement
                               </p>
                               <p className="mt-2 font-semibold text-slate-900">
-                                {improvement === null ? "Pending" : improvement}
+                                {formatLeadershipDevelopmentScoreDelta(improvement)}
                               </p>
                             </article>
                             <article className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
@@ -1615,7 +1916,7 @@ export function LeadershipDevelopmentRecordManager({
                                 Gap Remaining
                               </p>
                               <p className="mt-2 font-semibold text-slate-900">
-                                {gapRemaining === null ? "Pending" : gapRemaining}
+                                {formatLeadershipDevelopmentScoreDelta(gapRemaining)}
                               </p>
                             </article>
                             <button
@@ -1853,7 +2154,7 @@ export function LeadershipDevelopmentRecordManager({
                           : section.id === "development-experience"
                             ? "Define the actual work and the leaders involved."
                             : section.id === "competency-scoring"
-                              ? "Baseline, target, and current scores quantify progress over time."
+                              ? "Candidate score, role goal, and current score quantify progress over time."
                               : section.id === "leader-feedback"
                                 ? "Store reviewer observations separately while keeping one living record."
                                 : "Close the experience with an honest mentor review and next step."}

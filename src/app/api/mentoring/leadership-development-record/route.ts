@@ -5,6 +5,7 @@ import {
   createApiErrorResponse,
   requireApiWorkspaceProfile,
 } from "@/lib/api-route";
+import { buildCompetencyAssessments } from "@/lib/fit-analysis";
 import {
   isAdminAppRole,
   isCandidateSelfAccess,
@@ -14,6 +15,7 @@ import {
   calculateLeadershipDevelopmentGapRemaining,
   calculateLeadershipDevelopmentImprovement,
   computeLeadershipDevelopmentAverageFeedbackScore,
+  formatLeadershipDevelopmentScore,
   isFilledLeadershipDevelopmentCompetency,
   isFilledLeadershipDevelopmentFeedback,
   isFilledLeadershipDevelopmentLeader,
@@ -45,8 +47,17 @@ const leadershipDevelopmentQuerySchema = z.object({
 function assertScore(value: string, fieldLabel: string) {
   const parsed = parseLeadershipDevelopmentScore(value);
 
-  if (parsed === null || !Number.isInteger(parsed) || parsed < 1 || parsed > 5) {
-    throw new ApiRouteError(`${fieldLabel} must be a whole number from 1 to 5.`, 400);
+  if (
+    parsed === null ||
+    Number.isNaN(parsed) ||
+    parsed < 1 ||
+    parsed > 5 ||
+    !/^(?:[1-4](?:\.\d{1,2})?|5(?:\.0{1,2})?)$/.test(value.trim())
+  ) {
+    throw new ApiRouteError(
+      `${fieldLabel} must be a number from 1 to 5, with up to 2 decimals.`,
+      400,
+    );
   }
 
   return parsed;
@@ -213,12 +224,12 @@ function normalizeRecordFromDatabase(record: {
       record.competencies.length > 0
         ? record.competencies.map((competency) => ({
             competencyName: competency.competency_name,
-            baselineScore: String(competency.baseline_score),
-            targetScore: String(competency.target_score),
+            baselineScore: formatLeadershipDevelopmentScore(competency.baseline_score),
+            targetScore: formatLeadershipDevelopmentScore(competency.target_score),
             currentScore:
               competency.current_score === null
                 ? ""
-                : String(competency.current_score),
+                : formatLeadershipDevelopmentScore(competency.current_score),
           }))
         : [],
     reviewerFeedback:
@@ -298,6 +309,72 @@ export async function GET(request: Request) {
     }
 
     const canonicalRoleTitle = canonicalizeRoleTitle(roleResult.data?.title ?? null);
+
+    const [roleCompetenciesResult, panelsResult, strengthAssessmentsResult] =
+      await Promise.all([
+        admin
+          .from("role_competencies")
+          .select("id, name, target_score, weight")
+          .eq("organization_id", profile.organization_id)
+          .eq("role_id", query.roleId)
+          .order("created_at", { ascending: true }),
+        admin
+          .from("interview_panels")
+          .select("id")
+          .eq("organization_id", profile.organization_id)
+          .eq("candidate_id", query.candidateId)
+          .eq("role_id", query.roleId),
+        admin
+          .from("candidate_role_strength_assessments")
+          .select("competency_id, strength_score, supporting_strengths, rationale")
+          .eq("organization_id", profile.organization_id)
+          .eq("candidate_id", query.candidateId)
+          .eq("role_id", query.roleId),
+      ]);
+
+    for (const result of [
+      roleCompetenciesResult,
+      panelsResult,
+      strengthAssessmentsResult,
+    ]) {
+      if (result.error) {
+        throw new ApiRouteError(result.error.message, 500);
+      }
+    }
+
+    const panelIds = (panelsResult.data ?? []).map((panel) => panel.id);
+    const scoresResult =
+      panelIds.length > 0
+        ? await admin
+            .from("interview_scores")
+            .select("competency_id, score_numeric, evidence_notes, concern_notes")
+            .in("panel_id", panelIds)
+        : { data: [], error: null };
+
+    if (scoresResult.error) {
+      throw new ApiRouteError(scoresResult.error.message, 500);
+    }
+
+    const competencyAssessments = buildCompetencyAssessments(
+      (roleCompetenciesResult.data ?? []).map((competency) => ({
+        id: competency.id,
+        name: competency.name,
+        target_score: competency.target_score,
+        weight: competency.weight,
+      })),
+      scoresResult.data ?? [],
+      (strengthAssessmentsResult.data ?? []).map((assessment) => ({
+        competency_id: assessment.competency_id,
+        strength_score: Number(assessment.strength_score),
+        supporting_strengths: assessment.supporting_strengths as string[],
+        rationale: assessment.rationale,
+      })),
+    ).map((assessment) => ({
+      competencyId: assessment.competencyId,
+      competencyName: assessment.competencyName,
+      candidateScore: assessment.averageScore,
+      targetScore: assessment.targetScore,
+    }));
 
     const recordsResult = await admin
       .from("development_records")
@@ -506,6 +583,7 @@ export async function GET(request: Request) {
         }, canonicalRoleTitle),
       ),
       projects: sourceProjectsWithFallbackCompetencies,
+      competencyAssessments,
     });
   } catch (error) {
     return createApiErrorResponse(
