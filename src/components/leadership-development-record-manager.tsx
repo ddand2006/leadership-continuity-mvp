@@ -1762,7 +1762,7 @@ export function LeadershipDevelopmentRecordManager({
                     </div>
                     <label className="block">
                       <span className="mb-2 block text-sm font-semibold text-slate-700">
-                        Why was this development experience assigned?
+                        What strengths will assist in this project?
                       </span>
                       <textarea
                         value={formState.assignmentReason}
