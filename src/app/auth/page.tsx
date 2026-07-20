@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { hasSupabaseEnv } from "@/lib/env";
 import { AuthForms } from "@/components/auth-forms";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type AuthPageProps = {
   searchParams: Promise<{
@@ -11,7 +12,24 @@ type AuthPageProps = {
 
 export default async function AuthPage({ searchParams }: AuthPageProps) {
   const { message, mode } = await searchParams;
-  const initialMode = mode === "signup" ? "signup" : "signin";
+  let allowSelfServeSignUp = true;
+
+  if (hasSupabaseEnv()) {
+    const admin = createSupabaseAdminClient();
+    const organizationUsersResult = await admin
+      .from("organization_users")
+      .select("id", { head: true, count: "exact" });
+
+    if (organizationUsersResult.error) {
+      throw new Error(organizationUsersResult.error.message);
+    }
+
+    allowSelfServeSignUp = (organizationUsersResult.count ?? 0) === 0;
+  }
+
+  const requestedMode = mode === "signup" ? "signup" : "signin";
+  const initialMode =
+    requestedMode === "signup" && allowSelfServeSignUp ? "signup" : "signin";
 
   return (
     <main className="app-page">
@@ -23,6 +41,13 @@ export default async function AuthPage({ searchParams }: AuthPageProps) {
                 ? "Create your Leadership Continuity account"
                 : "Sign in to the Leadership Continuity MVP"}
             </h1>
+            {!allowSelfServeSignUp ? (
+              <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600">
+                New candidate and mentor access is created by an administrator
+                through the invite workflow so user types stay assigned by the
+                organization.
+              </p>
+            ) : null}
           </div>
           <Link
             href="/"
@@ -38,6 +63,13 @@ export default async function AuthPage({ searchParams }: AuthPageProps) {
           </div>
         ) : null}
 
+        {!allowSelfServeSignUp && requestedMode === "signup" ? (
+          <div className="rounded-2xl border border-sky-200 bg-sky-50 px-5 py-4 text-sm font-medium text-sky-900">
+            Workspace account creation is handled by your administrator after the
+            first workspace owner is set up. Use your invitation email to join.
+          </div>
+        ) : null}
+
         {!hasSupabaseEnv() ? (
           <div className="rounded-[1.75rem] border border-dashed border-slate-300 bg-white/75 p-8 text-sm leading-7 text-slate-700">
             Add your Supabase URL and API key values to
@@ -49,7 +81,10 @@ export default async function AuthPage({ searchParams }: AuthPageProps) {
           </div>
         ) : null}
 
-        <AuthForms initialMode={initialMode} />
+        <AuthForms
+          initialMode={initialMode}
+          allowSelfServeSignUp={allowSelfServeSignUp}
+        />
       </div>
     </main>
   );

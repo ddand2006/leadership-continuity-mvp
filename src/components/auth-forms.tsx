@@ -84,7 +84,10 @@ function AuthCard(props: {
   );
 }
 
-export function AuthForms(props: { initialMode?: "signin" | "signup" }) {
+export function AuthForms(props: {
+  initialMode?: "signin" | "signup";
+  allowSelfServeSignUp?: boolean;
+}) {
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [isSigningIn, setIsSigningIn] = useState(false);
@@ -242,10 +245,12 @@ export function AuthForms(props: { initialMode?: "signin" | "signup" }) {
     },
   ] as const;
 
+  const visibleCards = props.allowSelfServeSignUp === false ? [cards[0]] : cards;
+
   const orderedCards =
-    props.initialMode === "signup"
-      ? [cards[1], cards[0]]
-      : cards;
+    props.initialMode === "signup" && visibleCards.length > 1
+      ? [visibleCards[1], visibleCards[0]]
+      : visibleCards;
 
   return (
     <>
