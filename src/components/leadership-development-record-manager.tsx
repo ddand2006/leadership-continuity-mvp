@@ -17,6 +17,7 @@ import {
   type LeadershipDevelopmentRecordRecord,
 } from "@/lib/leadership-development-record";
 import {
+  buildLeadershipDevelopmentRecordProjectDetails,
   buildLeadershipDevelopmentRecordFromProject,
   type MentoringSourceProject,
 } from "@/lib/mentoring-source-project";
@@ -101,48 +102,6 @@ function createRecordLabel(record: LeadershipDevelopmentRecordRecord) {
   return `${record.experienceTitle || "Untitled experience"} • ${getStatusLabel(record.status)}`;
 }
 
-function formatProjectDate(value: string | null) {
-  if (!value) {
-    return "";
-  }
-
-  const parsed = new Date(`${value}T00:00:00`);
-
-  if (Number.isNaN(parsed.getTime())) {
-    return value;
-  }
-
-  return parsed.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-function getProjectStatusLabel(status: string) {
-  switch (status) {
-    case "assigned":
-      return "Assigned";
-    case "in_progress":
-      return "In Progress";
-    case "completed":
-      return "Completed";
-    default:
-      return status;
-  }
-}
-
-function createProjectLabel(project: MentoringSourceProject) {
-  const details = [
-    getProjectStatusLabel(project.status),
-    project.startDate ? `Started ${formatProjectDate(project.startDate)}` : "",
-  ].filter(Boolean);
-
-  return details.length > 0
-    ? `${project.title} • ${details.join(" • ")}`
-    : project.title;
-}
-
 function getDraftStatus(
   record: LeadershipDevelopmentRecordPayload,
 ): LeadershipDevelopmentRecordPayload["status"] {
@@ -203,11 +162,16 @@ function findLinkedProjectForRecord(
     return null;
   }
 
+  const normalizedSourceProjectAssignmentId =
+    record.sourceProjectAssignmentId.trim().toLowerCase();
   const normalizedExperienceTitle = record.experienceTitle.trim().toLowerCase();
 
   return (
     sourceProjects.find(
-      (project) => project.title.trim().toLowerCase() === normalizedExperienceTitle,
+      (project) =>
+        (normalizedSourceProjectAssignmentId.length > 0 &&
+          project.id.trim().toLowerCase() === normalizedSourceProjectAssignmentId) ||
+        project.title.trim().toLowerCase() === normalizedExperienceTitle,
     ) ?? null
   );
 }
@@ -286,6 +250,100 @@ function clearStickySelectionParamsFromUrl() {
   window.history.replaceState(window.history.state, "", nextUrl.toString());
 }
 
+function parseProjectDetailList(value: string) {
+  return value
+    .split(/\r?\n/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function formatProjectDetailList(items: string[]) {
+  return items.join("\n");
+}
+
+function hasTransferredProjectDetails(
+  record: LeadershipDevelopmentRecordPayload | LeadershipDevelopmentRecordRecord,
+) {
+  return (
+    [
+      record.projectSummary,
+      record.projectPurpose,
+      record.workingGoal,
+      record.whyItFits,
+      record.mentorFocus,
+      record.firstStep,
+    ].some((value) => value.trim().length > 0) ||
+    [
+      record.keyPartners,
+      record.leadershipActionsRequired,
+      record.anticipatedChallenges,
+      record.successMeasures,
+      record.mentorPreparation,
+      record.menteePreparation,
+      record.reflectionQuestions,
+      record.successSignals,
+    ].some((items) => items.length > 0)
+  );
+}
+
+function ProjectDetailTextCard({
+  label,
+  value,
+  onChange,
+  maxLength,
+  rows = 4,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  maxLength: number;
+  rows?: number;
+}) {
+  return (
+    <div className="rounded-2xl bg-white px-4 py-4">
+      <label className="block">
+        <span className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+          {label}
+        </span>
+        <textarea
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          maxLength={maxLength}
+          rows={rows}
+          className="mt-2 min-h-28 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-7 text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
+        />
+      </label>
+    </div>
+  );
+}
+
+function ProjectDetailListCard({
+  label,
+  values,
+  onChange,
+}: {
+  label: string;
+  values: string[];
+  onChange: (values: string[]) => void;
+}) {
+  return (
+    <div className="rounded-2xl bg-white px-4 py-4">
+      <label className="block">
+        <span className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+          {label}
+        </span>
+        <textarea
+          value={formatProjectDetailList(values)}
+          onChange={(event) => onChange(parseProjectDetailList(event.target.value))}
+          rows={5}
+          className="mt-2 min-h-32 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-7 text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
+        />
+        <p className="mt-2 text-xs text-slate-500">Enter one item per line.</p>
+      </label>
+    </div>
+  );
+}
+
 export function LeadershipDevelopmentRecordManager({
   assignments,
   initialSelectedAssignmentKey,
@@ -324,8 +382,6 @@ export function LeadershipDevelopmentRecordManager({
   const [sourceProjectsByAssignmentKey, setSourceProjectsByAssignmentKey] = useState<
     Record<string, MentoringSourceProject[]>
   >({});
-  const [pendingTransferredProject, setPendingTransferredProject] =
-    useState<MentoringSourceProject | null>(null);
   const [formState, setFormState] = useState<LeadershipDevelopmentRecordPayload | null>(
     null,
   );
@@ -347,6 +403,32 @@ export function LeadershipDevelopmentRecordManager({
   const currentSourceProjects = selectedAssignment
     ? sourceProjectsByAssignmentKey[getAssignmentKey(selectedAssignment)] ?? []
     : [];
+  const pendingTransferredProject = useMemo(() => {
+    if (!selectedAssignment) {
+      return null;
+    }
+
+    const pendingTransfer = readPendingMentoringProjectTransfer();
+
+    if (!pendingTransfer) {
+      return null;
+    }
+
+    if (
+      pendingTransfer.candidateId !== selectedAssignment.candidateId ||
+      pendingTransfer.roleId !== selectedAssignment.roleId ||
+      (pendingTransfer.mentorProfileId &&
+        pendingTransfer.mentorProfileId !== selectedAssignment.mentorProfileId)
+    ) {
+      return null;
+    }
+
+    return buildPendingMentoringTransferProject({
+      roleTitle: selectedAssignment.roleTitle,
+      startDate: selectedAssignment.startDate,
+      transfer: pendingTransfer,
+    });
+  }, [selectedAssignment]);
   const visibleSourceProjects =
     pendingTransferredProject &&
     !currentSourceProjects.some(
@@ -363,35 +445,9 @@ export function LeadershipDevelopmentRecordManager({
   const linkedSourceProject =
     selectedSourceProject ??
     findLinkedProjectForRecord(selectedRecord, visibleSourceProjects);
-  useEffect(() => {
-    if (!selectedAssignment) {
-      return;
-    }
-
-    const pendingTransfer = readPendingMentoringProjectTransfer();
-
-    if (!pendingTransfer) {
-      setPendingTransferredProject(null);
-      return;
-    }
-
-    if (
-      pendingTransfer.candidateId !== selectedAssignment.candidateId ||
-      pendingTransfer.roleId !== selectedAssignment.roleId ||
-      (pendingTransfer.mentorProfileId &&
-        pendingTransfer.mentorProfileId !== selectedAssignment.mentorProfileId)
-    ) {
-      return;
-    }
-
-    setPendingTransferredProject(
-      buildPendingMentoringTransferProject({
-        roleTitle: selectedAssignment.roleTitle,
-        startDate: selectedAssignment.startDate,
-        transfer: pendingTransfer,
-      }),
-    );
-  }, [selectedAssignment]);
+  const shouldShowTransferredProjectEditor = Boolean(
+    linkedSourceProject || (formState && hasTransferredProjectDetails(formState)),
+  );
 
   useEffect(() => {
     const nextAssignmentKey =
@@ -403,7 +459,9 @@ export function LeadershipDevelopmentRecordManager({
         : null;
 
     if (nextAssignmentKey && nextAssignmentKey !== selectedAssignmentKey) {
-      setSelectedAssignmentKey(nextAssignmentKey);
+      queueMicrotask(() => {
+        setSelectedAssignmentKey(nextAssignmentKey);
+      });
     }
   }, [assignments, initialSelectedAssignmentKey, selectedAssignmentKey]);
 
@@ -421,12 +479,29 @@ export function LeadershipDevelopmentRecordManager({
 
     setSelectedProjectId("");
     setSelectedRecordId(nextRecordId);
+    const nextRecord = nextRecordId
+      ? normalizeLeadershipDevelopmentRecord(
+          records.find((record) => record.id === nextRecordId) ?? records[0],
+        )
+      : null;
+    const matchingSourceProject = nextRecord
+      ? findLinkedProjectForRecord(
+          nextRecord,
+          sourceProjectsByAssignmentKey[getAssignmentKey(nextSelectedAssignment)] ?? [],
+        )
+      : null;
+
     setFormState(
-      nextRecordId
+      nextRecord
         ? syncRecordWithAssignment(
-            normalizeLeadershipDevelopmentRecord(
-              records.find((record) => record.id === nextRecordId) ?? records[0],
-            ),
+            hasTransferredProjectDetails(nextRecord) || !matchingSourceProject
+              ? nextRecord
+              : {
+                  ...nextRecord,
+                  ...buildLeadershipDevelopmentRecordProjectDetails(
+                    matchingSourceProject,
+                  ),
+                },
             nextSelectedAssignment,
           )
         : createDraftRecordForAssignment(nextSelectedAssignment),
@@ -571,7 +646,6 @@ export function LeadershipDevelopmentRecordManager({
             setPendingInitialProjectId("");
             setPendingInitialRecordId("");
             clearPendingMentoringProjectTransfer();
-            setPendingTransferredProject(null);
             clearStickySelectionParamsFromUrl();
             return;
           }
@@ -588,7 +662,6 @@ export function LeadershipDevelopmentRecordManager({
 
           applySelectedProject(selectedAssignment, matchedTransferredProject);
           clearPendingMentoringProjectTransfer();
-          setPendingTransferredProject(null);
           clearStickySelectionParamsFromUrl();
           return;
         }
@@ -1082,32 +1155,39 @@ export function LeadershipDevelopmentRecordManager({
               </label>
             </div>
 
-            {linkedSourceProject ? (
+            {shouldShowTransferredProjectEditor && formState ? (
               <article className="rounded-2xl border border-teal-200 bg-teal-50/60 px-5 py-5">
                 <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                   <div>
                     <p className="text-xs font-semibold tracking-[0.16em] text-teal-700 uppercase">
-                      Source Project
+                      {linkedSourceProject ? "Source Project" : "Transferred Project Details"}
                     </p>
                     <h3 className="mt-2 text-xl font-semibold text-slate-900">
-                      {linkedSourceProject.title}
+                      {linkedSourceProject?.title || formState.experienceTitle || "Project Details"}
                     </h3>
-                    <p className="mt-2 text-sm leading-7 text-slate-700">
-                      {linkedSourceProject.projectType}
-                      {linkedSourceProject.durationDays
-                        ? ` • ${linkedSourceProject.durationDays} days`
-                        : ""}
-                      {linkedSourceProject.focusCompetency
-                        ? ` • Focus competency: ${linkedSourceProject.focusCompetency}`
-                        : ""}
-                    </p>
-                    {selectedProjectId ? (
-                      <p className="mt-2 text-sm leading-7 text-teal-900">
-                        This draft is being built from the selected project. Save it when
-                        you are ready to turn it into a formal leadership development
-                        record.
+                    {linkedSourceProject ? (
+                      <p className="mt-2 text-sm leading-7 text-slate-700">
+                        {linkedSourceProject.projectType}
+                        {linkedSourceProject.durationDays
+                          ? ` • ${linkedSourceProject.durationDays} days`
+                          : ""}
+                        {linkedSourceProject.focusCompetency
+                          ? ` • Focus competency: ${linkedSourceProject.focusCompetency}`
+                          : ""}
                       </p>
                     ) : null}
+                    {selectedProjectId ? (
+                      <p className="mt-2 text-sm leading-7 text-teal-900">
+                        This draft is being built from the selected project. You can refine
+                        these transferred cards before saving the formal leadership
+                        development record.
+                      </p>
+                    ) : (
+                      <p className="mt-2 text-sm leading-7 text-teal-900">
+                        These transferred project details are editable and will save with
+                        the leadership development record.
+                      </p>
+                    )}
                   </div>
 
                   <button
@@ -1124,176 +1204,97 @@ export function LeadershipDevelopmentRecordManager({
 
                 {projectDetailsOpen ? (
                   <div className="mt-4 grid gap-3">
-                    {linkedSourceProject.description ? (
-                      <div className="rounded-2xl bg-white px-4 py-4">
-                        <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
-                          Project Summary
-                        </p>
-                        <p className="mt-2 text-sm leading-7 text-slate-700">
-                          {linkedSourceProject.description}
-                        </p>
-                      </div>
-                    ) : null}
+                    <ProjectDetailTextCard
+                      label="Project Summary"
+                      value={formState.projectSummary}
+                      onChange={(value) => updateRecord("projectSummary", value)}
+                      maxLength={3000}
+                      rows={5}
+                    />
 
                     <div className="grid gap-3 md:grid-cols-2">
-                      {linkedSourceProject.purpose ? (
-                        <div className="rounded-2xl bg-white px-4 py-4">
-                          <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
-                            Purpose
-                          </p>
-                          <p className="mt-2 text-sm leading-7 text-slate-700">
-                            {linkedSourceProject.purpose}
-                          </p>
-                        </div>
-                      ) : null}
-                      {linkedSourceProject.workingGoal ? (
-                        <div className="rounded-2xl bg-white px-4 py-4">
-                          <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
-                            Working Goal
-                          </p>
-                          <p className="mt-2 text-sm leading-7 text-slate-700">
-                            {linkedSourceProject.workingGoal}
-                          </p>
-                        </div>
-                      ) : null}
+                      <ProjectDetailTextCard
+                        label="Purpose"
+                        value={formState.projectPurpose}
+                        onChange={(value) => updateRecord("projectPurpose", value)}
+                        maxLength={1500}
+                      />
+                      <ProjectDetailTextCard
+                        label="Working Goal"
+                        value={formState.workingGoal}
+                        onChange={(value) => updateRecord("workingGoal", value)}
+                        maxLength={1500}
+                      />
                     </div>
 
-                    {linkedSourceProject.whyItFits ? (
-                      <div className="rounded-2xl bg-white px-4 py-4">
-                        <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
-                          Why It Fits
-                        </p>
-                        <p className="mt-2 text-sm leading-7 text-slate-700">
-                          {linkedSourceProject.whyItFits}
-                        </p>
-                      </div>
-                    ) : null}
-
-                    {linkedSourceProject.mentorFocus || linkedSourceProject.firstStep ? (
-                      <div className="grid gap-3 md:grid-cols-2">
-                        {linkedSourceProject.mentorFocus ? (
-                          <div className="rounded-2xl bg-white px-4 py-4">
-                            <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
-                              Mentor Focus
-                            </p>
-                            <p className="mt-2 text-sm leading-7 text-slate-700">
-                              {linkedSourceProject.mentorFocus}
-                            </p>
-                          </div>
-                        ) : null}
-                        {linkedSourceProject.firstStep ? (
-                          <div className="rounded-2xl bg-white px-4 py-4">
-                            <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
-                              First Step
-                            </p>
-                            <p className="mt-2 text-sm leading-7 text-slate-700">
-                              {linkedSourceProject.firstStep}
-                            </p>
-                          </div>
-                        ) : null}
-                      </div>
-                    ) : null}
+                    <ProjectDetailTextCard
+                      label="Why It Fits"
+                      value={formState.whyItFits}
+                      onChange={(value) => updateRecord("whyItFits", value)}
+                      maxLength={2000}
+                    />
 
                     <div className="grid gap-3 md:grid-cols-2">
-                      {linkedSourceProject.keyPartners.length > 0 ? (
-                        <div className="rounded-2xl bg-white px-4 py-4">
-                          <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
-                            Key Partners
-                          </p>
-                          <ul className="mt-2 space-y-1 text-sm leading-7 text-slate-700">
-                            {linkedSourceProject.keyPartners.map((partner) => (
-                              <li key={partner}>• {partner}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      ) : null}
-                      {linkedSourceProject.leadershipActionsRequired.length > 0 ? (
-                        <div className="rounded-2xl bg-white px-4 py-4">
-                          <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
-                            Leadership Actions Required
-                          </p>
-                          <ul className="mt-2 space-y-1 text-sm leading-7 text-slate-700">
-                            {linkedSourceProject.leadershipActionsRequired.map((action) => (
-                              <li key={action}>• {action}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      ) : null}
-                      {linkedSourceProject.anticipatedChallenges.length > 0 ? (
-                        <div className="rounded-2xl bg-white px-4 py-4">
-                          <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
-                            Anticipated Challenges
-                          </p>
-                          <ul className="mt-2 space-y-1 text-sm leading-7 text-slate-700">
-                            {linkedSourceProject.anticipatedChallenges.map((challenge) => (
-                              <li key={challenge}>• {challenge}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      ) : null}
-                      {linkedSourceProject.successMeasures.length > 0 ? (
-                        <div className="rounded-2xl bg-white px-4 py-4">
-                          <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
-                            Success Measures
-                          </p>
-                          <ul className="mt-2 space-y-1 text-sm leading-7 text-slate-700">
-                            {linkedSourceProject.successMeasures.map((measure) => (
-                              <li key={measure}>• {measure}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      ) : null}
+                      <ProjectDetailTextCard
+                        label="Mentor Focus"
+                        value={formState.mentorFocus}
+                        onChange={(value) => updateRecord("mentorFocus", value)}
+                        maxLength={2000}
+                      />
+                      <ProjectDetailTextCard
+                        label="First Step"
+                        value={formState.firstStep}
+                        onChange={(value) => updateRecord("firstStep", value)}
+                        maxLength={1500}
+                      />
                     </div>
 
                     <div className="grid gap-3 md:grid-cols-2">
-                      {linkedSourceProject.mentorPreparation.length > 0 ? (
-                        <div className="rounded-2xl bg-white px-4 py-4">
-                          <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
-                            Mentor Preparation
-                          </p>
-                          <ul className="mt-2 space-y-1 text-sm leading-7 text-slate-700">
-                            {linkedSourceProject.mentorPreparation.map((item) => (
-                              <li key={item}>• {item}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      ) : null}
-                      {linkedSourceProject.menteePreparation.length > 0 ? (
-                        <div className="rounded-2xl bg-white px-4 py-4">
-                          <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
-                            Mentee Preparation
-                          </p>
-                          <ul className="mt-2 space-y-1 text-sm leading-7 text-slate-700">
-                            {linkedSourceProject.menteePreparation.map((item) => (
-                              <li key={item}>• {item}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      ) : null}
-                      {linkedSourceProject.reflectionQuestions.length > 0 ? (
-                        <div className="rounded-2xl bg-white px-4 py-4">
-                          <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
-                            Reflection Prompts
-                          </p>
-                          <ul className="mt-2 space-y-1 text-sm leading-7 text-slate-700">
-                            {linkedSourceProject.reflectionQuestions.map((question) => (
-                              <li key={question}>• {question}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      ) : null}
-                      {linkedSourceProject.successSignals.length > 0 ? (
-                        <div className="rounded-2xl bg-white px-4 py-4">
-                          <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
-                            Success Signals
-                          </p>
-                          <ul className="mt-2 space-y-1 text-sm leading-7 text-slate-700">
-                            {linkedSourceProject.successSignals.map((signal) => (
-                              <li key={signal}>• {signal}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      ) : null}
+                      <ProjectDetailListCard
+                        label="Key Partners"
+                        values={formState.keyPartners}
+                        onChange={(value) => updateRecord("keyPartners", value)}
+                      />
+                      <ProjectDetailListCard
+                        label="Leadership Actions Required"
+                        values={formState.leadershipActionsRequired}
+                        onChange={(value) =>
+                          updateRecord("leadershipActionsRequired", value)
+                        }
+                      />
+                      <ProjectDetailListCard
+                        label="Anticipated Challenges"
+                        values={formState.anticipatedChallenges}
+                        onChange={(value) => updateRecord("anticipatedChallenges", value)}
+                      />
+                      <ProjectDetailListCard
+                        label="Success Measures"
+                        values={formState.successMeasures}
+                        onChange={(value) => updateRecord("successMeasures", value)}
+                      />
+                    </div>
+
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <ProjectDetailListCard
+                        label="Mentor Preparation"
+                        values={formState.mentorPreparation}
+                        onChange={(value) => updateRecord("mentorPreparation", value)}
+                      />
+                      <ProjectDetailListCard
+                        label="Mentee Preparation"
+                        values={formState.menteePreparation}
+                        onChange={(value) => updateRecord("menteePreparation", value)}
+                      />
+                      <ProjectDetailListCard
+                        label="Reflection Prompts"
+                        values={formState.reflectionQuestions}
+                        onChange={(value) => updateRecord("reflectionQuestions", value)}
+                      />
+                      <ProjectDetailListCard
+                        label="Success Signals"
+                        values={formState.successSignals}
+                        onChange={(value) => updateRecord("successSignals", value)}
+                      />
                     </div>
                   </div>
                 ) : null}

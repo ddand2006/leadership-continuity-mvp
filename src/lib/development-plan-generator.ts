@@ -34,6 +34,7 @@ export async function generateDevelopmentPlansForRole(options: {
     title: string;
     department: string | null;
     description: string | null;
+    industry: string | null;
   };
   competencies: Array<{
     name: string;
@@ -67,6 +68,9 @@ export async function generateDevelopmentPlansForRole(options: {
           content: serializeModelInput({
             role: options.role,
             target_plan_count: options.count,
+            organization_context: {
+              industry: options.role.industry,
+            },
             role_competencies: options.competencies,
             strengths_library: options.strengthsLibrary,
             existing_project_titles: options.existingTitles,

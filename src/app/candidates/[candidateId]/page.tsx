@@ -61,6 +61,7 @@ export default async function CandidateDetailPage({
 
   const [
     candidateResult,
+    organizationResult,
     considerationsResult,
     mentorAssignmentsResult,
     mentorProfilesResult,
@@ -73,6 +74,11 @@ export default async function CandidateDetailPage({
       .select("id, full_name, current_title, target_role_id, status")
       .eq("organization_id", profile.organization_id)
       .eq("id", candidateId)
+      .single(),
+    supabase
+      .from("organizations")
+      .select("industry")
+      .eq("id", profile.organization_id)
       .single(),
     supabase
       .from("candidate_role_considerations")
@@ -112,6 +118,7 @@ export default async function CandidateDetailPage({
 
   for (const result of [
     candidateResult,
+    organizationResult,
     considerationsResult,
     mentorAssignmentsResult,
     mentorProfilesResult,
@@ -238,7 +245,7 @@ export default async function CandidateDetailPage({
           supabase
             .from("development_projects")
             .select(
-              "title, description, difficulty, duration_days, applicable_roles, competencies_developed, strengths_leveraged, expected_outcomes, mentor_questions, evidence_of_success",
+              "title, description, difficulty, duration_days, industry, applicable_roles, competencies_developed, strengths_leveraged, expected_outcomes, mentor_questions, evidence_of_success",
             )
             .or(`organization_id.is.null,organization_id.eq.${profile.organization_id}`),
           supabase
@@ -373,6 +380,7 @@ export default async function CandidateDetailPage({
   const developmentProjects = ((projectsResult.data ?? []) as DevelopmentProjectRecord[]).map(
     (project) => ({
       ...project,
+      industry: project.industry ?? null,
       applicable_roles: (project.applicable_roles as string[]) ?? [],
       competencies_developed: (project.competencies_developed as string[]) ?? [],
       strengths_leveraged: (project.strengths_leveraged as string[]) ?? [],
@@ -386,6 +394,7 @@ export default async function CandidateDetailPage({
       assessment.competencyId,
       rankMentoringIdeasForCompetency(developmentProjects, {
         roleTitle: canonicalizeRoleTitle(roleResult.data?.title ?? null),
+        industry: organizationResult.data?.industry ?? null,
         competencyName: assessment.competencyName,
         supportingStrengths: assessment.supportingStrengths,
         leverageStrengths,

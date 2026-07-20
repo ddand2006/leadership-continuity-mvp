@@ -40,6 +40,7 @@ export async function POST(request: Request) {
     const [
       candidateResult,
       roleResult,
+      organizationResult,
       competenciesResult,
       strengthsResult,
       panelsResult,
@@ -59,6 +60,11 @@ export async function POST(request: Request) {
         .select("id, title, description")
         .eq("organization_id", profile.organization_id)
         .eq("id", payload.roleId)
+        .maybeSingle(),
+      admin
+        .from("organizations")
+        .select("industry")
+        .eq("id", profile.organization_id)
         .maybeSingle(),
       admin
         .from("role_competencies")
@@ -88,7 +94,7 @@ export async function POST(request: Request) {
       admin
         .from("development_projects")
         .select(
-          "title, description, difficulty, duration_days, applicable_roles, competencies_developed, strengths_leveraged, expected_outcomes, mentor_questions, evidence_of_success",
+          "title, description, difficulty, duration_days, industry, applicable_roles, competencies_developed, strengths_leveraged, expected_outcomes, mentor_questions, evidence_of_success, purpose, working_goal, mentor_focus, first_step, leadership_actions_required",
         )
         .or(`organization_id.is.null,organization_id.eq.${profile.organization_id}`),
       admin
@@ -108,6 +114,7 @@ export async function POST(request: Request) {
     for (const result of [
       candidateResult,
       roleResult,
+      organizationResult,
       competenciesResult,
       strengthsResult,
       panelsResult,
@@ -198,16 +205,20 @@ export async function POST(request: Request) {
     const developmentProjects = ((projectsResult.data ?? []) as DevelopmentProjectRecord[]).map(
       (project) => ({
         ...project,
+        industry: project.industry ?? null,
         applicable_roles: (project.applicable_roles as string[]) ?? [],
         competencies_developed: (project.competencies_developed as string[]) ?? [],
         strengths_leveraged: (project.strengths_leveraged as string[]) ?? [],
         expected_outcomes: (project.expected_outcomes as string[]) ?? [],
         mentor_questions: (project.mentor_questions as string[]) ?? [],
         evidence_of_success: (project.evidence_of_success as string[]) ?? [],
+        leadership_actions_required:
+          (project.leadership_actions_required as string[] | null) ?? [],
       }),
     );
     const referenceIdeas = rankMentoringIdeasForCompetency(developmentProjects, {
       roleTitle,
+      industry: organizationResult.data?.industry ?? null,
       competencyName: competencyAssessment.competencyName,
       supportingStrengths: competencyAssessment.supportingStrengths,
       leverageStrengths: topStrengths,
@@ -218,9 +229,24 @@ export async function POST(request: Request) {
         title: idea.title,
         description: idea.description,
         difficulty: idea.difficulty,
+        industry: idea.industry,
         durationDays: idea.durationDays,
         expectedOutcomes: idea.expectedOutcomes,
         mentorQuestions: idea.mentorQuestions,
+        purpose:
+          developmentProjects.find((project) => project.title === idea.title)?.purpose ?? null,
+        workingGoal:
+          developmentProjects.find((project) => project.title === idea.title)?.working_goal ??
+          null,
+        mentorFocus:
+          developmentProjects.find((project) => project.title === idea.title)?.mentor_focus ??
+          null,
+        firstStep:
+          developmentProjects.find((project) => project.title === idea.title)?.first_step ??
+          null,
+        leadershipActionsRequired:
+          developmentProjects.find((project) => project.title === idea.title)
+            ?.leadership_actions_required ?? [],
       }));
 
     const ideas = await generateCandidateMentoringIdeas({
@@ -232,6 +258,7 @@ export async function POST(request: Request) {
       role: {
         title: roleTitle,
         description: roleResult.data.description,
+        industry: organizationResult.data?.industry ?? null,
       },
       competency: {
         name: competencyAssessment.competencyName,

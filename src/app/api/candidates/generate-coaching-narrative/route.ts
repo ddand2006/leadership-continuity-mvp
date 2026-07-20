@@ -39,6 +39,7 @@ export async function POST(request: Request) {
     const [
       candidateResult,
       roleResult,
+      organizationResult,
       competenciesResult,
       strengthsResult,
       panelsResult,
@@ -58,6 +59,11 @@ export async function POST(request: Request) {
         .select("id, title, description")
         .eq("organization_id", profile.organization_id)
         .eq("id", payload.roleId)
+        .maybeSingle(),
+      admin
+        .from("organizations")
+        .select("industry")
+        .eq("id", profile.organization_id)
         .maybeSingle(),
       admin
         .from("role_competencies")
@@ -87,7 +93,7 @@ export async function POST(request: Request) {
       admin
         .from("development_projects")
         .select(
-          "title, description, difficulty, duration_days, applicable_roles, competencies_developed, strengths_leveraged, expected_outcomes, mentor_questions, evidence_of_success",
+          "title, description, difficulty, duration_days, industry, applicable_roles, competencies_developed, strengths_leveraged, expected_outcomes, mentor_questions, evidence_of_success",
         )
         .or(`organization_id.is.null,organization_id.eq.${profile.organization_id}`),
       admin
@@ -107,6 +113,7 @@ export async function POST(request: Request) {
     for (const result of [
       candidateResult,
       roleResult,
+      organizationResult,
       competenciesResult,
       strengthsResult,
       panelsResult,
@@ -199,6 +206,7 @@ export async function POST(request: Request) {
     const developmentProjects = ((projectsResult.data ?? []) as DevelopmentProjectRecord[]).map(
       (project) => ({
         ...project,
+        industry: project.industry ?? null,
         applicable_roles: (project.applicable_roles as string[]) ?? [],
         competencies_developed: (project.competencies_developed as string[]) ?? [],
         strengths_leveraged: (project.strengths_leveraged as string[]) ?? [],
@@ -209,6 +217,7 @@ export async function POST(request: Request) {
     );
     const referenceIdeas = rankMentoringIdeasForCompetency(developmentProjects, {
       roleTitle,
+      industry: organizationResult.data?.industry ?? null,
       competencyName: competencyAssessment.competencyName,
       supportingStrengths: competencyAssessment.supportingStrengths,
       leverageStrengths: topStrengths,
@@ -219,6 +228,7 @@ export async function POST(request: Request) {
         title: idea.title,
         description: idea.description,
         difficulty: idea.difficulty,
+        industry: idea.industry,
         durationDays: idea.durationDays,
         expectedOutcomes: idea.expectedOutcomes,
         mentorQuestions: idea.mentorQuestions,
@@ -260,6 +270,7 @@ export async function POST(request: Request) {
       role: {
         title: roleTitle,
         description: roleResult.data.description,
+        industry: organizationResult.data?.industry ?? null,
       },
       competency: {
         name: competencyAssessment.competencyName,

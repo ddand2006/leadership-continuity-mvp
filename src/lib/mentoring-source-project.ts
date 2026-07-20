@@ -200,6 +200,17 @@ export function buildMentoringSourceProject(options: {
   projectId: string;
   title: string;
   description: string | null;
+  purpose?: string | null;
+  workingGoal?: string | null;
+  whyItFits?: string | null;
+  strengthsApplication?: string | null;
+  mentorFocus?: string | null;
+  firstStep?: string | null;
+  keyPartners?: string[] | null;
+  leadershipActionsRequired?: string[] | null;
+  mentorPreparation?: string[] | null;
+  menteePreparation?: string[] | null;
+  anticipatedChallenges?: string[] | null;
   durationDays: number | null;
   competencyNames: string[] | null;
   applicableRoles: string[] | null;
@@ -220,27 +231,30 @@ export function buildMentoringSourceProject(options: {
     title: options.title,
     projectType:
       descriptionParse.values.get("projectType") ?? "Candidate-Specific Project",
-    purpose: descriptionParse.values.get("purpose") ?? "",
+    purpose: options.purpose ?? descriptionParse.values.get("purpose") ?? "",
     description: descriptionParse.unlabeledText,
-    workingGoal: descriptionParse.values.get("workingGoal") ?? "",
-    whyItFits: descriptionParse.values.get("whyItFits") ?? "",
+    workingGoal: options.workingGoal ?? descriptionParse.values.get("workingGoal") ?? "",
+    whyItFits: options.whyItFits ?? descriptionParse.values.get("whyItFits") ?? "",
     strengthsApplication:
-      descriptionParse.values.get("strengthsApplication") ?? "",
-    mentorFocus: descriptionParse.values.get("mentorFocus") ?? "",
-    firstStep: descriptionParse.values.get("firstStep") ?? "",
-    keyPartners: splitCommaList(descriptionParse.values.get("keyPartners") ?? ""),
-    leadershipActionsRequired: splitBulletList(
-      descriptionParse.values.get("leadershipActionsRequired") ?? "",
-    ),
-    mentorPreparation: splitBulletList(
-      descriptionParse.values.get("mentorPreparation") ?? "",
-    ),
-    menteePreparation: splitBulletList(
-      descriptionParse.values.get("menteePreparation") ?? "",
-    ),
-    anticipatedChallenges: splitBulletList(
-      descriptionParse.values.get("anticipatedChallenges") ?? "",
-    ),
+      options.strengthsApplication ??
+      descriptionParse.values.get("strengthsApplication") ??
+      "",
+    mentorFocus: options.mentorFocus ?? descriptionParse.values.get("mentorFocus") ?? "",
+    firstStep: options.firstStep ?? descriptionParse.values.get("firstStep") ?? "",
+    keyPartners:
+      options.keyPartners ?? splitCommaList(descriptionParse.values.get("keyPartners") ?? ""),
+    leadershipActionsRequired:
+      options.leadershipActionsRequired ??
+      splitBulletList(descriptionParse.values.get("leadershipActionsRequired") ?? ""),
+    mentorPreparation:
+      options.mentorPreparation ??
+      splitBulletList(descriptionParse.values.get("mentorPreparation") ?? ""),
+    menteePreparation:
+      options.menteePreparation ??
+      splitBulletList(descriptionParse.values.get("menteePreparation") ?? ""),
+    anticipatedChallenges:
+      options.anticipatedChallenges ??
+      splitBulletList(descriptionParse.values.get("anticipatedChallenges") ?? ""),
     successMeasures: (options.successMeasures ?? []).filter(Boolean),
     reflectionQuestions: (options.reflectionQuestions ?? []).filter(Boolean),
     successSignals: (options.successSignals ?? []).filter(Boolean),
@@ -269,6 +283,43 @@ export function mentoringSourceProjectMatchesRoleTitle(
     project.roleTrackTitle === canonicalRoleTitle ||
     project.applicableRoles.includes(canonicalRoleTitle)
   );
+}
+
+export function buildLeadershipDevelopmentRecordProjectDetails(
+  project: MentoringSourceProject,
+) {
+  return {
+    projectSummary: project.description,
+    projectPurpose: project.purpose,
+    workingGoal: project.workingGoal,
+    whyItFits: project.whyItFits,
+    mentorFocus: project.mentorFocus,
+    firstStep: project.firstStep,
+    keyPartners: [...project.keyPartners],
+    leadershipActionsRequired: [...project.leadershipActionsRequired],
+    anticipatedChallenges: [...project.anticipatedChallenges],
+    successMeasures: [...project.successMeasures],
+    mentorPreparation: [...project.mentorPreparation],
+    menteePreparation: [...project.menteePreparation],
+    reflectionQuestions: [...project.reflectionQuestions],
+    successSignals: [...project.successSignals],
+  } satisfies Pick<
+    LeadershipDevelopmentRecordPayload,
+    | "projectSummary"
+    | "projectPurpose"
+    | "workingGoal"
+    | "whyItFits"
+    | "mentorFocus"
+    | "firstStep"
+    | "keyPartners"
+    | "leadershipActionsRequired"
+    | "anticipatedChallenges"
+    | "successMeasures"
+    | "mentorPreparation"
+    | "menteePreparation"
+    | "reflectionQuestions"
+    | "successSignals"
+  >;
 }
 
 export function buildLeadershipDevelopmentRecordFromProject(options: {
@@ -314,6 +365,7 @@ export function buildLeadershipDevelopmentRecordFromProject(options: {
 
   return {
     ...draft,
+    ...buildLeadershipDevelopmentRecordProjectDetails(options.project),
     sourceProjectAssignmentId: options.project.id,
     growthAreas,
     assignmentReason: options.project.whyItFits || options.project.purpose,

@@ -33,6 +33,10 @@ const scoreInputSchema = z
     message: "Scores must be whole numbers from 1 to 5.",
   });
 
+const leadershipDevelopmentTextListSchema = z
+  .array(z.string().trim().min(1).max(300))
+  .default([]);
+
 export const leadershipDevelopmentCompetencySchema = z.object({
   competencyName: z.string().trim(),
   baselineScore: scoreInputSchema,
@@ -77,6 +81,20 @@ export const leadershipDevelopmentRecordPayloadSchema = z.object({
   assignmentReason: z.string().trim().max(1000),
   experienceTitle: z.string().trim().min(1),
   menteeTask: z.string().trim().max(1500),
+  projectSummary: z.string().trim().max(3000),
+  projectPurpose: z.string().trim().max(1500),
+  workingGoal: z.string().trim().max(1500),
+  whyItFits: z.string().trim().max(2000),
+  mentorFocus: z.string().trim().max(2000),
+  firstStep: z.string().trim().max(1500),
+  keyPartners: leadershipDevelopmentTextListSchema,
+  leadershipActionsRequired: leadershipDevelopmentTextListSchema,
+  anticipatedChallenges: leadershipDevelopmentTextListSchema,
+  successMeasures: leadershipDevelopmentTextListSchema,
+  mentorPreparation: leadershipDevelopmentTextListSchema,
+  menteePreparation: leadershipDevelopmentTextListSchema,
+  reflectionQuestions: leadershipDevelopmentTextListSchema,
+  successSignals: leadershipDevelopmentTextListSchema,
   leaderEngagements: z.array(leadershipDevelopmentLeaderSchema),
   competencies: z.array(leadershipDevelopmentCompetencySchema),
   reviewerFeedback: z.array(leadershipDevelopmentFeedbackSchema),
@@ -164,6 +182,20 @@ export function createEmptyLeadershipDevelopmentRecord(options: {
     assignmentReason: "",
     experienceTitle: "",
     menteeTask: "",
+    projectSummary: "",
+    projectPurpose: "",
+    workingGoal: "",
+    whyItFits: "",
+    mentorFocus: "",
+    firstStep: "",
+    keyPartners: [],
+    leadershipActionsRequired: [],
+    anticipatedChallenges: [],
+    successMeasures: [],
+    mentorPreparation: [],
+    menteePreparation: [],
+    reflectionQuestions: [],
+    successSignals: [],
     leaderEngagements: [createEmptyLeadershipDevelopmentLeader()],
     competencies: [createEmptyLeadershipDevelopmentCompetency()],
     reviewerFeedback: [createEmptyLeadershipDevelopmentFeedback()],
@@ -180,6 +212,14 @@ export function normalizeLeadershipDevelopmentRecord<T extends LeadershipDevelop
 ): T {
   const normalized = {
     ...record,
+    keyPartners: record.keyPartners ?? [],
+    leadershipActionsRequired: record.leadershipActionsRequired ?? [],
+    anticipatedChallenges: record.anticipatedChallenges ?? [],
+    successMeasures: record.successMeasures ?? [],
+    mentorPreparation: record.mentorPreparation ?? [],
+    menteePreparation: record.menteePreparation ?? [],
+    reflectionQuestions: record.reflectionQuestions ?? [],
+    successSignals: record.successSignals ?? [],
     leaderEngagements:
       record.leaderEngagements.length > 0
         ? record.leaderEngagements.map((item) => ({

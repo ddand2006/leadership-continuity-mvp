@@ -41,6 +41,7 @@ export async function generateCandidateMentoringIdeas(options: {
   role: {
     title: string;
     description: string | null;
+    industry?: string | null;
   };
   competency: {
     name: string;
@@ -64,9 +65,15 @@ export async function generateCandidateMentoringIdeas(options: {
     title: string;
     description: string;
     difficulty: string;
+    industry?: string | null;
     durationDays: number;
     expectedOutcomes: string[];
     mentorQuestions: string[];
+    purpose?: string | null;
+    workingGoal?: string | null;
+    mentorFocus?: string | null;
+    firstStep?: string | null;
+    leadershipActionsRequired?: string[];
   }>;
 }) {
   const openAIEnv = getOpenAIEnv();
@@ -84,6 +91,9 @@ export async function generateCandidateMentoringIdeas(options: {
           content: serializeModelInput({
             candidate: options.candidate,
             target_role: options.role,
+            organization_context: {
+              industry: options.role.industry,
+            },
             competency_focus: options.competency,
             strengths_profile: {
               top_strengths: options.topStrengths,

@@ -33,12 +33,24 @@ export type DevelopmentProjectRecord = {
   description: string;
   difficulty: string;
   duration_days: number;
+  industry?: string | null;
   applicable_roles: string[];
   competencies_developed: string[];
   strengths_leveraged: string[];
   expected_outcomes?: string[];
   mentor_questions?: string[];
   evidence_of_success?: string[];
+  purpose?: string | null;
+  working_goal?: string | null;
+  why_it_fits?: string | null;
+  strengths_application?: string | null;
+  mentor_focus?: string | null;
+  first_step?: string | null;
+  key_partners?: string[];
+  leadership_actions_required?: string[];
+  mentor_preparation?: string[];
+  mentee_preparation?: string[];
+  anticipated_challenges?: string[];
 };
 
 export type CompetencyAssessment = {
@@ -62,10 +74,12 @@ export type RankedProjectMatch = {
   description: string;
   difficulty: string;
   durationDays: number;
+  industry: string | null;
   score: number;
   competencyMatches: string[];
   strengthMatches: string[];
   roleMatch: boolean;
+  industryMatch: boolean;
   expectedOutcomes: string[];
   mentorQuestions: string[];
   evidenceOfSuccess: string[];
@@ -192,12 +206,40 @@ function tokenize(value: string) {
     .filter((token) => token.length > 2);
 }
 
+function matchesIndustry(
+  projectIndustry: string | null | undefined,
+  organizationIndustry: string | null | undefined,
+) {
+  const normalizedProjectIndustry = normalizeText(projectIndustry ?? "").trim();
+  const normalizedOrganizationIndustry = normalizeText(
+    organizationIndustry ?? "",
+  ).trim();
+
+  if (!normalizedProjectIndustry || !normalizedOrganizationIndustry) {
+    return false;
+  }
+
+  if (
+    normalizedProjectIndustry === normalizedOrganizationIndustry ||
+    normalizedProjectIndustry.includes(normalizedOrganizationIndustry) ||
+    normalizedOrganizationIndustry.includes(normalizedProjectIndustry)
+  ) {
+    return true;
+  }
+
+  const organizationTokens = new Set(tokenize(organizationIndustry ?? ""));
+  const projectTokens = tokenize(projectIndustry ?? "");
+
+  return projectTokens.some((token) => organizationTokens.has(token));
+}
+
 export function rankDevelopmentProjects(
   projects: DevelopmentProjectRecord[],
   roleTitle: string,
   developmentPriorities: string[],
   leverageStrengths: string[],
   readiness: number,
+  industry?: string | null,
 ) {
   const preferredDifficulties = getPreferredDifficulties(readiness);
   const normalizedRoleTitle = canonicalizeRoleTitle(roleTitle);
@@ -214,6 +256,7 @@ export function rankDevelopmentProjects(
         (applicableRole) =>
           canonicalizeRoleTitle(applicableRole) === normalizedRoleTitle,
       );
+      const industryMatch = matchesIndustry(project.industry, industry);
       const difficultyScore = Math.max(
         0,
         preferredDifficulties.length - preferredDifficulties.indexOf(project.difficulty),
@@ -222,6 +265,7 @@ export function rankDevelopmentProjects(
         competencyMatches.length * 4 +
         strengthMatches.length * 3 +
         (roleMatch ? 3 : 0) +
+        (industryMatch ? 4 : 0) +
         difficultyScore;
 
       return {
@@ -229,10 +273,12 @@ export function rankDevelopmentProjects(
         description: project.description,
         difficulty: project.difficulty,
         durationDays: project.duration_days,
+        industry: project.industry ?? null,
         score,
         competencyMatches,
         strengthMatches,
         roleMatch,
+        industryMatch,
         expectedOutcomes: project.expected_outcomes ?? [],
         mentorQuestions: project.mentor_questions ?? [],
         evidenceOfSuccess: project.evidence_of_success ?? [],
@@ -246,6 +292,7 @@ export function rankMentoringIdeasForCompetency(
   projects: DevelopmentProjectRecord[],
   options: {
     roleTitle: string;
+    industry?: string | null;
     competencyName: string;
     supportingStrengths: string[];
     leverageStrengths: string[];
@@ -285,6 +332,7 @@ export function rankMentoringIdeasForCompetency(
         (applicableRole) =>
           canonicalizeRoleTitle(applicableRole) === normalizedRoleTitle,
       );
+      const industryMatch = matchesIndustry(project.industry, options.industry);
       const difficultyIndex = preferredDifficulties.indexOf(project.difficulty);
       const difficultyScore =
         difficultyIndex >= 0
@@ -294,6 +342,7 @@ export function rankMentoringIdeasForCompetency(
         competencyMatches.length * 5 +
         strengthMatches.length * 3 +
         (roleMatch ? 3 : 0) +
+        (industryMatch ? 4 : 0) +
         difficultyScore;
 
       return {
@@ -301,10 +350,12 @@ export function rankMentoringIdeasForCompetency(
         description: project.description,
         difficulty: project.difficulty,
         durationDays: project.duration_days,
+        industry: project.industry ?? null,
         score,
         competencyMatches,
         strengthMatches,
         roleMatch,
+        industryMatch,
         expectedOutcomes: project.expected_outcomes ?? [],
         mentorQuestions: project.mentor_questions ?? [],
         evidenceOfSuccess: project.evidence_of_success ?? [],

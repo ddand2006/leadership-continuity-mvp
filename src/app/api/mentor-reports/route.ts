@@ -124,6 +124,7 @@ export async function POST(request: Request) {
 
     const [
       roleResult,
+      organizationResult,
       competenciesResult,
       strengthsResult,
       strengthsLibraryResult,
@@ -138,6 +139,11 @@ export async function POST(request: Request) {
         .eq("organization_id", profile.organization_id)
         .eq("id", roleId)
         .single(),
+      admin
+        .from("organizations")
+        .select("industry")
+        .eq("id", profile.organization_id)
+        .maybeSingle(),
       admin
         .from("role_competencies")
         .select(
@@ -165,7 +171,7 @@ export async function POST(request: Request) {
       admin
         .from("development_projects")
         .select(
-          "title, description, difficulty, duration_days, applicable_roles, competencies_developed, strengths_leveraged, expected_outcomes, mentor_questions, evidence_of_success",
+          "title, description, difficulty, duration_days, industry, applicable_roles, competencies_developed, strengths_leveraged, expected_outcomes, mentor_questions, evidence_of_success",
         )
         .or(`organization_id.is.null,organization_id.eq.${profile.organization_id}`),
       admin
@@ -186,6 +192,7 @@ export async function POST(request: Request) {
 
     for (const result of [
       roleResult,
+      organizationResult,
       competenciesResult,
       strengthsResult,
       strengthsLibraryResult,
@@ -280,6 +287,7 @@ export async function POST(request: Request) {
     const rankedProjects = rankDevelopmentProjects(
       (projectsResult.data ?? []).map((project) => ({
         ...project,
+        industry: project.industry ?? null,
         applicable_roles: project.applicable_roles as string[],
         competencies_developed: project.competencies_developed as string[],
         strengths_leveraged: project.strengths_leveraged as string[],
@@ -291,6 +299,7 @@ export async function POST(request: Request) {
       developmentPriorities.map((priority) => priority.competencyName),
       leverageStrengths,
       readiness,
+      organizationResult.data?.industry ?? null,
     ).slice(0, 5);
 
     const openai = createOpenAIClient();

@@ -24,6 +24,7 @@ export async function generateCandidateCoachingNarrative(options: {
   role: {
     title: string;
     description: string | null;
+    industry?: string | null;
   };
   competency: {
     name: string;
@@ -54,6 +55,7 @@ export async function generateCandidateCoachingNarrative(options: {
     title: string;
     description: string;
     difficulty: string;
+    industry?: string | null;
     durationDays: number;
     expectedOutcomes: string[];
     mentorQuestions: string[];
@@ -74,6 +76,9 @@ export async function generateCandidateCoachingNarrative(options: {
           content: serializeModelInput({
             candidate: options.candidate,
             target_role: options.role,
+            organization_context: {
+              industry: options.role.industry,
+            },
             competency_focus: options.competency,
             score_history: options.scoreHistory,
             strengths_profile: {

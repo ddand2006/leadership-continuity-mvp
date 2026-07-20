@@ -25,6 +25,11 @@ import {
   type LeadershipDevelopmentRecordRecord,
 } from "@/lib/leadership-development-record";
 import {
+  buildDevelopmentProjectFieldsFromLeadershipRecord,
+  DEFAULT_PROJECT_DURATION_DAYS,
+  inferProjectDifficulty,
+} from "@/lib/development-project-library";
+import {
   buildMentoringSourceProject,
   mentoringSourceProjectMatchesRoleTitle,
 } from "@/lib/mentoring-source-project";
@@ -108,6 +113,7 @@ async function ensureAssignmentExists(options: {
 
 function normalizeRecordFromDatabase(record: {
   id: string;
+  source_project_assignment_id: string | null;
   candidate_id: string;
   role_id: string;
   mentor_id: string;
@@ -118,6 +124,20 @@ function normalizeRecordFromDatabase(record: {
   assignment_reason: string | null;
   experience_title: string;
   mentee_task: string | null;
+  project_summary: string | null;
+  project_purpose: string | null;
+  working_goal: string | null;
+  why_it_fits: string | null;
+  mentor_focus: string | null;
+  first_step: string | null;
+  key_partners: string[] | null;
+  leadership_actions_required: string[] | null;
+  anticipated_challenges: string[] | null;
+  success_measures: string[] | null;
+  mentor_preparation: string[] | null;
+  mentee_preparation: string[] | null;
+  reflection_questions: string[] | null;
+  success_signals: string[] | null;
   readiness_signal: LeadershipDevelopmentRecordRecord["readinessSignal"] | null;
   mentor_improvement_observed: string | null;
   mentor_development_needed: string | null;
@@ -153,7 +173,7 @@ function normalizeRecordFromDatabase(record: {
 }, resolvedTargetRole?: string | null): LeadershipDevelopmentRecordRecord {
   return {
     id: record.id,
-    sourceProjectAssignmentId: "",
+    sourceProjectAssignmentId: record.source_project_assignment_id ?? "",
     candidateId: record.candidate_id,
     roleId: record.role_id,
     mentorId: record.mentor_id,
@@ -166,6 +186,20 @@ function normalizeRecordFromDatabase(record: {
     assignmentReason: record.assignment_reason ?? "",
     experienceTitle: record.experience_title,
     menteeTask: record.mentee_task ?? "",
+    projectSummary: record.project_summary ?? "",
+    projectPurpose: record.project_purpose ?? "",
+    workingGoal: record.working_goal ?? "",
+    whyItFits: record.why_it_fits ?? "",
+    mentorFocus: record.mentor_focus ?? "",
+    firstStep: record.first_step ?? "",
+    keyPartners: record.key_partners ?? [],
+    leadershipActionsRequired: record.leadership_actions_required ?? [],
+    anticipatedChallenges: record.anticipated_challenges ?? [],
+    successMeasures: record.success_measures ?? [],
+    mentorPreparation: record.mentor_preparation ?? [],
+    menteePreparation: record.mentee_preparation ?? [],
+    reflectionQuestions: record.reflection_questions ?? [],
+    successSignals: record.success_signals ?? [],
     leaderEngagements:
       record.leaders.length > 0
         ? record.leaders.map((leader) => ({
@@ -268,7 +302,7 @@ export async function GET(request: Request) {
     const recordsResult = await admin
       .from("development_records")
       .select(
-        "id, candidate_id, role_id, mentor_id, target_role, date_assigned, status, growth_areas, assignment_reason, experience_title, mentee_task, readiness_signal, mentor_improvement_observed, mentor_development_needed, next_recommended_experience, mentor_review_date, updated_at, average_feedback_score",
+        "id, source_project_assignment_id, candidate_id, role_id, mentor_id, target_role, date_assigned, status, growth_areas, assignment_reason, experience_title, mentee_task, project_summary, project_purpose, working_goal, why_it_fits, mentor_focus, first_step, key_partners, leadership_actions_required, anticipated_challenges, success_measures, mentor_preparation, mentee_preparation, reflection_questions, success_signals, readiness_signal, mentor_improvement_observed, mentor_development_needed, next_recommended_experience, mentor_review_date, updated_at, average_feedback_score",
       )
       .eq("organization_id", profile.organization_id)
       .eq("candidate_id", query.candidateId)
@@ -359,7 +393,7 @@ export async function GET(request: Request) {
         ? await admin
             .from("development_projects")
             .select(
-              "id, title, description, duration_days, competencies_developed, expected_outcomes, mentor_questions, evidence_of_success, applicable_roles",
+              "id, title, description, purpose, working_goal, why_it_fits, strengths_application, mentor_focus, first_step, key_partners, leadership_actions_required, mentor_preparation, mentee_preparation, anticipated_challenges, duration_days, competencies_developed, expected_outcomes, mentor_questions, evidence_of_success, applicable_roles",
             )
             .eq("organization_id", profile.organization_id)
             .in("id", developmentProjectIds)
@@ -407,6 +441,19 @@ export async function GET(request: Request) {
           projectId: project.id,
           title: project.title,
           description: project.description,
+          purpose: project.purpose,
+          workingGoal: project.working_goal,
+          whyItFits: project.why_it_fits,
+          strengthsApplication: project.strengths_application,
+          mentorFocus: project.mentor_focus,
+          firstStep: project.first_step,
+          keyPartners: (project.key_partners as string[] | null) ?? [],
+          leadershipActionsRequired:
+            (project.leadership_actions_required as string[] | null) ?? [],
+          mentorPreparation: (project.mentor_preparation as string[] | null) ?? [],
+          menteePreparation: (project.mentee_preparation as string[] | null) ?? [],
+          anticipatedChallenges:
+            (project.anticipated_challenges as string[] | null) ?? [],
           durationDays: project.duration_days,
           competencyNames: project.competencies_developed,
           applicableRoles: project.applicable_roles,
@@ -628,6 +675,7 @@ export async function POST(request: Request) {
       candidate_id: payload.candidateId,
       role_id: payload.roleId,
       mentor_id: payload.mentorId,
+      source_project_assignment_id: payload.sourceProjectAssignmentId || null,
       target_role: roleTitle,
       date_assigned: payload.dateAssigned,
       status: payload.status,
@@ -635,6 +683,20 @@ export async function POST(request: Request) {
       assignment_reason: payload.assignmentReason || null,
       experience_title: payload.experienceTitle,
       mentee_task: payload.menteeTask || null,
+      project_summary: payload.projectSummary || null,
+      project_purpose: payload.projectPurpose || null,
+      working_goal: payload.workingGoal || null,
+      why_it_fits: payload.whyItFits || null,
+      mentor_focus: payload.mentorFocus || null,
+      first_step: payload.firstStep || null,
+      key_partners: payload.keyPartners,
+      leadership_actions_required: payload.leadershipActionsRequired,
+      anticipated_challenges: payload.anticipatedChallenges,
+      success_measures: payload.successMeasures,
+      mentor_preparation: payload.mentorPreparation,
+      mentee_preparation: payload.menteePreparation,
+      reflection_questions: payload.reflectionQuestions,
+      success_signals: payload.successSignals,
       readiness_signal: payload.readinessSignal || null,
       mentor_improvement_observed: payload.mentorImprovementObserved || null,
       mentor_development_needed: payload.mentorDevelopmentNeeded || null,
@@ -794,6 +856,118 @@ export async function POST(request: Request) {
       if (insertFeedbackResult.error) {
         throw new ApiRouteError(insertFeedbackResult.error.message, 500);
       }
+    }
+
+    const organizationResult = await admin
+      .from("organizations")
+      .select("industry")
+      .eq("id", profile.organization_id)
+      .maybeSingle();
+
+    if (organizationResult.error) {
+      throw new ApiRouteError(organizationResult.error.message, 500);
+    }
+
+    const sourceAssignmentResult =
+      payload.sourceProjectAssignmentId.trim().length > 0
+        ? await admin
+            .from("candidate_project_assignments")
+            .select("development_project_id")
+            .eq("organization_id", profile.organization_id)
+            .eq("candidate_id", payload.candidateId)
+            .eq("mentor_profile_id", payload.mentorId)
+            .eq("id", payload.sourceProjectAssignmentId)
+            .maybeSingle()
+        : { data: null, error: null };
+
+    if (sourceAssignmentResult.error) {
+      throw new ApiRouteError(sourceAssignmentResult.error.message, 500);
+    }
+
+    const sourceProjectResult =
+      sourceAssignmentResult.data?.development_project_id
+        ? await admin
+            .from("development_projects")
+            .select(
+              "id, organization_id, duration_days, difficulty, strengths_leveraged, applicable_roles",
+            )
+            .eq("id", sourceAssignmentResult.data.development_project_id)
+            .maybeSingle()
+        : { data: null, error: null };
+
+    if (sourceProjectResult.error) {
+      throw new ApiRouteError(sourceProjectResult.error.message, 500);
+    }
+
+    const existingOrgProjectResult = await admin
+      .from("development_projects")
+      .select("id, duration_days, strengths_leveraged, applicable_roles")
+      .eq("organization_id", profile.organization_id)
+      .eq("title", payload.experienceTitle)
+      .order("updated_at", { ascending: false })
+      .limit(1);
+
+    if (existingOrgProjectResult.error) {
+      throw new ApiRouteError(existingOrgProjectResult.error.message, 500);
+    }
+
+    const existingOrgProject =
+      (sourceProjectResult.data &&
+      sourceProjectResult.data.organization_id === profile.organization_id
+        ? {
+            id: sourceProjectResult.data.id,
+            duration_days: sourceProjectResult.data.duration_days,
+            strengths_leveraged: sourceProjectResult.data.strengths_leveraged,
+            applicable_roles: sourceProjectResult.data.applicable_roles,
+          }
+        : null) ??
+      existingOrgProjectResult.data?.[0] ??
+      null;
+
+    const syncedProjectFields = buildDevelopmentProjectFieldsFromLeadershipRecord({
+      record: payload,
+      roleTitle,
+      competencyNames: normalizedCompetencies.map(
+        (competency) => competency.competency_name,
+      ),
+      industryName: organizationResult.data?.industry ?? null,
+      durationDays:
+        existingOrgProject?.duration_days ??
+        sourceProjectResult.data?.duration_days ??
+        DEFAULT_PROJECT_DURATION_DAYS,
+      strengthsLeveraged:
+        (existingOrgProject?.strengths_leveraged as string[] | null) ??
+        (sourceProjectResult.data?.strengths_leveraged as string[] | null) ??
+        [],
+      existingRoles:
+        (existingOrgProject?.applicable_roles as string[] | null) ??
+        (sourceProjectResult.data?.applicable_roles as string[] | null) ??
+        [],
+    });
+
+    const syncedProjectPayload = {
+      organization_id: profile.organization_id,
+      source_development_record_id: recordId,
+      source_project_assignment_id: payload.sourceProjectAssignmentId || null,
+      ...syncedProjectFields,
+      difficulty:
+        syncedProjectFields.difficulty ||
+        sourceProjectResult.data?.difficulty ||
+        inferProjectDifficulty(
+          syncedProjectFields.duration_days || DEFAULT_PROJECT_DURATION_DAYS,
+        ),
+    };
+
+    const syncProjectResult = existingOrgProject
+      ? await admin
+          .from("development_projects")
+          .update(syncedProjectPayload)
+          .eq("organization_id", profile.organization_id)
+          .eq("id", existingOrgProject.id)
+      : await admin.from("development_projects").insert(syncedProjectPayload);
+
+    if (syncProjectResult.error) {
+      throw new ApiRouteError(syncProjectResult.error.message, 500);
     }
 
     return NextResponse.json({

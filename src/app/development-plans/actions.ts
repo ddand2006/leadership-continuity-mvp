@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { buildDevelopmentProjectFieldsFromIdea } from "@/lib/development-project-library";
 import { hasOpenAIEnv } from "@/lib/env";
 import { generateDevelopmentPlansForRole } from "@/lib/development-plan-generator";
 import { canonicalizeRoleTitle } from "@/lib/role-title";
@@ -45,13 +46,24 @@ export async function generateDevelopmentPlansAction(
   const count = parseRequestedCount(formData);
   const { profile } = await requirePaidWorkspaceProfile();
   const admin = createSupabaseAdminClient();
-  const [roleResult, competenciesResult, strengthsLibraryResult, existingPlansResult] =
+  const [
+    roleResult,
+    organizationResult,
+    competenciesResult,
+    strengthsLibraryResult,
+    existingPlansResult,
+  ] =
     await Promise.all([
       admin
         .from("roles")
         .select("id, title, department, description")
         .eq("organization_id", profile.organization_id)
         .eq("id", roleId)
+        .maybeSingle(),
+      admin
+        .from("organizations")
+        .select("industry")
+        .eq("id", profile.organization_id)
         .maybeSingle(),
       admin
         .from("role_competencies")
@@ -71,11 +83,12 @@ export async function generateDevelopmentPlansAction(
         .or(`organization_id.is.null,organization_id.eq.${profile.organization_id}`),
     ]);
 
-  for (const result of [
-    roleResult,
-    competenciesResult,
-    strengthsLibraryResult,
-    existingPlansResult,
+    for (const result of [
+      roleResult,
+      organizationResult,
+      competenciesResult,
+      strengthsLibraryResult,
+      existingPlansResult,
   ]) {
     if (result.error) {
       return {
@@ -113,6 +126,7 @@ export async function generateDevelopmentPlansAction(
         title: roleTitle,
         department: role.department,
         description: role.description,
+        industry: organizationResult.data?.industry ?? null,
       },
       competencies: (competenciesResult.data ?? []).map((competency) => ({
         name: competency.name,
@@ -155,16 +169,33 @@ export async function generateDevelopmentPlansAction(
     const insertResult = await admin.from("development_projects").insert(
       uniquePlans.map((plan) => ({
         organization_id: profile.organization_id,
-        title: plan.title,
-        description: plan.description,
-        difficulty: plan.difficulty,
-        duration_days: plan.duration_days,
-        applicable_roles: [roleTitle],
+        ...buildDevelopmentProjectFieldsFromIdea({
+          idea: {
+            title: plan.title,
+            project_type: "departmental",
+            purpose: plan.description,
+            description: plan.description,
+            working_goal: plan.description,
+            why_it_fits: `Designed for ${roleTitle} growth in ${organizationResult.data?.industry ?? "the organization"}.`,
+            strengths_application: plan.strengths_leveraged.join(" • "),
+            mentor_focus: plan.mentor_questions[0] ?? "Coach on execution and reflection.",
+            first_step: plan.expected_outcomes[0] ?? "Clarify the first concrete milestone.",
+            key_partners: [roleTitle],
+            leadership_actions_required: plan.expected_outcomes.slice(0, 3),
+            mentor_preparation: plan.mentor_questions.slice(0, 2),
+            mentee_preparation: plan.expected_outcomes.slice(0, 2),
+            anticipated_challenges: plan.evidence_of_success.slice(0, 2),
+            success_measures: plan.expected_outcomes,
+            reflection_questions: plan.mentor_questions,
+            duration_days: plan.duration_days,
+            success_signals: plan.evidence_of_success,
+          },
+          roleTitle,
+          competencyName: plan.competencies_developed[0] ?? roleTitle,
+          industryName: organizationResult.data?.industry ?? null,
+        }),
         competencies_developed: plan.competencies_developed,
         strengths_leveraged: plan.strengths_leveraged,
-        expected_outcomes: plan.expected_outcomes,
-        mentor_questions: plan.mentor_questions,
-        evidence_of_success: plan.evidence_of_success,
       })),
     );
 

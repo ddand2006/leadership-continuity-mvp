@@ -6,6 +6,7 @@ import {
   requireApiWorkspaceProfile,
 } from "@/lib/api-route";
 import { isMissingCandidateGeneratedMentoringIdeaSetTableError } from "@/lib/candidate-generated-mentoring-idea-set";
+import { buildDevelopmentProjectFieldsFromIdea } from "@/lib/development-project-library";
 import {
   buildLeadershipDevelopmentRecordFromProject,
   buildCandidateSpecificProjectDescription,
@@ -104,6 +105,7 @@ export async function POST(request: Request) {
       candidateResult,
       roleResult,
       competencyResult,
+      organizationResult,
       mentorAssignmentsResult,
       existingProjectResult,
     ] = await Promise.all([
@@ -126,6 +128,11 @@ export async function POST(request: Request) {
         .eq("id", payload.competencyId)
         .maybeSingle(),
       admin
+        .from("organizations")
+        .select("industry")
+        .eq("id", profile.organization_id)
+        .maybeSingle(),
+      admin
         .from("mentor_role_assignments")
         .select("candidate_id, mentor_profile_id, role_id, status")
         .eq("organization_id", profile.organization_id)
@@ -143,6 +150,7 @@ export async function POST(request: Request) {
       candidateResult,
       roleResult,
       competencyResult,
+      organizationResult,
       mentorAssignmentsResult,
       existingProjectResult,
     ]) {
@@ -224,22 +232,21 @@ export async function POST(request: Request) {
 
     if (!developmentProjectId) {
       const insertProjectResult = await admin
-        .from("development_projects")
-        .insert({
-          organization_id: profile.organization_id,
-          title: payload.idea.title,
-          description: projectDescription,
-          difficulty: "intermediate",
-          duration_days: payload.idea.duration_days,
-          applicable_roles: [roleTitle],
-          competencies_developed: [competencyResult.data.name],
-          strengths_leveraged: [],
-          expected_outcomes: payload.idea.success_measures,
-          mentor_questions: payload.idea.reflection_questions,
-          evidence_of_success: payload.idea.success_signals,
-        })
-        .select("id")
-        .single();
+          .from("development_projects")
+          .insert({
+            organization_id: profile.organization_id,
+            ...buildDevelopmentProjectFieldsFromIdea({
+              idea: {
+                ...payload.idea,
+                description: projectDescription,
+              },
+              roleTitle,
+              competencyName: competencyResult.data.name,
+              industryName: organizationResult.data?.industry ?? null,
+            }),
+          })
+          .select("id")
+          .single();
 
       if (insertProjectResult.error) {
         throw new ApiRouteError(insertProjectResult.error.message, 500);
@@ -415,6 +422,7 @@ export async function POST(request: Request) {
       candidate_id: payload.candidateId,
       role_id: payload.roleId,
       mentor_id: mentoringTrackMentorProfileId,
+      source_project_assignment_id: selectedProjectDraft.sourceProjectAssignmentId || null,
       target_role: roleTitle,
       date_assigned: selectedProjectDraft.dateAssigned,
       status: "assigned",
@@ -422,6 +430,20 @@ export async function POST(request: Request) {
       assignment_reason: selectedProjectDraft.assignmentReason || null,
       experience_title: selectedProjectDraft.experienceTitle,
       mentee_task: selectedProjectDraft.menteeTask || null,
+      project_summary: selectedProjectDraft.projectSummary || null,
+      project_purpose: selectedProjectDraft.projectPurpose || null,
+      working_goal: selectedProjectDraft.workingGoal || null,
+      why_it_fits: selectedProjectDraft.whyItFits || null,
+      mentor_focus: selectedProjectDraft.mentorFocus || null,
+      first_step: selectedProjectDraft.firstStep || null,
+      key_partners: selectedProjectDraft.keyPartners,
+      leadership_actions_required: selectedProjectDraft.leadershipActionsRequired,
+      anticipated_challenges: selectedProjectDraft.anticipatedChallenges,
+      success_measures: selectedProjectDraft.successMeasures,
+      mentor_preparation: selectedProjectDraft.mentorPreparation,
+      mentee_preparation: selectedProjectDraft.menteePreparation,
+      reflection_questions: selectedProjectDraft.reflectionQuestions,
+      success_signals: selectedProjectDraft.successSignals,
       readiness_signal: null,
       mentor_improvement_observed: null,
       mentor_development_needed: null,
