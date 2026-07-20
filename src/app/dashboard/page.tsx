@@ -215,6 +215,11 @@ type DashboardRecommendation = {
   href?: string;
 };
 
+type DashboardReportLine = {
+  title: string;
+  body: string;
+};
+
 type DashboardIntelligence = {
   filters: DashboardFilters;
   filterOptions: {
@@ -266,6 +271,7 @@ type DashboardIntelligence = {
   recommendations: DashboardRecommendation[];
   successionRisks: DashboardRecommendation[];
   learnedInsights: string[];
+  liveReport: DashboardReportLine[];
 };
 
 type DashboardSnapshot = {
@@ -1432,8 +1438,20 @@ function buildDashboardIntelligence(options: {
   const recommendations: DashboardRecommendation[] = [];
   const successionRisks: DashboardRecommendation[] = [];
   const learnedInsights: string[] = [];
+  const liveReport: DashboardReportLine[] = [];
 
   if (highRiskRoles.length > 0) {
+    liveReport.push({
+      title: "Immediate risk watch",
+      body:
+        highRiskRoles.length === 1
+          ? `${highRiskRoles[0]?.roleTitle ?? "One role"} currently needs immediate succession attention.`
+          : `${highRiskRoles.length} roles currently need immediate succession attention, led by ${highRiskRoles
+              .slice(0, 2)
+              .map((role) => role.roleTitle)
+              .join(", ")}.`,
+    });
+
     for (const role of highRiskRoles.slice(0, 3)) {
       successionRisks.push({
         title: `${role.roleTitle} pipeline is high risk`,
@@ -1455,6 +1473,14 @@ function buildDashboardIntelligence(options: {
   }
 
   if (uncoveredRoles.length > 0) {
+    liveReport.push({
+      title: "Coverage gap",
+      body: `Critical roles still lacking active coverage: ${uncoveredRoles
+        .slice(0, 3)
+        .map((role) => role.title)
+        .join(", ")}${uncoveredRoles.length > 3 ? ", and more." : "."}`,
+    });
+
     recommendations.push({
       title: "Close uncovered critical-role gaps",
       body: `Uncovered roles: ${uncoveredRoles.slice(0, 3).map((role) => role.title).join(", ")}.`,
@@ -1468,6 +1494,11 @@ function buildDashboardIntelligence(options: {
     .find((row) => (row.averageImprovement ?? 0) <= 0.25 && row.candidateCount >= 2);
 
   if (stalledCompetency) {
+    liveReport.push({
+      title: "Development bottleneck",
+      body: `${stalledCompetency.competencyName} is the slowest-moving competency across ${stalledCompetency.candidateCount} candidates in the current view.`,
+    });
+
     successionRisks.push({
       title: `${stalledCompetency.competencyName} is stalling`,
       body: `${stalledCompetency.candidateCount} candidates are developing this competency with limited recent improvement.`,
@@ -1486,6 +1517,11 @@ function buildDashboardIntelligence(options: {
   );
 
   if (overdueReviewCount > 0) {
+    liveReport.push({
+      title: "Mentor follow-through",
+      body: `${overdueReviewCount} role tracks still need a timely mentor review to keep readiness decisions current.`,
+    });
+
     successionRisks.push({
       title: "Mentor reviews are overdue",
       body: `${overdueReviewCount} role tracks need a timely mentor review to keep development moving.`,
@@ -1499,6 +1535,14 @@ function buildDashboardIntelligence(options: {
   }
 
   if (readySuccessors.near.length > 0) {
+    liveReport.push({
+      title: "Bench strength signal",
+      body:
+        readySuccessors.ready.length > 0
+          ? `${readySuccessors.ready.length} successors are already role-ready and ${readySuccessors.near.length} more are near-ready.`
+          : `${readySuccessors.near.length} successors are near-ready for executive review in the current filtered view.`,
+    });
+
     recommendations.push({
       title: "Schedule executive review for near-ready successors",
       body: `${readySuccessors.near.length} candidates are approaching role-readiness and should be discussed in leadership review.`,
@@ -1517,6 +1561,11 @@ function buildDashboardIntelligence(options: {
     )[0];
 
   if (strongestExperience?.averageCompetencyImprovement != null) {
+    liveReport.push({
+      title: "Best-performing experience",
+      body: `${strongestExperience.experienceType} is currently driving the strongest measured development improvement at ${strongestExperience.averageCompetencyImprovement.toFixed(2)} points on average.`,
+    });
+
     learnedInsights.push(
       `${strongestExperience.experienceType} is producing the strongest current growth at ${strongestExperience.averageCompetencyImprovement.toFixed(2)} points on average.`,
     );
@@ -1597,6 +1646,7 @@ function buildDashboardIntelligence(options: {
     recommendations: recommendations.slice(0, 5),
     successionRisks: successionRisks.slice(0, 5),
     learnedInsights: learnedInsights.slice(0, 5),
+    liveReport: liveReport.slice(0, 5),
   };
 }
 
@@ -2475,10 +2525,30 @@ export default async function DashboardPage({
                     <h3 className="mt-2 font-display text-3xl text-slate-900">
                       What the Leadership Continuity System is telling you next
                     </h3>
+                    {intelligence.liveReport.length > 0 ? (
+                      <div className="mt-5 grid gap-3">
+                        {intelligence.liveReport.map((line) => (
+                          <article
+                            key={line.title}
+                            className="rounded-2xl border border-slate-200 bg-white p-4"
+                          >
+                            <p className="font-semibold text-slate-900">{line.title}</p>
+                            <p className="mt-2 text-sm leading-6 text-slate-600">
+                              {line.body}
+                            </p>
+                          </article>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="mt-5 text-sm leading-7 text-slate-600">
+                        More organization-specific development history is needed before reliable trend recommendations can be generated.
+                      </p>
+                    )}
+
                     {intelligence.filters.recommendationsOpen ? (
                       <>
                         {intelligence.recommendations.length > 0 ? (
-                          <div className="mt-5 grid gap-3">
+                          <div className="mt-6 grid gap-3">
                             {intelligence.recommendations.map((recommendation) => (
                               <article
                                 key={recommendation.title}
@@ -2501,11 +2571,7 @@ export default async function DashboardPage({
                               </article>
                             ))}
                           </div>
-                        ) : (
-                          <p className="mt-5 text-sm leading-7 text-slate-600">
-                            More organization-specific development history is needed before reliable trend recommendations can be generated.
-                          </p>
-                        )}
+                        ) : null}
 
                         {intelligence.successionRisks.length > 0 ? (
                           <div className="mt-6">
@@ -2540,10 +2606,10 @@ export default async function DashboardPage({
                         ) : null}
                       </>
                     ) : (
-                      <p className="mt-5 text-sm leading-7 text-slate-600">
-                        Generate a focused recommendation set grounded in your
-                        current role coverage, readiness trends, development
-                        activity, mentor reviews, and competency growth history.
+                      <p className="mt-6 text-sm leading-7 text-slate-600">
+                        Open the full recommendation set to see detailed action
+                        cards, succession risks, and learned organizational
+                        signals behind this live summary.
                       </p>
                     )}
                   </section>
