@@ -184,6 +184,34 @@ export function computeOverallReadiness(assessments: CompetencyAssessment[]) {
   return Number(weightedAverage.toFixed(2));
 }
 
+export function computeRoleGoalReadiness(
+  assessments: Array<Pick<CompetencyAssessment, "averageScore" | "targetScore">>,
+) {
+  if (assessments.length === 0) {
+    return {
+      readinessPercent: 0,
+      metGoalCount: 0,
+      totalCount: 0,
+    };
+  }
+
+  const totalProgress = assessments.reduce((sum, assessment) => {
+    if (assessment.targetScore <= 0) {
+      return sum + 1;
+    }
+
+    return sum + Math.min(assessment.averageScore / assessment.targetScore, 1);
+  }, 0);
+
+  return {
+    readinessPercent: Number(((totalProgress / assessments.length) * 100).toFixed(1)),
+    metGoalCount: assessments.filter(
+      (assessment) => assessment.averageScore >= assessment.targetScore,
+    ).length,
+    totalCount: assessments.length,
+  };
+}
+
 function getPreferredDifficulties(readiness: number) {
   if (readiness < 3.5) {
     return ["foundational", "intermediate"];

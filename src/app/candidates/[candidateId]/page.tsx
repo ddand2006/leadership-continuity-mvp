@@ -21,6 +21,7 @@ import {
   buildCompetencyAssessments,
   categorizeStrengths,
   computeOverallReadiness,
+  computeRoleGoalReadiness,
   rankMentoringIdeasForCompetency,
   type DevelopmentProjectRecord,
 } from "@/lib/fit-analysis";
@@ -356,6 +357,7 @@ export default async function CandidateDetailPage({
       };
     });
   const readiness = computeOverallReadiness(assessments);
+  const roleGoalReadiness = computeRoleGoalReadiness(assessments);
   const roleMatchesWeakestToStrongest =
     buildRoleMatchesWeakestToStrongest(assessments);
   const strengthBuckets = categorizeStrengths(strengthsResult.data ?? []);
@@ -479,6 +481,7 @@ export default async function CandidateDetailPage({
     `Current title: ${candidate.current_title ?? "Not entered"}`,
     `Active role: ${activeRoleTitle || "No role selected"}`,
     `Weighted readiness: ${readiness.toFixed(2)} / 5`,
+    `Role-goal readiness: ${roleGoalReadiness.readinessPercent.toFixed(1)}%`,
     `Mentors: ${
       activeRoleMentorNames.length > 0
         ? activeRoleMentorNames.join(", ")

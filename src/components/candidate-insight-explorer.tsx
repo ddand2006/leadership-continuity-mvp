@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { CompetencyCoachingNarrativePanel } from "@/components/competency-coaching-narrative-panel";
 import { MentoringIdeasPanel } from "@/components/mentoring-ideas-panel";
 import type { GeneratedCandidateMentoringIdea } from "@/lib/candidate-mentoring-ideas";
+import { computeRoleGoalReadiness } from "@/lib/fit-analysis";
 import type { RankedProjectMatch } from "@/lib/fit-analysis";
 import { sanitizeAppText, sanitizeAppTextList } from "@/lib/text-sanitizer";
 
@@ -81,6 +82,10 @@ export function CandidateInsightExplorer({
   );
   const topStrengths = strengths.slice(0, 5);
   const nextStrengths = strengths.slice(5, 15);
+  const roleGoalReadiness = useMemo(
+    () => computeRoleGoalReadiness(assessments),
+    [assessments],
+  );
 
   const activeAssessment =
     selectedInsight?.kind === "competency"
@@ -116,12 +121,19 @@ export function CandidateInsightExplorer({
           </div>
           <div className="rounded-3xl border border-[rgba(82,140,94,0.2)] bg-[rgba(239,251,241,0.96)] p-6 text-[#183822] shadow-[0_20px_60px_rgba(36,64,216,0.1)]">
             <p className="text-sm font-semibold tracking-[0.16em] text-[#24512f] uppercase">
-              Top 15 Strengths
+              Role-Goal Readiness
+            </p>
+            <p className="mt-3 text-4xl font-semibold text-[#14361d]">
+              {roleGoalReadiness.readinessPercent.toFixed(1)}%
             </p>
             <p className="mt-3 text-sm leading-7 text-[#24512f]">
-              Keep the highest-priority strengths in view first. The top 5 are
-              separated from the next 10 so mentors can stay focused on the most
-              influential themes.
+              {roleGoalReadiness.metGoalCount} of {roleGoalReadiness.totalCount}{" "}
+              competencies are at or above the role goal.
+            </p>
+            <p className="mt-3 text-sm leading-7 text-[#24512f]">
+              Each competency at or above the role goal counts as 100%. Scores
+              below goal count as the percent of the role goal achieved, then the
+              percentages are averaged across the chart.
             </p>
           </div>
         </div>
