@@ -391,6 +391,12 @@ function ProjectDetailTextCard({
   maxLength: number;
   rows?: number;
 }) {
+  function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key === "Enter") {
+      event.stopPropagation();
+    }
+  }
+
   return (
     <div className="rounded-2xl bg-white px-4 py-4">
       <label className="block">
@@ -400,9 +406,10 @@ function ProjectDetailTextCard({
         <textarea
           value={value}
           onChange={(event) => onChange(event.target.value)}
+          onKeyDown={handleKeyDown}
           maxLength={maxLength}
           rows={rows}
-          className="mt-2 min-h-28 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-7 text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
+          className="mt-2 min-h-28 w-full resize-y whitespace-pre-wrap rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-7 text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
         />
       </label>
     </div>
@@ -418,6 +425,12 @@ function ProjectDetailListCard({
   values: string[];
   onChange: (values: string[]) => void;
 }) {
+  function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key === "Enter") {
+      event.stopPropagation();
+    }
+  }
+
   return (
     <div className="rounded-2xl bg-white px-4 py-4">
       <label className="block">
@@ -427,8 +440,9 @@ function ProjectDetailListCard({
         <textarea
           value={formatProjectDetailList(values)}
           onChange={(event) => onChange(parseProjectDetailList(event.target.value))}
+          onKeyDown={handleKeyDown}
           rows={5}
-          className="mt-2 min-h-32 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-7 text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
+          className="mt-2 min-h-32 w-full resize-y whitespace-pre-wrap rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-7 text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
         />
         <p className="mt-2 text-xs text-slate-500">Enter one item per line.</p>
       </label>

@@ -11,10 +11,12 @@ type MentoringWorkspaceSection = {
 export function MentoringWorkspaceMenu({
   detailItems,
   initialSectionId,
+  middleContent,
   sections,
 }: {
   detailItems: string[];
   initialSectionId?: string;
+  middleContent?: ReactNode;
   sections: MentoringWorkspaceSection[];
 }) {
   const [activeSectionId, setActiveSectionId] = useState(
@@ -73,6 +75,8 @@ export function MentoringWorkspaceMenu({
           </div>
         </div>
       </div>
+
+      {middleContent}
 
       <div className="grid gap-6">{activeSection.content}</div>
     </section>
