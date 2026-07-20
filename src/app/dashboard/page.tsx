@@ -1154,15 +1154,30 @@ function buildDashboardIntelligence(options: {
       left.updated_at.localeCompare(right.updated_at),
     );
     const startDate = sortedRecords[0]?.date_assigned ?? sortedRecords[0]?.updated_at ?? null;
+    const latestRecord = sortedRecords[sortedRecords.length - 1] ?? null;
+    const derivedReadinessStatus = getRoleGoalReadinessStatus(
+      track.roleGoalReadinessPercent,
+    );
     const firstNearRecord =
       sortedRecords.find((record) =>
         record.readiness_signal === "near_role_ready" || record.readiness_signal === "role_ready",
       ) ?? null;
     const firstReadyRecord =
       sortedRecords.find((record) => record.readiness_signal === "role_ready") ?? null;
+    const firstNearDate =
+      firstNearRecord?.updated_at ??
+      (derivedReadinessStatus === "near_role_ready" ||
+      derivedReadinessStatus === "role_ready"
+        ? latestRecord?.updated_at ?? null
+        : null);
+    const firstReadyDate =
+      firstReadyRecord?.updated_at ??
+      (derivedReadinessStatus === "role_ready"
+        ? latestRecord?.updated_at ?? null
+        : null);
 
-    if (firstNearRecord && isOnOrAfter(firstNearRecord.updated_at, timeRangeStart)) {
-      const months = calculateMonthsBetween(startDate, firstNearRecord.updated_at);
+    if (firstNearDate && isOnOrAfter(firstNearDate, timeRangeStart)) {
+      const months = calculateMonthsBetween(startDate, firstNearDate);
 
       if (months !== null) {
         nearMilestones.push({
@@ -1174,8 +1189,8 @@ function buildDashboardIntelligence(options: {
       }
     }
 
-    if (firstReadyRecord && isOnOrAfter(firstReadyRecord.updated_at, timeRangeStart)) {
-      const months = calculateMonthsBetween(startDate, firstReadyRecord.updated_at);
+    if (firstReadyDate && isOnOrAfter(firstReadyDate, timeRangeStart)) {
+      const months = calculateMonthsBetween(startDate, firstReadyDate);
 
       if (months !== null) {
         readyMilestones.push({
