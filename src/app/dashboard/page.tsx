@@ -2606,11 +2606,21 @@ export default async function DashboardPage({
                         ) : null}
                       </>
                     ) : (
-                      <p className="mt-6 text-sm leading-7 text-slate-600">
-                        Open the full recommendation set to see detailed action
-                        cards, succession risks, and learned organizational
-                        signals behind this live summary.
-                      </p>
+                      <div className="mt-6">
+                        <p className="text-sm leading-7 text-slate-600">
+                          Open the full recommendation set to see detailed action
+                          cards, succession risks, and learned organizational
+                          signals behind this live summary.
+                        </p>
+                        <Link
+                          href={buildDashboardHref(intelligence.filters, {
+                            recommendationsOpen: true,
+                          })}
+                          className="interactive-contrast mt-4 inline-flex rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-900"
+                        >
+                          Open Full Recommendation Set
+                        </Link>
+                      </div>
                     )}
                   </section>
                 </div>
