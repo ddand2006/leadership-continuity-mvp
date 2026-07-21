@@ -2,7 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SubscriptionPaywallPanel } from "@/components/subscription-paywall-panel";
 import { requireUser } from "@/lib/auth";
+import { computeCandidateAward } from "@/lib/candidate-awards";
+import Image from "next/image";
 import { canAccessLeadershipHelpPreview } from "@/lib/leadership-help-preview";
+import { getLegacyCertificationAsset } from "@/lib/legacy-certifications";
 import {
   hasProductAccess,
   loadOrganizationSubscription,
@@ -14,6 +17,10 @@ import { MentorDirectoryManager } from "@/components/mentor-directory-manager";
 import { WorkspaceSetupForm } from "@/components/workspace-setup-form";
 import { createWorkspaceSetupToken } from "@/lib/workspace-setup-token";
 import { isMissingLeadershipDevelopmentRecordTableError } from "@/lib/leadership-development-record";
+import {
+  computeOrganizationAward,
+  type OrganizationAward,
+} from "@/lib/organization-awards";
 import { isMissingOrganizationIndustryColumnError } from "@/lib/organization-industry";
 import { canonicalizeRoleTitle } from "@/lib/role-title";
 import {
@@ -239,6 +246,7 @@ type DashboardIntelligence = {
     mentorEngagementScore: number;
     reviewCompletionScore: number;
   };
+  organizationAward: OrganizationAward;
   criticalRolesCovered: {
     covered: number;
     total: number;
@@ -1032,6 +1040,57 @@ function buildDashboardIntelligence(options: {
     ]),
   );
 
+  const organizationAward = computeOrganizationAward({
+    roles: visibleRoles.map((role) => ({
+      id: role.id,
+      title: role.title,
+    })),
+    roleBench: visibleRoles.map((role) => {
+      const roleTracks = activeTracks.filter((track) => track.roleId === role.id);
+      const coveredSuccessorCount = roleTracks.filter((track) => {
+        const candidateAward = computeCandidateAward({
+          readinessPercent: track.roleGoalReadinessPercent,
+          hasMentorAssigned:
+            track.mentorIds.length > 0 ||
+            track.records.some((record) => Boolean(record.mentor_id)),
+          hasDevelopmentRecord: track.records.length > 0,
+          hasCompletedMentorReview: track.records.some((record) =>
+            Boolean(record.mentor_review_date),
+          ),
+        });
+
+        return (
+          candidateAward.tier === "silver" ||
+          candidateAward.tier === "gold" ||
+          candidateAward.tier === "platinum"
+        );
+      }).length;
+      const goldReadySuccessorCount = roleTracks.filter((track) => {
+        const candidateAward = computeCandidateAward({
+          readinessPercent: track.roleGoalReadinessPercent,
+          hasMentorAssigned:
+            track.mentorIds.length > 0 ||
+            track.records.some((record) => Boolean(record.mentor_id)),
+          hasDevelopmentRecord: track.records.length > 0,
+          hasCompletedMentorReview: track.records.some((record) =>
+            Boolean(record.mentor_review_date),
+          ),
+        });
+
+        return (
+          candidateAward.tier === "gold" || candidateAward.tier === "platinum"
+        );
+      }).length;
+
+      return {
+        roleId: role.id,
+        successorCount: roleTracks.length,
+        coveredSuccessorCount,
+        goldReadySuccessorCount,
+      };
+    }),
+  });
+
   const readySuccessors = {
     near: [] as SuccessorSummary[],
     ready: [] as SuccessorSummary[],
@@ -1629,6 +1688,7 @@ function buildDashboardIntelligence(options: {
       mentorEngagementScore,
       reviewCompletionScore,
     },
+    organizationAward,
     criticalRolesCovered: {
       covered: coveredRoleIds.size,
       total: visibleRoles.length,
@@ -2334,7 +2394,7 @@ export default async function DashboardPage({
                   </div>
                 ) : null}
 
-                <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
                   <article className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       Leadership Continuity Score
@@ -2350,6 +2410,71 @@ export default async function DashboardPage({
                       <p>Readiness {formatPercent(intelligence.continuityScore.candidateReadinessScore)}</p>
                       <p>Progress {formatPercent(intelligence.continuityScore.developmentProgressScore)}</p>
                     </div>
+                  </article>
+                  <article className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
+                    <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                      Legacy Certification
+                    </p>
+                    {intelligence.organizationAward.tier ? (
+                      <div className="mt-3 flex items-center gap-3">
+                        <Image
+                          src={
+                            getLegacyCertificationAsset(
+                              intelligence.organizationAward.tier,
+                            )?.src ?? "/legacy-certifications/bronze.png"
+                          }
+                          alt={
+                            getLegacyCertificationAsset(
+                              intelligence.organizationAward.tier,
+                            )?.alt ?? "Legacy certification logo"
+                          }
+                          width={68}
+                          height={68}
+                          className="h-[4.25rem] w-[4.25rem] rounded-full object-cover"
+                        />
+                        <p className="text-3xl font-semibold text-slate-900 lg:text-[2rem]">
+                          {
+                            getLegacyCertificationAsset(
+                              intelligence.organizationAward.tier,
+                            )?.shortLabel
+                          }
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="mt-2 text-3xl font-semibold text-slate-900 lg:text-[2rem]">
+                        Not Yet
+                      </p>
+                    )}
+                    <p className="mt-2 text-sm font-semibold text-teal-800">
+                      {intelligence.organizationAward.protectedRoleCount} protected role
+                      {intelligence.organizationAward.protectedRoleCount === 1
+                        ? ""
+                        : "s"}
+                    </p>
+                    <div className="mt-3 grid gap-1.5 text-[11px] text-slate-600">
+                      <p>
+                        Top roles protected{" "}
+                        {intelligence.organizationAward.protectedTopPriorityRoleCount}/
+                        {intelligence.organizationAward.topPriorityRoleCount}
+                      </p>
+                      <p>
+                        Top roles covered{" "}
+                        {intelligence.organizationAward.coveredTopPriorityRoleCount}/
+                        {intelligence.organizationAward.topPriorityRoleCount}
+                      </p>
+                      <p>
+                        Two-deep top roles{" "}
+                        {intelligence.organizationAward.twoDeepTopPriorityRoleCount}/
+                        {intelligence.organizationAward.topPriorityRoleCount}
+                      </p>
+                    </div>
+                    <p className="mt-4 text-xs leading-6 text-slate-500">
+                      {intelligence.organizationAward.description}
+                    </p>
+                    <p className="mt-2 text-[11px] leading-5 text-slate-400">
+                      Top-role ranking currently follows the visible role order in
+                      this dashboard view.
+                    </p>
                   </article>
                   <article className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">

@@ -1,4 +1,6 @@
+import Image from "next/image";
 import type { CandidateAward } from "@/lib/candidate-awards";
+import { getLegacyCertificationAsset } from "@/lib/legacy-certifications";
 
 type CandidateAwardBadgeProps = {
   award: CandidateAward;
@@ -6,8 +8,13 @@ type CandidateAwardBadgeProps = {
 };
 
 const SIZE_CLASS_NAMES = {
-  sm: "px-3 py-1 text-xs",
-  md: "px-3.5 py-1.5 text-sm",
+  sm: "gap-2 px-3 py-1 text-xs",
+  md: "gap-2.5 px-3.5 py-1.5 text-sm",
+} as const;
+
+const IMAGE_SIZE = {
+  sm: 22,
+  md: 28,
 } as const;
 
 function getBadgeClassName(tier: CandidateAward["tier"]) {
@@ -29,11 +36,22 @@ export function CandidateAwardBadge({
   award,
   size = "md",
 }: CandidateAwardBadgeProps) {
+  const asset = getLegacyCertificationAsset(award.tier);
+
   return (
     <span
       className={`inline-flex items-center rounded-full border font-semibold ${SIZE_CLASS_NAMES[size]} ${getBadgeClassName(award.tier)}`}
     >
-      {award.tier ? `${award.label} Award` : award.label}
+      {asset ? (
+        <Image
+          src={asset.src}
+          alt={asset.alt}
+          width={IMAGE_SIZE[size]}
+          height={IMAGE_SIZE[size]}
+          className="rounded-full"
+        />
+      ) : null}
+      {asset ? asset.fullLabel : award.label}
     </span>
   );
 }
