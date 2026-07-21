@@ -318,29 +318,6 @@ type DashboardTrack = {
   roleGoalReadinessPercent: number | null;
 };
 
-function getSetupDefaultFullName(user: Awaited<ReturnType<typeof requireUser>>) {
-  const metadataName =
-    typeof user.user_metadata.full_name === "string"
-      ? user.user_metadata.full_name.trim()
-      : "";
-
-  if (metadataName) {
-    return metadataName;
-  }
-
-  const emailPrefix = user.email?.split("@")[0]?.trim() ?? "";
-
-  if (!emailPrefix) {
-    return "";
-  }
-
-  return emailPrefix
-    .split(/[._-]+/)
-    .filter(Boolean)
-    .map((part) => part[0]?.toUpperCase() + part.slice(1))
-    .join(" ");
-}
-
 const TIME_RANGE_OPTIONS: Array<{ value: TimeRange; label: string }> = [
   { value: "30d", label: "Last 30 days" },
   { value: "90d", label: "Last 90 days" },
@@ -2340,7 +2317,7 @@ export default async function DashboardPage({
             <WorkspaceSetupForm
               authEmail={user.email ?? ""}
               authUserId={user.id}
-              defaultFullName={getSetupDefaultFullName(user)}
+              defaultFullName=""
               defaultOrganizationName="Leadership Continuity Demo Organization"
               defaultIndustryName="Healthcare"
               setupToken={setupToken}
