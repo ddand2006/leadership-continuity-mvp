@@ -437,6 +437,23 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
         category: item.category,
         characteristic: item.characteristic,
       })),
+      ...masterRoleTemplates.flatMap((template) => [
+        ...template.talents.map((characteristic, index) => ({
+          id: `template-${template.id}-talent-${index}`,
+          category: "talent",
+          characteristic,
+        })),
+        ...template.skills.map((characteristic, index) => ({
+          id: `template-${template.id}-skill-${index}`,
+          category: "skill",
+          characteristic,
+        })),
+        ...template.behaviors.map((characteristic, index) => ({
+          id: `template-${template.id}-behavior-${index}`,
+          category: "behavior",
+          characteristic,
+        })),
+      ]),
     ];
     const seen = new Set<string>();
 

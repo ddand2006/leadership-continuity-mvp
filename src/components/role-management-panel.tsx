@@ -127,6 +127,7 @@ export function RoleManagementPanel({
     initialEditorRole?.description ?? "",
   );
   const [newLibraryCompetency, setNewLibraryCompetency] = useState("");
+  const [sharedLibrarySearch, setSharedLibrarySearch] = useState("");
   const [status, setStatus] = useState<"draft" | "active">(
     initialEditorRole?.status ?? "draft",
   );
@@ -177,10 +178,32 @@ export function RoleManagementPanel({
       ) === index,
   );
   const sharedLibraryByCategory = {
-    talents: sharedLibraryItems.filter((item) => item.category === "talent"),
-    skills: sharedLibraryItems.filter((item) => item.category === "skill"),
-    behaviors: sharedLibraryItems.filter((item) => item.category === "behavior"),
+    talents: sharedLibraryItems
+      .filter((item) => item.category === "talent")
+      .sort((left, right) => left.characteristic.localeCompare(right.characteristic)),
+    skills: sharedLibraryItems
+      .filter((item) => item.category === "skill")
+      .sort((left, right) => left.characteristic.localeCompare(right.characteristic)),
+    behaviors: sharedLibraryItems
+      .filter((item) => item.category === "behavior")
+      .sort((left, right) => left.characteristic.localeCompare(right.characteristic)),
   };
+  const normalizedSharedLibrarySearch = sharedLibrarySearch.trim().toLowerCase();
+  const filteredSharedLibraryByCategory = {
+    talents: sharedLibraryByCategory.talents.filter((item) =>
+      item.characteristic.toLowerCase().includes(normalizedSharedLibrarySearch),
+    ),
+    skills: sharedLibraryByCategory.skills.filter((item) =>
+      item.characteristic.toLowerCase().includes(normalizedSharedLibrarySearch),
+    ),
+    behaviors: sharedLibraryByCategory.behaviors.filter((item) =>
+      item.characteristic.toLowerCase().includes(normalizedSharedLibrarySearch),
+    ),
+  };
+  const filteredSharedLibraryCount =
+    filteredSharedLibraryByCategory.talents.length +
+    filteredSharedLibraryByCategory.skills.length +
+    filteredSharedLibraryByCategory.behaviors.length;
   const saveRoleButtonLabel = isCreatePending
     ? selectedEditorRole
       ? "Saving role..."
@@ -1156,8 +1179,9 @@ export function RoleManagementPanel({
                     Shared Competency Library
                   </p>
                   <p className="mt-3 text-sm leading-7 text-slate-600">
-                    Click any saved item to add it to this role, or click it again
-                    to remove it from the editor.
+                    Search saved competencies from this organization and the
+                    loaded industry templates, then click any item to add it to
+                    this role or click it again to remove it from the editor.
                   </p>
                   <div className="mt-5 rounded-3xl border border-slate-200 bg-white p-4">
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
@@ -1203,24 +1227,47 @@ export function RoleManagementPanel({
                       </p>
                     ) : null}
                   </div>
+                  <div className="mt-5 rounded-3xl border border-slate-200 bg-white p-4">
+                    <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                      Search database
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">
+                      Browse all available talents, skills, and behaviors in one
+                      searchable list.
+                    </p>
+                    <input
+                      className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
+                      type="search"
+                      value={sharedLibrarySearch}
+                      onChange={(event) =>
+                        setSharedLibrarySearch(event.currentTarget.value)
+                      }
+                      placeholder="Search all competencies"
+                    />
+                    <p className="mt-3 text-xs font-medium tracking-[0.08em] text-slate-500 uppercase">
+                      {normalizedSharedLibrarySearch
+                        ? `Showing ${filteredSharedLibraryCount} matching competencies`
+                        : `Loaded ${sharedLibraryItems.length} competencies`}
+                    </p>
+                  </div>
                   <div className="mt-5 grid gap-4">
                     {[
                       {
                         title: "Talents",
                         category: "talent" as const,
-                        items: sharedLibraryByCategory.talents,
+                        items: filteredSharedLibraryByCategory.talents,
                         currentValue: talentsValue,
                       },
                       {
                         title: "Skills",
                         category: "skill" as const,
-                        items: sharedLibraryByCategory.skills,
+                        items: filteredSharedLibraryByCategory.skills,
                         currentValue: skillsValue,
                       },
                       {
                         title: "Behaviors",
                         category: "behavior" as const,
-                        items: sharedLibraryByCategory.behaviors,
+                        items: filteredSharedLibraryByCategory.behaviors,
                         currentValue: behaviorsValue,
                       },
                     ].map((section) => {
@@ -1265,7 +1312,9 @@ export function RoleManagementPanel({
                               })
                             ) : (
                               <p className="text-sm text-slate-500">
-                                No shared {section.title.toLowerCase()} yet.
+                                {normalizedSharedLibrarySearch
+                                  ? `No matching ${section.title.toLowerCase()} found.`
+                                  : `No ${section.title.toLowerCase()} in the competency database yet.`}
                               </p>
                             )}
                           </div>
