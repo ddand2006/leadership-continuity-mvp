@@ -19,6 +19,10 @@ import {
 } from "@/lib/role-competency-surveys";
 import { groupCharacteristicsByCategory } from "@/lib/role-characteristics";
 import { canonicalizeRoleTitle } from "@/lib/role-title";
+import {
+  getFallbackMasterRoleCompetencyTemplates,
+  isMissingMasterRoleCompetencyTemplatesTableError,
+} from "@/lib/master-role-competency-templates";
 import { requirePaidWorkspaceProfile } from "@/lib/workspace";
 
 type RolesPageProps = {
@@ -104,6 +108,8 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
     roleSurveysResult,
     roleSurveyRecipientsResult,
     roleSurveyResponsesResult,
+    organizationResult,
+    masterRoleTemplatesResult,
   ] =
     await Promise.all([
       supabase
@@ -192,6 +198,18 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
             .eq("organization_id", profile.organization_id)
             .order("submitted_at", { ascending: false })
         : Promise.resolve({ data: [], error: null }),
+      supabase
+        .from("organizations")
+        .select("industry")
+        .eq("id", profile.organization_id)
+        .maybeSingle(),
+      supabase
+        .from("master_role_competency_templates")
+        .select(
+          "id, industry, role_title, role_family, default_department, description, talents, skills, behaviors",
+        )
+        .order("industry", { ascending: true, nullsFirst: false })
+        .order("role_title", { ascending: true }),
     ]);
 
   if (rolesResult.error) {
@@ -244,6 +262,17 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
     !isMissingRoleSurveyTablesError(roleSurveyResponsesResult.error)
   ) {
     throw new Error(roleSurveyResponsesResult.error.message);
+  }
+
+  if (organizationResult.error) {
+    throw new Error(organizationResult.error.message);
+  }
+
+  if (
+    masterRoleTemplatesResult.error &&
+    !isMissingMasterRoleCompetencyTemplatesTableError(masterRoleTemplatesResult.error)
+  ) {
+    throw new Error(masterRoleTemplatesResult.error.message);
   }
 
   const normalizedCompetencies = (competenciesResult.data ?? []) as Array<{
@@ -348,6 +377,46 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
     ...role,
     title: canonicalizeRoleTitle(role.title),
   }));
+  const organizationIndustry = organizationResult.data?.industry?.trim() ?? null;
+  const masterRoleTemplates =
+    masterRoleTemplatesResult.data && !masterRoleTemplatesResult.error
+      ? (masterRoleTemplatesResult.data as Array<{
+          id: string;
+          industry: string | null;
+          role_title: string;
+          role_family: string | null;
+          default_department: string | null;
+          description: string | null;
+          talents: string[] | null;
+          skills: string[] | null;
+          behaviors: string[] | null;
+        }>)
+          .map((template) => ({
+            id: template.id,
+            industry: template.industry,
+            role_title: canonicalizeRoleTitle(template.role_title),
+            role_family: template.role_family,
+            default_department: template.default_department,
+            description: template.description,
+            talents: template.talents ?? [],
+            skills: template.skills ?? [],
+            behaviors: template.behaviors ?? [],
+          }))
+          .filter((template) => {
+            if (!template.industry) {
+              return true;
+            }
+
+            return (
+              organizationIndustry !== null &&
+              template.industry.trim().toLowerCase() ===
+                organizationIndustry.trim().toLowerCase()
+            );
+          })
+      : getFallbackMasterRoleCompetencyTemplates(organizationIndustry).map((template) => ({
+          ...template,
+          role_title: canonicalizeRoleTitle(template.role_title),
+        }));
   const resolvedSharedLibrary: Array<{
     id: string;
     category: "talent" | "skill" | "behavior";
@@ -561,6 +630,8 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                   ).behaviors,
                 }))}
                 sharedLibrary={resolvedSharedLibrary}
+                organizationIndustry={organizationIndustry}
+                masterRoleTemplates={masterRoleTemplates}
                 canGenerateComposite={canGenerateComposite}
                 initialSelectedRoleId={selectedRoleId}
                 mode="create"
@@ -595,6 +666,8 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                     ).behaviors,
                   }))}
                   sharedLibrary={resolvedSharedLibrary}
+                  organizationIndustry={organizationIndustry}
+                  masterRoleTemplates={masterRoleTemplates}
                   canGenerateComposite={canGenerateComposite}
                   initialSelectedRoleId={selectedRoleId}
                   mode="import"
@@ -672,6 +745,8 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                     ).behaviors,
                   }))}
                   sharedLibrary={resolvedSharedLibrary}
+                  organizationIndustry={organizationIndustry}
+                  masterRoleTemplates={masterRoleTemplates}
                   canGenerateComposite={canGenerateComposite}
                   initialSelectedRoleId={selectedRoleId}
                   mode="composite"

@@ -27,9 +27,23 @@ type SharedLibraryItem = {
   characteristic: string;
 };
 
+type MasterRoleTemplate = {
+  id: string;
+  industry: string | null;
+  role_title: string;
+  role_family: string | null;
+  default_department: string | null;
+  description: string | null;
+  talents: string[];
+  skills: string[];
+  behaviors: string[];
+};
+
 type RoleManagementPanelProps = {
   roles: RoleOption[];
   sharedLibrary: SharedLibraryItem[];
+  organizationIndustry?: string | null;
+  masterRoleTemplates?: MasterRoleTemplate[];
   canGenerateComposite: boolean;
   initialSelectedRoleId?: string | null;
   mode?: "create" | "import" | "composite" | "survey";
@@ -71,6 +85,8 @@ async function readApiResult(response: Response): Promise<ApiResult> {
 export function RoleManagementPanel({
   roles,
   sharedLibrary,
+  organizationIndustry = null,
+  masterRoleTemplates = [],
   canGenerateComposite,
   initialSelectedRoleId = null,
   mode = "create",
@@ -135,6 +151,7 @@ export function RoleManagementPanel({
   const [sharedLibraryOverrides, setSharedLibraryOverrides] = useState<
     SharedLibraryItem[]
   >([]);
+  const [selectedMasterTemplateId, setSelectedMasterTemplateId] = useState("");
   const [isEditingCompetencies, setIsEditingCompetencies] = useState(false);
   const [isCreatePending, startCreateTransition] = useTransition();
   const [isUploadCharacteristicsPending, startUploadCharacteristicsTransition] = useTransition();
@@ -171,6 +188,37 @@ export function RoleManagementPanel({
     : selectedEditorRole
       ? "Save Role Changes"
       : "Create Role";
+  const normalizedEditorTitle = title.trim().toLowerCase();
+  const orderedMasterRoleTemplates = [...masterRoleTemplates].sort((left, right) => {
+    const leftIndustryScore = left.industry ? 0 : 1;
+    const rightIndustryScore = right.industry ? 0 : 1;
+
+    if (leftIndustryScore !== rightIndustryScore) {
+      return leftIndustryScore - rightIndustryScore;
+    }
+
+    const leftTitleMatch =
+      normalizedEditorTitle.length > 0 &&
+      (left.role_title.toLowerCase().includes(normalizedEditorTitle) ||
+        normalizedEditorTitle.includes(left.role_title.toLowerCase()))
+        ? 0
+        : 1;
+    const rightTitleMatch =
+      normalizedEditorTitle.length > 0 &&
+      (right.role_title.toLowerCase().includes(normalizedEditorTitle) ||
+        normalizedEditorTitle.includes(right.role_title.toLowerCase()))
+        ? 0
+        : 1;
+
+    if (leftTitleMatch !== rightTitleMatch) {
+      return leftTitleMatch - rightTitleMatch;
+    }
+
+    return left.role_title.localeCompare(right.role_title);
+  });
+  const selectedMasterTemplate =
+    orderedMasterRoleTemplates.find((template) => template.id === selectedMasterTemplateId) ??
+    null;
 
   function openCompetencyImport() {
     const nextParams = new URLSearchParams(searchParams.toString());
@@ -249,6 +297,7 @@ export function RoleManagementPanel({
       setTalentsValue("");
       setSkillsValue("");
       setBehaviorsValue("");
+      setSelectedMasterTemplateId("");
       return;
     }
 
@@ -260,6 +309,33 @@ export function RoleManagementPanel({
     setTalentsValue(nextRole.talents.join("\n"));
     setSkillsValue(nextRole.skills.join("\n"));
     setBehaviorsValue(nextRole.behaviors.join("\n"));
+    setSelectedMasterTemplateId("");
+  }
+
+  function resetEditorForm() {
+    setEditorRoleId("");
+    setTitle("");
+    setDepartment("");
+    setDescription("");
+    setStatus("draft");
+    setMentorProfileId("");
+    setTalentsValue("");
+    setSkillsValue("");
+    setBehaviorsValue("");
+    setSelectedMasterTemplateId("");
+  }
+
+  function applyMasterTemplate() {
+    if (!selectedMasterTemplate) {
+      return;
+    }
+
+    setTitle(selectedMasterTemplate.role_title);
+    setDepartment(selectedMasterTemplate.default_department ?? "");
+    setDescription(selectedMasterTemplate.description ?? "");
+    setTalentsValue(selectedMasterTemplate.talents.join("\n"));
+    setSkillsValue(selectedMasterTemplate.skills.join("\n"));
+    setBehaviorsValue(selectedMasterTemplate.behaviors.join("\n"));
   }
 
   function toggleLibraryCharacteristic(
@@ -458,6 +534,7 @@ export function RoleManagementPanel({
   function handleCreateRole() {
     setCreateError(null);
     setCreateSuccess(null);
+    const isEditingExistingRole = Boolean(editorRoleId);
 
     startCreateTransition(async () => {
       const payload = {
@@ -498,8 +575,10 @@ export function RoleManagementPanel({
         return;
       }
 
-      if (result.roleId) {
+      if (isEditingExistingRole && result.roleId) {
         setEditorRoleId(result.roleId);
+      } else {
+        resetEditorForm();
       }
 
       setCreateSuccess(result.message ?? "Role saved.");
@@ -918,6 +997,93 @@ export function RoleManagementPanel({
                   <option value="active">Active</option>
                 </select>
               </label>
+
+              <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                <p className="text-sm font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                  Industry Role Templates
+                </p>
+                <p className="mt-3 text-sm leading-7 text-slate-600">
+                  Pull starter competencies from the shared platform library
+                  {organizationIndustry
+                    ? ` for ${organizationIndustry}`
+                    : " across all industries"}
+                  . This gives new roles a stronger draft before you customize them
+                  for your organization.
+                </p>
+
+                {orderedMasterRoleTemplates.length > 0 ? (
+                  <div className="mt-4 grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+                    <div className="space-y-4">
+                      <label className="block">
+                        <span className="mb-2 block text-sm font-semibold text-slate-700">
+                          Template
+                        </span>
+                        <select
+                          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500"
+                          value={selectedMasterTemplateId}
+                          onChange={(event) =>
+                            setSelectedMasterTemplateId(event.currentTarget.value)
+                          }
+                        >
+                          <option value="">Choose a competency template</option>
+                          {orderedMasterRoleTemplates.map((template) => (
+                            <option key={template.id} value={template.id}>
+                              {template.role_title}
+                              {template.industry ? ` • ${template.industry}` : " • All industries"}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <button
+                        type="button"
+                        onClick={applyMasterTemplate}
+                        disabled={!selectedMasterTemplate}
+                        className="interactive-contrast rounded-full bg-teal-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-600 disabled:cursor-not-allowed disabled:bg-teal-900/40"
+                      >
+                        Apply Template to Role
+                      </button>
+                    </div>
+
+                    <article className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
+                      <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                        Template Preview
+                      </p>
+                      {selectedMasterTemplate ? (
+                        <>
+                          <p className="mt-2 text-lg font-semibold text-slate-900">
+                            {selectedMasterTemplate.role_title}
+                          </p>
+                          <p className="mt-1 text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                            {selectedMasterTemplate.industry ?? "All industries"}
+                            {selectedMasterTemplate.role_family
+                              ? ` • ${selectedMasterTemplate.role_family}`
+                              : ""}
+                          </p>
+                          <p className="mt-3 leading-6 text-slate-600">
+                            {selectedMasterTemplate.description ??
+                              "This template includes starter talents, skills, and behaviors for this role."}
+                          </p>
+                          <p className="mt-3 text-xs text-slate-500">
+                            {selectedMasterTemplate.talents.length} talents •{" "}
+                            {selectedMasterTemplate.skills.length} skills •{" "}
+                            {selectedMasterTemplate.behaviors.length} behaviors
+                          </p>
+                        </>
+                      ) : (
+                        <p className="mt-2 leading-6 text-slate-500">
+                          Choose a template to preview the role starter set before
+                          applying it to the editor.
+                        </p>
+                      )}
+                    </article>
+                  </div>
+                ) : (
+                  <p className="mt-4 text-sm text-slate-500">
+                    No master templates are available yet for this industry.
+                  </p>
+                )}
+              </div>
 
               <div className="flex flex-wrap gap-3">
                 <button
