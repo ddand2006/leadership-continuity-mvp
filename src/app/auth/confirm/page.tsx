@@ -91,10 +91,36 @@ export default function AuthConfirmPage() {
       setErrorMessage("");
 
       try {
+        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+        const hashAccessToken = hashParams.get("access_token");
+        const hashRefreshToken = hashParams.get("refresh_token");
+        const hashType = hashParams.get("type");
+
         // Always process the email link before trusting any already-open
         // browser session, otherwise an admin who is already signed in can
         // accidentally change their own password while completing someone
         // else's invite or recovery flow.
+        if (hashAccessToken && hashRefreshToken) {
+          const hashSessionResult = await supabase.auth.setSession({
+            access_token: hashAccessToken,
+            refresh_token: hashRefreshToken,
+          });
+
+          if (hashSessionResult.error) {
+            throw hashSessionResult.error;
+          }
+
+          if (hashSessionResult.data.session) {
+            window.history.replaceState(
+              null,
+              "",
+              `${window.location.pathname}${window.location.search}`,
+            );
+            await finishSession(hashSessionResult.data.session);
+            return;
+          }
+        }
+
         if (code) {
           const exchangeResult = await supabase.auth.exchangeCodeForSession(code);
 
@@ -108,10 +134,16 @@ export default function AuthConfirmPage() {
           }
         }
 
-        if (tokenHash && isVerifyOtpType(type)) {
+        const verifyType = isVerifyOtpType(type)
+          ? type
+          : isVerifyOtpType(hashType)
+            ? hashType
+            : null;
+
+        if (tokenHash && verifyType) {
           const verifyResult = await supabase.auth.verifyOtp({
             token_hash: tokenHash,
-            type,
+            type: verifyType,
           });
 
           if (verifyResult.error) {
