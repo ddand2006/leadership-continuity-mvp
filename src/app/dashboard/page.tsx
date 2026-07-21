@@ -2178,6 +2178,9 @@ export default async function DashboardPage({
   });
   const snapshot = await getDashboardSnapshot(user.id, filters);
   const intelligence = snapshot.intelligence;
+  const organizationAwardAsset = intelligence?.organizationAward.tier
+    ? getLegacyCertificationAsset(intelligence.organizationAward.tier)
+    : null;
 
   if (snapshot.profile?.role === "candidate") {
     redirect(
@@ -2233,25 +2236,85 @@ export default async function DashboardPage({
         ) : (
           <>
             <section className="theme-panel-strong rounded-[2rem] p-5 sm:p-8">
-              <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">
-                Organization Dashboard
-              </p>
-              <h1 className="mt-3 font-display text-4xl leading-tight text-slate-900 sm:text-5xl lg:text-6xl">
-                {snapshot.profile.organization_name}
-              </h1>
-              {snapshot.profile.organization_industry ? (
-                <p className="mt-3 text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">
-                  {snapshot.profile.organization_industry}
-                </p>
-              ) : null}
-              <p className="mt-5 max-w-3xl text-base leading-7 text-slate-600">
-                Welcome to the Leadership Continuity System. This is where your
-                organization can define critical roles, identify high-potential
-                candidates, connect them with mentors, and guide their
-                development over time so you can build a stronger next
-                generation of leaders. You are signed in as{" "}
-                <span className="font-semibold">{user.email}</span>.
-              </p>
+              <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr] xl:items-start">
+                <div>
+                  <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">
+                    Organization Dashboard
+                  </p>
+                  <h1 className="mt-3 font-display text-4xl leading-tight text-slate-900 sm:text-5xl lg:text-6xl">
+                    {snapshot.profile.organization_name}
+                  </h1>
+                  {snapshot.profile.organization_industry ? (
+                    <p className="mt-3 text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">
+                      {snapshot.profile.organization_industry}
+                    </p>
+                  ) : null}
+                  <p className="mt-5 max-w-3xl text-base leading-7 text-slate-600">
+                    Welcome to the Leadership Continuity System. This is where your
+                    organization can define critical roles, identify high-potential
+                    candidates, connect them with mentors, and guide their
+                    development over time so you can build a stronger next
+                    generation of leaders. You are signed in as{" "}
+                    <span className="font-semibold">{user.email}</span>.
+                  </p>
+                </div>
+
+                {intelligence ? (
+                  <article className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
+                    <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                      Legacy Certification
+                    </p>
+                    {intelligence.organizationAward.tier && organizationAwardAsset ? (
+                      <div className="mt-3 flex items-center gap-3">
+                        <Image
+                          src={organizationAwardAsset.src}
+                          alt={organizationAwardAsset.alt}
+                          width={68}
+                          height={68}
+                          className="h-[4.25rem] w-[4.25rem] rounded-full object-cover"
+                        />
+                        <p className="text-3xl font-semibold text-slate-900 lg:text-[2rem]">
+                          {organizationAwardAsset.shortLabel}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="mt-2 text-3xl font-semibold text-slate-900 lg:text-[2rem]">
+                        Not Yet
+                      </p>
+                    )}
+                    <p className="mt-2 text-sm font-semibold text-teal-800">
+                      {intelligence.organizationAward.protectedRoleCount} protected role
+                      {intelligence.organizationAward.protectedRoleCount === 1
+                        ? ""
+                        : "s"}
+                    </p>
+                    <div className="mt-3 grid gap-1.5 text-[11px] text-slate-600">
+                      <p>
+                        Top roles protected{" "}
+                        {intelligence.organizationAward.protectedTopPriorityRoleCount}/
+                        {intelligence.organizationAward.topPriorityRoleCount}
+                      </p>
+                      <p>
+                        Top roles covered{" "}
+                        {intelligence.organizationAward.coveredTopPriorityRoleCount}/
+                        {intelligence.organizationAward.topPriorityRoleCount}
+                      </p>
+                      <p>
+                        Two-deep top roles{" "}
+                        {intelligence.organizationAward.twoDeepTopPriorityRoleCount}/
+                        {intelligence.organizationAward.topPriorityRoleCount}
+                      </p>
+                    </div>
+                    <p className="mt-4 text-xs leading-6 text-slate-500">
+                      {intelligence.organizationAward.description}
+                    </p>
+                    <p className="mt-2 text-[11px] leading-5 text-slate-400">
+                      Top-role ranking currently follows the visible role order in
+                      this dashboard view.
+                    </p>
+                  </article>
+                ) : null}
+              </div>
             </section>
 
             {intelligence ? (
@@ -2394,7 +2457,7 @@ export default async function DashboardPage({
                   </div>
                 ) : null}
 
-                <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+                <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                   <article className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       Leadership Continuity Score
@@ -2410,71 +2473,6 @@ export default async function DashboardPage({
                       <p>Readiness {formatPercent(intelligence.continuityScore.candidateReadinessScore)}</p>
                       <p>Progress {formatPercent(intelligence.continuityScore.developmentProgressScore)}</p>
                     </div>
-                  </article>
-                  <article className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
-                    <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
-                      Legacy Certification
-                    </p>
-                    {intelligence.organizationAward.tier ? (
-                      <div className="mt-3 flex items-center gap-3">
-                        <Image
-                          src={
-                            getLegacyCertificationAsset(
-                              intelligence.organizationAward.tier,
-                            )?.src ?? "/legacy-certifications/bronze.png"
-                          }
-                          alt={
-                            getLegacyCertificationAsset(
-                              intelligence.organizationAward.tier,
-                            )?.alt ?? "Legacy certification logo"
-                          }
-                          width={68}
-                          height={68}
-                          className="h-[4.25rem] w-[4.25rem] rounded-full object-cover"
-                        />
-                        <p className="text-3xl font-semibold text-slate-900 lg:text-[2rem]">
-                          {
-                            getLegacyCertificationAsset(
-                              intelligence.organizationAward.tier,
-                            )?.shortLabel
-                          }
-                        </p>
-                      </div>
-                    ) : (
-                      <p className="mt-2 text-3xl font-semibold text-slate-900 lg:text-[2rem]">
-                        Not Yet
-                      </p>
-                    )}
-                    <p className="mt-2 text-sm font-semibold text-teal-800">
-                      {intelligence.organizationAward.protectedRoleCount} protected role
-                      {intelligence.organizationAward.protectedRoleCount === 1
-                        ? ""
-                        : "s"}
-                    </p>
-                    <div className="mt-3 grid gap-1.5 text-[11px] text-slate-600">
-                      <p>
-                        Top roles protected{" "}
-                        {intelligence.organizationAward.protectedTopPriorityRoleCount}/
-                        {intelligence.organizationAward.topPriorityRoleCount}
-                      </p>
-                      <p>
-                        Top roles covered{" "}
-                        {intelligence.organizationAward.coveredTopPriorityRoleCount}/
-                        {intelligence.organizationAward.topPriorityRoleCount}
-                      </p>
-                      <p>
-                        Two-deep top roles{" "}
-                        {intelligence.organizationAward.twoDeepTopPriorityRoleCount}/
-                        {intelligence.organizationAward.topPriorityRoleCount}
-                      </p>
-                    </div>
-                    <p className="mt-4 text-xs leading-6 text-slate-500">
-                      {intelligence.organizationAward.description}
-                    </p>
-                    <p className="mt-2 text-[11px] leading-5 text-slate-400">
-                      Top-role ranking currently follows the visible role order in
-                      this dashboard view.
-                    </p>
                   </article>
                   <article className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
