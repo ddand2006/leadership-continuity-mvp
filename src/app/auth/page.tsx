@@ -12,7 +12,7 @@ type AuthPageProps = {
 
 export default async function AuthPage({ searchParams }: AuthPageProps) {
   const { message, mode } = await searchParams;
-  let allowSelfServeSignUp = true;
+  let hasExistingWorkspaceUsers = false;
 
   if (hasSupabaseEnv()) {
     const admin = createSupabaseAdminClient();
@@ -24,12 +24,11 @@ export default async function AuthPage({ searchParams }: AuthPageProps) {
       throw new Error(organizationUsersResult.error.message);
     }
 
-    allowSelfServeSignUp = (organizationUsersResult.count ?? 0) === 0;
+    hasExistingWorkspaceUsers = (organizationUsersResult.count ?? 0) > 0;
   }
 
   const requestedMode = mode === "signup" ? "signup" : "signin";
-  const initialMode =
-    requestedMode === "signup" && allowSelfServeSignUp ? "signup" : "signin";
+  const initialMode = requestedMode;
 
   return (
     <main className="app-page">
@@ -41,11 +40,12 @@ export default async function AuthPage({ searchParams }: AuthPageProps) {
                 ? "Create your Leadership Continuity account"
                 : "Sign in to the Leadership Continuity MVP"}
             </h1>
-            {!allowSelfServeSignUp ? (
+            {hasExistingWorkspaceUsers ? (
               <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600">
                 New candidate and mentor access is created by an administrator
                 through the invite workflow so user types stay assigned by the
-                organization.
+                organization. Use create account only when starting a new
+                organization workspace.
               </p>
             ) : null}
           </div>
@@ -63,10 +63,11 @@ export default async function AuthPage({ searchParams }: AuthPageProps) {
           </div>
         ) : null}
 
-        {!allowSelfServeSignUp && requestedMode === "signup" ? (
+        {hasExistingWorkspaceUsers && requestedMode === "signup" ? (
           <div className="rounded-2xl border border-sky-200 bg-sky-50 px-5 py-4 text-sm font-medium text-sky-900">
-            Workspace account creation is handled by your administrator after the
-            first workspace owner is set up. Use your invitation email to join.
+            Create Account remains available for new workspace owners. Invited
+            candidates, mentors, and administrators should sign in with the
+            account or invitation already created for them.
           </div>
         ) : null}
 
@@ -83,7 +84,9 @@ export default async function AuthPage({ searchParams }: AuthPageProps) {
 
         <AuthForms
           initialMode={initialMode}
-          allowSelfServeSignUp={allowSelfServeSignUp}
+          signUpContext={
+            hasExistingWorkspaceUsers ? "new-workspace" : "first-workspace"
+          }
         />
       </div>
     </main>

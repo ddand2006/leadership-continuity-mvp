@@ -86,7 +86,7 @@ function AuthCard(props: {
 
 export function AuthForms(props: {
   initialMode?: "signin" | "signup";
-  allowSelfServeSignUp?: boolean;
+  signUpContext?: "first-workspace" | "new-workspace";
 }) {
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -237,7 +237,9 @@ export function AuthForms(props: {
       id: "create-account",
       title: "Create Account",
       description:
-        "Create the first workspace owner account. Invited users should use the email invitation they received instead of creating a second account here.",
+        props.signUpContext === "new-workspace"
+          ? "Create a workspace owner account for a new organization. Invited users should sign in with the account already created for them instead of creating a second account here."
+          : "Create the first workspace owner account. Invited users should use the email invitation they received instead of creating a second account here.",
       cta: "Create Account",
       onSubmit: handleSignUp,
       onForgotPassword: undefined,
@@ -245,12 +247,10 @@ export function AuthForms(props: {
     },
   ] as const;
 
-  const visibleCards = props.allowSelfServeSignUp === false ? [cards[0]] : cards;
-
   const orderedCards =
-    props.initialMode === "signup" && visibleCards.length > 1
-      ? [visibleCards[1], visibleCards[0]]
-      : visibleCards;
+    props.initialMode === "signup"
+      ? [cards[1], cards[0]]
+      : cards;
 
   return (
     <>
