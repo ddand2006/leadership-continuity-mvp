@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { MentorAssignmentManager } from "@/components/mentor-assignment-manager";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import {
   getAdminRoleLabel,
   getStatusLabel,
@@ -170,6 +171,7 @@ export function AdministrationPanel({
   canCreateOrganizations,
 }: AdministrationPanelProps) {
   const router = useRouter();
+  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const selectedOrganization =
     organizations.find((organization) => organization.id === selectedOrganizationId) ??
     organizations[0] ??
@@ -335,6 +337,47 @@ export function AdministrationPanel({
     setFormState((current) => ({ ...current, [key]: value }));
   }
 
+  async function syncBrowserSessionToServer() {
+    const { data, error } = await supabase.auth.getSession();
+
+    if (error || !data.session) {
+      return false;
+    }
+
+    const response = await fetch("/api/auth/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        accessToken: data.session.access_token,
+        refreshToken: data.session.refresh_token,
+      }),
+    });
+
+    return response.ok;
+  }
+
+  async function fetchWithSessionRetry(input: RequestInfo | URL, init: RequestInit) {
+    let response = await fetch(input, init);
+    let payload = (await response.json()) as {
+      error?: string;
+      message?: string;
+      resetLink?: string;
+      organizationId?: string;
+    };
+
+    if (response.status !== 401) {
+      return { response, payload };
+    }
+
+    if (!(await syncBrowserSessionToServer())) {
+      return { response, payload };
+    }
+
+    response = await fetch(input, init);
+    payload = (await response.json()) as typeof payload;
+    return { response, payload };
+  }
+
   function runAction(
     input: RequestInfo | URL,
     init: RequestInit,
@@ -344,12 +387,7 @@ export function AdministrationPanel({
 
     startTransition(async () => {
       try {
-        const response = await fetch(input, init);
-        const payload = (await response.json()) as {
-          error?: string;
-          message?: string;
-          resetLink?: string;
-        };
+        const { response, payload } = await fetchWithSessionRetry(input, init);
 
         if (!response.ok) {
           setFeedback({ error: payload.error ?? "Unable to complete that action." });
@@ -373,12 +411,7 @@ export function AdministrationPanel({
 
     startTransition(async () => {
       try {
-        const response = await fetch(input, init);
-        const payload = (await response.json()) as {
-          error?: string;
-          message?: string;
-          organizationId?: string;
-        };
+        const { response, payload } = await fetchWithSessionRetry(input, init);
 
         if (!response.ok) {
           setOrganizationFeedback({
