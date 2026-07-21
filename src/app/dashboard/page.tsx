@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SubscriptionPaywallPanel } from "@/components/subscription-paywall-panel";
+import {
+  DashboardSetupJourney,
+  type DashboardSetupJourneySummary,
+} from "@/components/dashboard-setup-journey";
 import { requireUser } from "@/lib/auth";
 import { computeCandidateAward } from "@/lib/candidate-awards";
 import Image from "next/image";
@@ -293,6 +297,7 @@ type DashboardSnapshot = {
     candidates: number;
     mentors: number;
   } | null;
+  setupJourney: DashboardSetupJourneySummary | null;
   intelligence: DashboardIntelligence | null;
 };
 
@@ -728,6 +733,113 @@ function getRoleHref(roleId: string) {
 
 function getCandidateHref(candidateId: string) {
   return `/candidates/${candidateId}`;
+}
+
+function buildDashboardSetupJourney(options: {
+  organizationName: string;
+  roleCount: number;
+  candidateCount: number;
+  mentorCount: number;
+  mentorAssignmentCount: number;
+  developmentRecordCount: number;
+}) : DashboardSetupJourneySummary {
+  const steps = [
+    {
+      id: "organization",
+      label: "Confirm Company Settings",
+      description:
+        "Review the organization name, industry, and product access before the rest of the program is built.",
+      statusLabel: options.organizationName,
+      complete: true,
+      href: "/administration?section=organization-controls",
+      actionLabel: "Open Company Settings",
+    },
+    {
+      id: "roles",
+      label: "Add Priority Roles",
+      description:
+        "Define the roles you want to protect first so candidates and mentors have a clear destination.",
+      statusLabel:
+        options.roleCount === 0
+          ? "No roles added yet"
+          : `${options.roleCount} role${options.roleCount === 1 ? "" : "s"} on file`,
+      complete: options.roleCount > 0,
+      href: "/roles?mode=create",
+      actionLabel:
+        options.roleCount > 0 ? "Manage Roles" : "Create First Role",
+    },
+    {
+      id: "people",
+      label: "Add Candidates and Mentors",
+      description:
+        "Create the people who will move through the succession process and the mentors who will guide them.",
+      statusLabel:
+        options.candidateCount > 0 || options.mentorCount > 0
+          ? `${options.candidateCount} candidate${options.candidateCount === 1 ? "" : "s"} • ${options.mentorCount} mentor${options.mentorCount === 1 ? "" : "s"}`
+          : "No people added yet",
+      complete: options.candidateCount > 0 && options.mentorCount > 0,
+      href: "/administration?section=user-access",
+      actionLabel:
+        options.candidateCount > 0 || options.mentorCount > 0
+          ? "Manage People"
+          : "Add People",
+    },
+    {
+      id: "assignments",
+      label: "Connect Candidate-Role Mentor Tracks",
+      description:
+        "Tie each candidate to a role and mentor so the mentoring workspace knows exactly who is working toward what.",
+      statusLabel:
+        options.mentorAssignmentCount === 0
+          ? "No mentoring tracks assigned yet"
+          : `${options.mentorAssignmentCount} live mentor track${options.mentorAssignmentCount === 1 ? "" : "s"}`,
+      complete: options.mentorAssignmentCount > 0,
+      href: "/administration?section=assign-mentors",
+      actionLabel:
+        options.mentorAssignmentCount > 0
+          ? "Manage Mentor Tracks"
+          : "Assign First Mentor Track",
+    },
+    {
+      id: "mentoring",
+      label: "Start the First Development Record",
+      description:
+        "Launch the mentoring work by saving the first leadership development record for one candidate-role track.",
+      statusLabel:
+        options.developmentRecordCount === 0
+          ? "No development records started yet"
+          : `${options.developmentRecordCount} development record${options.developmentRecordCount === 1 ? "" : "s"} active`,
+      complete: options.developmentRecordCount > 0,
+      href: "/mentoring?section=leadership-development-record",
+      actionLabel:
+        options.developmentRecordCount > 0
+          ? "Open Mentoring Records"
+          : "Start First Record",
+    },
+  ];
+
+  const completedSteps = steps.filter((step) => step.complete).length;
+  const primaryStep = steps.find((step) => !step.complete) ?? null;
+
+  return {
+    completedSteps,
+    totalSteps: steps.length,
+    isComplete: primaryStep === null,
+    primaryActionHref: primaryStep?.href ?? "/mentoring?section=leadership-development-record",
+    primaryActionLabel: primaryStep?.actionLabel ?? "Open Mentoring Workspace",
+    primaryActionTitle: primaryStep?.label ?? "Mentoring program is live",
+    primaryActionDescription:
+      primaryStep?.description ??
+      "Your core onboarding path is complete. Continue refining roles, adding successors, and launching new development records from the mentoring workspace.",
+    counts: {
+      roles: options.roleCount,
+      candidates: options.candidateCount,
+      mentors: options.mentorCount,
+      mentorAssignments: options.mentorAssignmentCount,
+      developmentRecords: options.developmentRecordCount,
+    },
+    steps,
+  };
 }
 
 function buildDashboardIntelligence(options: {
@@ -1733,6 +1845,7 @@ async function getDashboardSnapshot(
       mentors: [],
       candidates: [],
       counts: null,
+      setupJourney: null,
       intelligence: null,
     };
   }
@@ -1794,6 +1907,7 @@ async function getDashboardSnapshot(
       mentors: [],
       candidates: [],
       counts: null,
+      setupJourney: null,
       intelligence: null,
     };
   }
@@ -2147,6 +2261,16 @@ async function getDashboardSnapshot(
       candidates: candidates.length,
       mentors: mentors.length,
     },
+    setupJourney: isMentorView
+      ? null
+      : buildDashboardSetupJourney({
+          organizationName: profile.organization_name,
+          roleCount: roles.length,
+          candidateCount: candidates.length,
+          mentorCount: mentors.length,
+          mentorAssignmentCount: mentorAssignments.length,
+          developmentRecordCount: developmentRecords.length,
+        }),
     intelligence: buildDashboardIntelligence({
       profile,
       roles,
@@ -2316,6 +2440,10 @@ export default async function DashboardPage({
                 ) : null}
               </div>
             </section>
+
+            {snapshot.setupJourney ? (
+              <DashboardSetupJourney summary={snapshot.setupJourney} />
+            ) : null}
 
             {intelligence ? (
               <section className="theme-panel-strong rounded-[2rem] p-5 sm:p-8">
