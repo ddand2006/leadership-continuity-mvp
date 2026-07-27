@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
 type NavItem = {
@@ -39,6 +40,8 @@ export function AppNavLinks({
   showResources: boolean;
   trailingNavItems: NavItem[];
 }) {
+  const [isResourcesOpen, setIsResourcesOpen] = useState(false);
+  const resourcesMenuRef = useRef<HTMLDivElement | null>(null);
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentPath = pathname ?? initialPathname;
@@ -54,6 +57,32 @@ export function AppNavLinks({
 
     return currentSection === item.matchSection;
   });
+
+  useEffect(() => {
+    if (!isResourcesOpen) {
+      return;
+    }
+
+    function dismissResourcesMenu(event: PointerEvent) {
+      if (!resourcesMenuRef.current?.contains(event.target as Node)) {
+        setIsResourcesOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsResourcesOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", dismissResourcesMenu);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", dismissResourcesMenu);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isResourcesOpen]);
 
   return (
     <nav className="mt-4 flex flex-wrap gap-2">
@@ -77,8 +106,12 @@ export function AppNavLinks({
       })}
 
       {showResources ? (
-        <details className="group relative">
-          <summary
+        <div ref={resourcesMenuRef} className="relative">
+          <button
+            type="button"
+            aria-expanded={isResourcesOpen}
+            aria-haspopup="menu"
+            onClick={() => setIsResourcesOpen((current) => !current)}
             className={`flex cursor-pointer list-none items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${
               resourcesIsActive
                 ? "interactive-contrast border-teal-900 bg-teal-900 text-white shadow-[0_18px_40px_rgba(15,118,110,0.18)]"
@@ -88,41 +121,48 @@ export function AppNavLinks({
             <span>Resources</span>
             <span
               aria-hidden="true"
-              className={`transition group-open:rotate-180 ${
+              className={`transition ${isResourcesOpen ? "rotate-180" : ""} ${
                 resourcesIsActive ? "text-white/80" : "text-slate-400"
               }`}
             >
               ▾
             </span>
-          </summary>
+          </button>
 
-          <div className="absolute left-0 top-[calc(100%+0.75rem)] z-20 hidden min-w-72 overflow-hidden rounded-[1.5rem] border border-white/80 bg-white/95 shadow-[0_30px_90px_rgba(15,23,42,0.16)] backdrop-blur group-open:block">
-            <div className="grid gap-2 p-3">
-              {resourceNavItems.map((item) => {
-                const isActive =
-                  currentPath === item.matchPath &&
-                  (item.matchSection
-                    ? currentSection === item.matchSection
-                    : true);
+          {isResourcesOpen ? (
+            <div
+              role="menu"
+              className="absolute left-0 top-[calc(100%+0.75rem)] z-20 min-w-72 overflow-hidden rounded-[1.5rem] border border-white/80 bg-white/95 shadow-[0_30px_90px_rgba(15,23,42,0.16)] backdrop-blur"
+            >
+              <div className="grid gap-2 p-3">
+                {resourceNavItems.map((item) => {
+                  const isActive =
+                    currentPath === item.matchPath &&
+                    (item.matchSection
+                      ? currentSection === item.matchSection
+                      : true);
 
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    aria-current={isActive ? "page" : undefined}
-                    className={`rounded-2xl px-4 py-3 text-sm font-semibold transition ${
-                      isActive
-                        ? "interactive-contrast bg-teal-900 text-white"
-                        : "text-slate-700 hover:bg-slate-50 hover:text-slate-950"
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                );
-              })}
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      role="menuitem"
+                      aria-current={isActive ? "page" : undefined}
+                      onClick={() => setIsResourcesOpen(false)}
+                      className={`rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+                        isActive
+                          ? "interactive-contrast bg-teal-900 text-white"
+                          : "text-slate-700 hover:bg-slate-50 hover:text-slate-950"
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        </details>
+          ) : null}
+        </div>
       ) : null}
 
       {trailingNavItems.map((item) => {
