@@ -23,6 +23,11 @@ const resourceNavItems = [
     matchPath: "/about",
   },
   {
+    href: "/outside-training",
+    label: "Outside Training",
+    matchPath: "/outside-training",
+  },
+  {
     href: "/mentoring?section=preparation-worksheet",
     label: "Preparation Worksheet",
     matchPath: "/mentoring",
