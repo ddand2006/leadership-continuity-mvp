@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useDismissibleLayer } from "@/hooks/use-dismissible-layer";
 
 type RoleMentorDialogProps = {
   roleId: string;
@@ -23,6 +24,7 @@ export function RoleMentorDialog({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const dialogRef = useDismissibleLayer<HTMLDivElement>(isOpen, closeDialog);
 
   function closeDialog() {
     setIsOpen(false);
@@ -74,7 +76,10 @@ export function RoleMentorDialog({
 
       {isOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 px-4 py-6">
-          <div className="w-full max-w-2xl rounded-[1.75rem] border border-[rgba(82,140,94,0.2)] bg-[rgba(239,251,241,0.98)] p-8 text-[#183822] shadow-[0_24px_80px_rgba(15,23,42,0.28)]">
+          <div
+            ref={dialogRef}
+            className="w-full max-w-2xl rounded-[1.75rem] border border-[rgba(82,140,94,0.2)] bg-[rgba(239,251,241,0.98)] p-8 text-[#183822] shadow-[0_24px_80px_rgba(15,23,42,0.28)]"
+          >
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-sm font-semibold tracking-[0.16em] text-[#24512f] uppercase">
