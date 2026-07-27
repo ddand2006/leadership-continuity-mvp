@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { MentorAssignmentManager } from "@/components/mentor-assignment-manager";
+import { useDismissibleLayer } from "@/hooks/use-dismissible-layer";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import {
   getAdminRoleLabel,
@@ -185,6 +186,7 @@ export function AdministrationPanel({
   const [suspendedFilter, setSuspendedFilter] = useState(false);
   const [archivedFilter, setArchivedFilter] = useState(false);
   const [composerMode, setComposerMode] = useState<ComposerMode | null>(null);
+  const [openActionMenuUserId, setOpenActionMenuUserId] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<AdministrationUser | null>(null);
   const [formState, setFormState] = useState(defaultFormState());
   const [feedback, setFeedback] = useState<{ error?: string; message?: string; resetLink?: string }>({});
@@ -228,6 +230,14 @@ export function AdministrationPanel({
     leadershipHelpTier: "none",
   });
   const filtersSectionRef = useRef<HTMLElement | null>(null);
+  const actionMenuRef = useDismissibleLayer<HTMLDivElement>(
+    openActionMenuUserId !== null,
+    () => setOpenActionMenuUserId(null),
+  );
+  const composerRef = useDismissibleLayer<HTMLDivElement>(
+    composerMode !== null,
+    closeComposer,
+  );
   const activeTab = initialTab;
   const organizationSectionSuffix =
     activeTab === "assign-mentors"
@@ -318,6 +328,7 @@ export function AdministrationPanel({
   }
 
   function openComposer(mode: ComposerMode, user?: AdministrationUser) {
+    setOpenActionMenuUserId(null);
     setComposerMode(mode);
     setSelectedUser(user ?? null);
     setFormState(defaultFormState(user));
@@ -369,12 +380,20 @@ export function AdministrationPanel({
       return { response, payload };
     }
 
-    if (!(await syncBrowserSessionToServer())) {
+    const didSync = await syncBrowserSessionToServer();
+
+    if (!didSync) {
       return { response, payload };
     }
 
     response = await fetch(input, init);
-    payload = (await response.json()) as typeof payload;
+    payload = (await response.json()) as {
+      error?: string;
+      message?: string;
+      resetLink?: string;
+      organizationId?: string;
+    };
+
     return { response, payload };
   }
 
@@ -509,6 +528,7 @@ export function AdministrationPanel({
   }
 
   function changeStatus(userId: string, status: OrganizationUserStatus) {
+    setOpenActionMenuUserId(null);
     runAction(
       "/api/admin/users",
       {
@@ -555,6 +575,7 @@ export function AdministrationPanel({
   }
 
   function deleteUser(user: AdministrationUser) {
+    setOpenActionMenuUserId(null);
     runAction(
       `/api/admin/users?userId=${encodeURIComponent(user.id)}&organizationId=${encodeURIComponent(selectedOrganizationId)}`,
       { method: "DELETE" },
@@ -627,9 +648,9 @@ export function AdministrationPanel({
                 {selectedOrganization.name}
               </h2>
               <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600">
-                Choose the active company, update product access, and control which
-                modules are enabled. System Admin can manage every company from this
-                surface.
+                Manage company, product access, candidates, mentors, and
+                administrative access from one protected control surface while
+                preserving historical leadership development data for reporting.
               </p>
             </div>
 
@@ -1147,69 +1168,82 @@ export function AdministrationPanel({
                         </td>
                         <td className="px-6 py-5">{formatDate(user.last_login_at)}</td>
                         <td className="px-6 py-5">
-                          <details className="relative">
-                        <summary className="inline-flex cursor-pointer list-none rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-teal-200 hover:text-teal-900">
-                          Actions
-                        </summary>
-                        <div className="absolute right-0 z-20 mt-3 grid min-w-60 gap-2 rounded-[1.5rem] border border-white/80 bg-white/95 p-3 shadow-[0_30px_90px_rgba(15,23,42,0.16)] backdrop-blur">
-                          <button
-                            type="button"
-                            onClick={() => openComposer("edit", user)}
-                            className="rounded-2xl px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
+                          <div
+                            ref={openActionMenuUserId === user.id ? actionMenuRef : undefined}
+                            className="relative"
                           >
-                            Edit user
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => openComposer("password", user)}
-                            className="rounded-2xl px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
-                          >
-                            Reset password
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => openComposer("edit", user)}
-                            className="rounded-2xl px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
-                          >
-                            Change role
-                          </button>
-                          {user.status !== "suspended" ? (
                             <button
                               type="button"
-                              onClick={() => changeStatus(user.id, "suspended")}
-                              className="rounded-2xl px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
+                              onClick={() =>
+                                setOpenActionMenuUserId((current) =>
+                                  current === user.id ? null : user.id,
+                                )
+                              }
+                              className="inline-flex rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-teal-200 hover:text-teal-900"
                             >
-                              Suspend user
+                              Actions
                             </button>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => changeStatus(user.id, "active")}
-                              className="rounded-2xl px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
-                            >
-                              Reactivate user
-                            </button>
-                          )}
-                          {user.status !== "archived" ? (
-                            <button
-                              type="button"
-                              onClick={() => changeStatus(user.id, "archived")}
-                              className="rounded-2xl px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
-                            >
-                              Archive user
-                            </button>
-                          ) : null}
-                          <button
-                            type="button"
-                            onClick={() => deleteUser(user)}
-                            disabled={user.hasHistoricalData || isPending}
-                            className="rounded-2xl px-4 py-3 text-left text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:text-slate-300"
-                          >
-                            Delete user
-                          </button>
-                        </div>
-                      </details>
-                    </td>
+                            {openActionMenuUserId === user.id ? (
+                              <div className="absolute right-0 z-20 mt-3 grid min-w-60 gap-2 rounded-[1.5rem] border border-white/80 bg-white/95 p-3 shadow-[0_30px_90px_rgba(15,23,42,0.16)] backdrop-blur">
+                                <button
+                                  type="button"
+                                  onClick={() => openComposer("edit", user)}
+                                  className="rounded-2xl px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
+                                >
+                                  Edit user
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => openComposer("password", user)}
+                                  className="rounded-2xl px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
+                                >
+                                  Reset password
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => openComposer("edit", user)}
+                                  className="rounded-2xl px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
+                                >
+                                  Change role
+                                </button>
+                                {user.status !== "suspended" ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => changeStatus(user.id, "suspended")}
+                                    className="rounded-2xl px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
+                                  >
+                                    Suspend user
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => changeStatus(user.id, "active")}
+                                    className="rounded-2xl px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
+                                  >
+                                    Reactivate user
+                                  </button>
+                                )}
+                                {user.status !== "archived" ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => changeStatus(user.id, "archived")}
+                                    className="rounded-2xl px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
+                                  >
+                                    Archive user
+                                  </button>
+                                ) : null}
+                                <button
+                                  type="button"
+                                  onClick={() => deleteUser(user)}
+                                  disabled={user.hasHistoricalData || isPending}
+                                  className="rounded-2xl px-4 py-3 text-left text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:text-slate-300"
+                                >
+                                  Delete user
+                                </button>
+                              </div>
+                            ) : null}
+                          </div>
+                        </td>
                   </tr>
                 ))
               )}
@@ -1222,7 +1256,10 @@ export function AdministrationPanel({
 
       {composerMode ? (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/45 px-4 py-8">
-          <div className="theme-panel-strong max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[2rem] p-8">
+          <div
+            ref={composerRef}
+            className="theme-panel-strong max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[2rem] p-8"
+          >
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">

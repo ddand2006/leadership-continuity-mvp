@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
+import { AccountMenu } from "@/components/account-menu";
 import { AppNavLinks } from "@/components/app-nav-links";
 import { getCurrentUser } from "@/lib/auth";
 import { canAccessLeadershipHelpPreview } from "@/lib/leadership-help-preview";
@@ -205,48 +206,13 @@ export async function AppNav({ pathname }: { pathname: string }) {
             </Link>
 
             {user ? (
-              <details className="group relative">
-                <summary className="flex cursor-pointer list-none items-center gap-3 rounded-full border border-slate-200/80 bg-white/90 px-2 py-2 text-sm font-semibold text-slate-700 shadow-[0_12px_30px_rgba(15,23,42,0.08)] transition hover:border-teal-200 hover:text-teal-900">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-950 text-xs font-bold tracking-[0.16em] text-white">
-                    {getInitials(user)}
-                  </span>
-                  <span className="hidden max-w-40 truncate sm:block">
-                    {getDisplayName(user)}
-                  </span>
-                  <span
-                    aria-hidden="true"
-                    className="text-slate-400 transition group-open:rotate-180"
-                  >
-                    ▾
-                  </span>
-                </summary>
-
-                <div className="absolute right-0 top-[calc(100%+0.75rem)] z-20 hidden w-72 overflow-hidden rounded-[1.5rem] border border-white/80 bg-white/95 shadow-[0_30px_90px_rgba(15,23,42,0.16)] backdrop-blur group-open:block">
-                  <div className="border-b border-slate-200/80 px-5 py-4">
-                    <p className="text-sm font-semibold text-slate-950">
-                      {getDisplayName(user)}
-                    </p>
-                    <p className="mt-1 truncate text-sm text-slate-500">
-                      {user.email ?? "Signed in"}
-                    </p>
-                  </div>
-
-                  <div className="grid gap-2 p-3">
-                    <Link
-                      href={accountLandingHref}
-                      className="rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
-                    >
-                      {accountLandingLabel}
-                    </Link>
-                    <Link
-                      href="/auth/logout"
-                      className="rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
-                    >
-                      Sign Out
-                    </Link>
-                  </div>
-                </div>
-              </details>
+              <AccountMenu
+                initials={getInitials(user)}
+                displayName={getDisplayName(user)}
+                email={user.email ?? null}
+                accountLandingHref={accountLandingHref}
+                accountLandingLabel={accountLandingLabel}
+              />
             ) : (
               <div className="flex items-center gap-3">
                 <Link
