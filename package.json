@@ -2,7 +2,7 @@
   "name": "leadership-continuity-mvp",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@10.33.0",
+  "packageManager": "pnpm@11.9.0",
   "overrides": {
     "@xmldom/xmldom": "0.8.13",
     "brace-expansion@<2.0.0": "1.1.16",
