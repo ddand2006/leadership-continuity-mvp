@@ -1,7 +1,5 @@
-import Link from "next/link";
-import { CandidateAwardBadge } from "@/components/candidate-award-badge";
-import { CandidateFlowPanel } from "@/components/candidate-flow-panel";
 import { CandidateManagementPanel } from "@/components/candidate-management-panel";
+import { CandidateSelectorSidebar } from "@/components/candidate-selector-sidebar";
 import {
   buildCompetencyAssessments,
   computeOverallReadiness,
@@ -13,18 +11,7 @@ import { getAccessibleCandidateIds, isAdminAppRole } from "@/lib/mentor-access";
 import { canonicalizeRoleTitle } from "@/lib/role-title";
 import { requirePaidWorkspaceProfile } from "@/lib/workspace";
 
-type CandidatesPageProps = {
-  searchParams: Promise<{
-    candidateId?: string;
-    mode?: string;
-  }>;
-};
-
-export default async function CandidatesPage({
-  searchParams,
-}: CandidatesPageProps) {
-  const { candidateId: requestedCandidateId, mode: requestedMode } =
-    await searchParams;
+export default async function CandidatesPage() {
   const { account, profile, supabase } = await requirePaidWorkspaceProfile();
   const isAdmin = isAdminAppRole(profile.role);
   const accessibleCandidateIds = new Set<string>();
@@ -371,116 +358,61 @@ export default async function CandidatesPage({
     };
   });
 
-  const selectedMode: "flow" | "create" =
-    requestedMode === "create" ? "create" : "flow";
-  const selectedCandidateId =
-    requestedCandidateId &&
-    candidateSummaries.some((candidate) => candidate.id === requestedCandidateId)
-      ? requestedCandidateId
-      : null;
+  const selectedMode = "create" as const;
   const canCreateCandidates = isAdmin;
 
   return (
     <main className="app-page">
-      <div className="mx-auto flex w-full max-w-[1380px] flex-col gap-8 px-6 py-12 sm:px-10 lg:px-12">
-        <section className="grid gap-6">
-          <div className="grid gap-6">
-            {selectedMode === "create" && canCreateCandidates ? (
+      <div className="mx-auto w-full max-w-[1380px] px-6 py-12 sm:px-10 lg:px-12">
+        <section className="grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)] xl:items-start">
+          <CandidateSelectorSidebar
+            candidates={candidateSummaries.map((candidate) => ({
+              id: candidate.id,
+              fullName: candidate.fullName,
+              currentTitle: candidate.currentTitle,
+              status: candidate.status,
+            }))}
+            canCreateCandidates={canCreateCandidates}
+            isCreatingCandidate={selectedMode === "create"}
+          />
+
+          <div className="grid min-w-0 gap-6">
+            {canCreateCandidates ? (
+              <>
+                <section className="theme-panel-strong rounded-[2rem] p-8">
+                  <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">
+                    Candidate Pipeline
+                  </p>
+                  <h1 className="mt-3 font-display text-5xl leading-tight text-slate-900">
+                    Build Your Leadership Bench
+                  </h1>
+                  <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">
+                    Add a candidate, capture their current role and target role, then
+                    use their workspace to review role context, interview scores,
+                    strengths, role fit, and mentor reporting.
+                  </p>
+                </section>
               <CandidateManagementPanel
                 roles={(rolesResult.data ?? []).map((role) => ({
                   id: role.id,
                   title: role.title,
                 }))}
-                showPipelineHeader
               />
+              </>
             ) : (
-              <CandidateFlowPanel
-                candidates={candidateSummaries.map((candidate) => ({
-                  id: candidate.id,
-                  fullName: candidate.fullName,
-                  currentTitle: candidate.currentTitle,
-                  primaryRoleTitle: candidate.primaryRoleTitle,
-                  primaryRoleId: candidate.primaryRoleId,
-                  readiness: candidate.readiness,
-                  roleGoalReadinessPercent: candidate.roleGoalReadinessPercent,
-                  awardLabel: candidate.award.label,
-                }))}
-                selectedCandidateId={selectedCandidateId}
-                canCreateCandidates={canCreateCandidates}
-              />
+              <section className="theme-panel-strong rounded-[2rem] p-8">
+                <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">
+                  Candidate Workspace
+                </p>
+                <h1 className="mt-3 font-display text-4xl text-slate-900">
+                  Select a candidate to begin
+                </h1>
+                <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">
+                  Choose a candidate from the left to review their role context,
+                  interview scores, strengths, role fit, and mentor report.
+                </p>
+              </section>
             )}
-
-            <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
-              <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
-                Candidates In The Leadership Continuity System
-              </p>
-              <h2 className="mt-3 font-display text-3xl text-slate-900">
-                Candidate list and scores
-              </h2>
-              <p className="mt-4 text-sm leading-7 text-slate-600">
-                Open any candidate to go deeper, upload Gallup strengths documents,
-                and review the full role-fit and mentor report workflow.
-              </p>
-
-              {candidateSummaries.length === 0 ? (
-                <div className="mt-6 rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm leading-7 text-slate-600">
-                  {canCreateCandidates
-                    ? "No candidates exist yet in this workspace. Create one to begin."
-                    : "No candidates are assigned to you yet for mentoring."}
-                </div>
-              ) : (
-                <div className="mt-6 overflow-hidden rounded-3xl border border-slate-200">
-                  <div className="hidden grid-cols-[1.2fr_1fr_1fr_0.9fr_0.9fr_0.8fr] gap-3 bg-slate-50 px-4 py-3 text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase md:grid">
-                    <span>Candidate</span>
-                    <span>Role</span>
-                    <span>Readiness</span>
-                    <span>Award</span>
-                    <span>Biggest Gap</span>
-                    <span>Status</span>
-                  </div>
-                  <div className="divide-y divide-slate-200">
-                    {candidateSummaries.map((candidate) => (
-                      <Link
-                        key={candidate.id}
-                        href={`/candidates/${candidate.id}`}
-                        className="block transition hover:bg-slate-50"
-                      >
-                        <div className="grid gap-2 px-4 py-4 md:grid-cols-[1.2fr_1fr_1fr_0.9fr_0.9fr_0.8fr] md:items-center md:gap-3">
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold text-slate-900">
-                              {candidate.fullName}
-                            </p>
-                            <p className="truncate text-xs text-slate-500">
-                              {candidate.currentTitle}
-                            </p>
-                          </div>
-                          <p className="truncate text-sm text-slate-700">
-                            {candidate.primaryRoleTitle}
-                          </p>
-                          <div className="min-w-0">
-                            <p className="text-sm font-semibold text-slate-900">
-                              {candidate.readiness.toFixed(2)} / 5
-                            </p>
-                            <p className="truncate text-xs text-slate-500">
-                              {candidate.roleGoalReadinessPercent.toFixed(1)}% role-goal
-                            </p>
-                          </div>
-                          <div>
-                            <CandidateAwardBadge award={candidate.award} size="sm" />
-                          </div>
-                          <p className="truncate text-sm text-slate-700">
-                            {candidate.topGap}
-                          </p>
-                          <p className="text-sm text-slate-700 capitalize">
-                            {candidate.status.replaceAll("_", " ")}
-                          </p>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </section>
           </div>
         </section>
       </div>

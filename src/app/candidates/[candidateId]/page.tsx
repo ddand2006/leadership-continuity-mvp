@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CandidateRoleConsiderationManager } from "@/components/candidate-role-consideration-manager";
 import { CandidateDetailSectionMenu } from "@/components/candidate-detail-section-menu";
+import { CandidateSelectorSidebar } from "@/components/candidate-selector-sidebar";
 import { CandidateInsightExplorer } from "@/components/candidate-insight-explorer";
 import { MentorReportMatchExplorer } from "@/components/mentor-report-match-explorer";
 import { CandidateStrengthsUploadCard } from "@/components/candidate-strengths-upload-card";
@@ -27,7 +28,11 @@ import {
 } from "@/lib/fit-analysis";
 import { computeCandidateAward } from "@/lib/candidate-awards";
 import { isMissingLeadershipDevelopmentRecordTableError } from "@/lib/leadership-development-record";
-import { isAdminAppRole, isCandidateSelfAccess } from "@/lib/mentor-access";
+import {
+  getAccessibleCandidateIds,
+  isAdminAppRole,
+  isCandidateSelfAccess,
+} from "@/lib/mentor-access";
 import {
   buildRoleMatchesWeakestToStrongest,
   MentorReport,
@@ -177,6 +182,44 @@ export default async function CandidateDetailPage({
 
   if (!isAdmin && !canViewOwnCandidate && accessibleRoleIds.length === 0) {
     redirect("/candidates?message=You+do+not+have+access+to+that+candidate");
+  }
+
+  const sidebarMentorAssignmentsResult = isAdmin
+    ? { data: [], error: null }
+    : await supabase
+        .from("mentor_role_assignments")
+        .select("candidate_id, role_id, mentor_profile_id, status")
+        .eq("organization_id", profile.organization_id)
+        .eq("mentor_profile_id", profile.id);
+
+  if (sidebarMentorAssignmentsResult.error) {
+    throw new Error(sidebarMentorAssignmentsResult.error.message);
+  }
+
+  const sidebarAccessibleCandidateIds = getAccessibleCandidateIds({
+    profile,
+    account,
+    mentorAssignments: sidebarMentorAssignmentsResult.data ?? [],
+  });
+  const sidebarCandidateIds = Array.from(sidebarAccessibleCandidateIds ?? []);
+  const sidebarCandidatesResult =
+    !isAdmin && sidebarCandidateIds.length === 0
+      ? { data: [], error: null }
+      : isAdmin
+        ? await supabase
+            .from("candidates")
+            .select("id, full_name, current_title, status")
+            .eq("organization_id", profile.organization_id)
+            .order("created_at", { ascending: true })
+        : await supabase
+            .from("candidates")
+            .select("id, full_name, current_title, status")
+            .eq("organization_id", profile.organization_id)
+            .in("id", sidebarCandidateIds)
+            .order("created_at", { ascending: true });
+
+  if (sidebarCandidatesResult.error) {
+    throw new Error(sidebarCandidatesResult.error.message);
   }
 
   const allowedRoleIds = new Set(accessibleRoleIds);
@@ -471,16 +514,6 @@ export default async function CandidateDetailPage({
   const candidateStrengthsFilesHref = activeRoleId
     ? `/candidates/${candidate.id}?roleId=${activeRoleId}&section=strengths-files`
     : `/candidates/${candidate.id}?section=strengths-files`;
-  const activeRoleMentorNames = activeRoleId
-    ? Array.from(
-        new Set(
-          displayableMentorAssignments
-            .filter((assignment) => assignment.role_id === activeRoleId)
-            .map((assignment) => mentorMap.get(assignment.mentor_profile_id)?.full_name)
-            .filter(Boolean),
-        ),
-      )
-    : [];
   const preferredActiveRoleMentorProfileId = activeRoleId
     ? displayableMentorAssignments.find(
         (assignment) =>
@@ -511,30 +544,28 @@ export default async function CandidateDetailPage({
       Boolean(record.mentor_review_date),
     ),
   });
-  const candidateWorkspaceDetailItems = [
-    `Current title: ${candidate.current_title ?? "Not entered"}`,
-    `Active role: ${activeRoleTitle || "No role selected"}`,
-    `Weighted readiness: ${readiness.toFixed(2)} / 5`,
-    `Role-goal readiness: ${roleGoalReadiness.readinessPercent.toFixed(1)}%`,
-    `Candidate award: ${candidateAward.label}`,
-    `Mentors: ${
-      activeRoleMentorNames.length > 0
-        ? activeRoleMentorNames.join(", ")
-        : "Not assigned yet"
-    }`,
-  ];
-
   return (
     <main className="app-page">
-      <div className="mx-auto flex w-full max-w-[1380px] flex-col gap-8 px-6 py-12 sm:px-10 lg:px-12">
-        <CandidateDetailSectionMenu
-          initialSectionId={requestedSection}
-          candidateName={candidate.full_name}
-          detailItems={candidateWorkspaceDetailItems}
-          sections={[
+      <div className="mx-auto w-full max-w-[1380px] px-6 py-12 sm:px-10 lg:px-12">
+        <section className="grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)] xl:items-start">
+          <CandidateSelectorSidebar
+            candidates={(sidebarCandidatesResult.data ?? []).map((sidebarCandidate) => ({
+              id: sidebarCandidate.id,
+              fullName: sidebarCandidate.full_name,
+              currentTitle: sidebarCandidate.current_title,
+              status: sidebarCandidate.status,
+            }))}
+            selectedCandidateId={candidate.id}
+            canCreateCandidates={isAdmin}
+          />
+
+          <div className="min-w-0">
+            <CandidateDetailSectionMenu
+              initialSectionId={requestedSection}
+              sections={[
             {
               id: "role-context",
-              label: "Role Context",
+              label: "Overview",
               summary:
                 "Review the roles this candidate is being considered for and the mentors currently assigned to the active role.",
               content: (
@@ -983,8 +1014,10 @@ export default async function CandidateDetailPage({
                 </section>
               ),
             },
-          ]}
-        />
+              ]}
+            />
+          </div>
+        </section>
       </div>
     </main>
   );
