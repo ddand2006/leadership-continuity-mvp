@@ -818,10 +818,20 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                       </div>
 
                       <div className="mt-8 grid gap-4 lg:grid-cols-2">
-                        <article className="rounded-3xl border border-slate-200 bg-slate-50 p-6 lg:col-span-2">
-                          <p className="text-sm font-semibold tracking-[0.14em] text-slate-500 uppercase">
-                            Ideal Candidate Competencies
-                          </p>
+                        <details
+                          open
+                          className="group rounded-3xl border border-slate-200 bg-slate-50 p-6 lg:col-span-2"
+                        >
+                          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-semibold tracking-[0.14em] text-slate-500 uppercase [&::-webkit-details-marker]:hidden">
+                            <span>Ideal Candidate Competencies</span>
+                            <span className="flex items-center gap-2 text-xs tracking-normal text-teal-800 normal-case">
+                              <span className="group-open:hidden">Expand</span>
+                              <span className="hidden group-open:inline">Collapse</span>
+                              <span className="text-lg leading-none transition-transform group-open:rotate-45">
+                                +
+                              </span>
+                            </span>
+                          </summary>
                           <div className="mt-5 grid gap-4 lg:grid-cols-3">
                             <div className="rounded-2xl bg-white px-4 py-4 text-sm text-slate-700">
                               <p className="font-semibold text-slate-900">Talents</p>
@@ -848,7 +858,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                               </p>
                             </div>
                           </div>
-                        </article>
+                        </details>
                         {competencies.length > 0 ? (
                           competencies.map((competency) => (
                             <article
