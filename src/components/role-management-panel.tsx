@@ -307,34 +307,6 @@ export function RoleManagementPanel({
     router.push(nextQuery ? `${pathname}?${nextQuery}` : pathname);
   }
 
-  function applyEditorRole(nextRoleId: string) {
-    setEditorRoleId(nextRoleId);
-    const nextRole = roles.find((role) => role.id === nextRoleId) ?? null;
-
-    if (!nextRole) {
-      setTitle("");
-      setDepartment("");
-      setDescription("");
-      setStatus("draft");
-      setMentorProfileId("");
-      setTalentsValue("");
-      setSkillsValue("");
-      setBehaviorsValue("");
-      setSelectedMasterTemplateId("");
-      return;
-    }
-
-    setTitle(nextRole.title);
-    setDepartment(nextRole.department ?? "");
-    setDescription(nextRole.description ?? "");
-    setStatus(nextRole.status);
-    setMentorProfileId(nextRole.primaryMentorProfileId ?? "");
-    setTalentsValue(nextRole.talents.join("\n"));
-    setSkillsValue(nextRole.skills.join("\n"));
-    setBehaviorsValue(nextRole.behaviors.join("\n"));
-    setSelectedMasterTemplateId("");
-  }
-
   function resetEditorForm() {
     setEditorRoleId("");
     setTitle("");
@@ -346,6 +318,14 @@ export function RoleManagementPanel({
     setSkillsValue("");
     setBehaviorsValue("");
     setSelectedMasterTemplateId("");
+  }
+
+  function startNewRole() {
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.set("mode", "create");
+    nextParams.delete("roleId");
+    const nextQuery = nextParams.toString();
+    router.push(nextQuery ? `${pathname}?${nextQuery}` : pathname);
   }
 
   function applyMasterTemplate() {
@@ -952,24 +932,6 @@ export function RoleManagementPanel({
             >
               <label className="block">
                 <span className="mb-2 block text-sm font-semibold text-slate-700">
-                  Role record
-                </span>
-                <select
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
-                  value={editorRoleId}
-                  onChange={(event) => applyEditorRole(event.currentTarget.value)}
-                >
-                  <option value="">Create a new role</option>
-                  {roles.map((role) => (
-                    <option key={role.id} value={role.id}>
-                      Edit {role.title}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="block">
-                <span className="mb-2 block text-sm font-semibold text-slate-700">
                   Role title
                 </span>
                 <input
@@ -1336,7 +1298,7 @@ export function RoleManagementPanel({
                 {selectedEditorRole ? (
                   <button
                     type="button"
-                    onClick={() => applyEditorRole("")}
+                    onClick={startNewRole}
                     className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                   >
                     Start a New Role

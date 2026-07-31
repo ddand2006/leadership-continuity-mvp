@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
-import { RoleFlowPanel } from "@/components/role-flow-panel";
 import { RoleManagementPanel } from "@/components/role-management-panel";
 import { RoleMentorDialog } from "@/components/role-mentor-dialog";
 import { RoleResourcesPanel } from "@/components/role-resources-panel";
+import { RoleSelectorSidebar } from "@/components/role-selector-sidebar";
 import { RoleSurveyPanel } from "@/components/role-survey-panel";
 import { RoleWorkspaceMenu } from "@/components/role-workspace-menu";
 import { hasOpenAIEnv, hasResendEnv } from "@/lib/env";
@@ -37,14 +37,12 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
   const isEmailDeliveryEnabled = hasResendEnv();
   const { profile, supabase } = await requirePaidWorkspaceProfile();
   const selectedMode:
-    | "flow"
     | "create"
     | "import"
     | "composite"
     | "view"
     | "resources"
     | "survey" =
-    requestedMode === "flow" ||
     requestedMode === "view" ||
     requestedMode === "create" ||
     requestedMode === "import" ||
@@ -54,7 +52,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
       ? requestedMode
       : requestedRoleId
         ? "view"
-        : "flow";
+        : "create";
 
   if (!isAdminAppRole(profile.role)) {
     redirect(
@@ -76,8 +74,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
     selectedMode === "composite" ||
     selectedMode === "survey" ||
     selectedMode === "view";
-  const needsCharacteristicPresence =
-    selectedMode === "flow" || needsCharacteristicDetails;
+  const needsCharacteristicPresence = needsCharacteristicDetails;
   const needsSharedLibrary =
     selectedMode === "create" ||
     selectedMode === "import" ||
@@ -89,8 +86,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
     selectedMode === "composite" ||
     selectedMode === "survey" ||
     selectedMode === "view";
-  const needsCompositeDocumentPresence =
-    selectedMode === "flow" || needsCompositeDocumentDetails;
+  const needsCompositeDocumentPresence = needsCompositeDocumentDetails;
   const needsMentors = selectedMode === "view";
   const needsRoleMentorAssignments = selectedMode === "view";
   const needsSurveyRecords =
@@ -508,7 +504,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
   const visibleRoles = selectedRoleId
     ? roles.filter((role) => role.id === selectedRoleId)
     : roles;
-  const isRoleWorkspaceMode = selectedRoleId !== null && selectedMode !== "flow";
+  const isRoleWorkspaceMode = selectedRoleId !== null;
   const selectedRole = visibleRoles[0] ?? null;
   const selectedRoleMentors = selectedRole
     ? Array.from(new Set(mentorsByRole.get(selectedRole.id) ?? []))
@@ -578,13 +574,20 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
   return (
     <main className="app-page">
       <div className="mx-auto flex w-full max-w-[1380px] flex-col gap-8 px-6 py-12 sm:px-10 lg:px-12">
+        <div className="grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)] xl:items-start">
+          <RoleSelectorSidebar
+            roles={roles}
+            selectedRoleId={selectedRoleId}
+            isCreatingRole={!selectedRoleId && selectedMode === "create"}
+          />
+          <div className="grid min-w-0 gap-6">
         {isRoleWorkspaceMode && selectedRole ? (
           <RoleWorkspaceMenu
             roleName={selectedRole.title}
             detailItems={selectedRoleDetailItems}
             sections={roleWorkspaceSections}
             activeSectionId={activeWorkspaceSectionId}
-            backHref="/roles?mode=flow"
+            backHref="/roles?mode=create"
           />
         ) : (
           <section className="theme-panel-strong rounded-[2rem] p-8">
@@ -607,20 +610,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
 
         <section className="grid gap-6">
           <div className="grid gap-6">
-            {selectedMode === "flow" ? (
-              <RoleFlowPanel
-                roles={roles.map((role) => ({
-                  id: role.id,
-                  title: role.title,
-                  department: role.department,
-                  hasCompositeDocument: compositeDocumentByRole.has(role.id),
-                  hasCompetencies:
-                    (characteristicsByRole.get(role.id) ?? []).length > 0,
-                }))}
-                selectedRoleId={selectedRoleId}
-                selectedMode={selectedMode}
-              />
-            ) : selectedMode === "create" ? (
+            {selectedMode === "create" ? (
               <RoleManagementPanel
                 roles={roleOptionsForPanels.map((role) => ({
                   id: role.id,
@@ -945,6 +935,8 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
             )}
           </div>
         </section>
+          </div>
+        </div>
       </div>
     </main>
   );
