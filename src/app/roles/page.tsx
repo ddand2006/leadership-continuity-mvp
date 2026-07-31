@@ -506,37 +506,6 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
     : roles;
   const isRoleWorkspaceMode = selectedRoleId !== null;
   const selectedRole = visibleRoles[0] ?? null;
-  const selectedRoleMentors = selectedRole
-    ? Array.from(new Set(mentorsByRole.get(selectedRole.id) ?? []))
-    : [];
-  const selectedRoleCompetencyCount = selectedRole
-    ? (competenciesByRole.get(selectedRole.id) ?? []).length
-    : 0;
-  const selectedRoleCharacteristicCount = selectedRole
-    ? (characteristicsByRole.get(selectedRole.id) ?? []).length
-    : 0;
-  const selectedRoleCompositeDocument = selectedRole
-    ? compositeDocumentByRole.get(selectedRole.id) ?? null
-    : null;
-  const selectedRoleDetailItems = selectedRole
-    ? [
-        `Department: ${selectedRole.department ?? "Not entered"}`,
-        `Status: ${selectedRole.status}`,
-        `Ideal candidate traits: ${selectedRoleCharacteristicCount}`,
-        `Structured competencies: ${selectedRoleCompetencyCount}`,
-        `Mentors: ${
-          selectedRoleMentors.length > 0
-            ? selectedRoleMentors.join(", ")
-            : "Not assigned yet"
-        }`,
-        `Composite: ${
-          selectedRoleCompositeDocument?.file_name ??
-          (selectedRoleCompositeDocument?.document_source === "generated"
-            ? "Generated and ready"
-            : "Not created yet")
-        }`,
-      ]
-    : [];
   const activeWorkspaceSectionId =
     selectedMode === "import" ||
     selectedMode === "composite" ||
@@ -582,13 +551,10 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
           />
           <div className="grid min-w-0 gap-6">
         {isRoleWorkspaceMode && selectedRole ? (
-          <RoleWorkspaceMenu
-            roleName={selectedRole.title}
-            detailItems={selectedRoleDetailItems}
-            sections={roleWorkspaceSections}
-            activeSectionId={activeWorkspaceSectionId}
-            backHref="/roles?mode=create"
-          />
+              <RoleWorkspaceMenu
+                sections={roleWorkspaceSections}
+                activeSectionId={activeWorkspaceSectionId}
+              />
         ) : (
           <section className="theme-panel-strong rounded-[2rem] p-8">
             <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">
