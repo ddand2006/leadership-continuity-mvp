@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CandidateRoleConsiderationManager } from "@/components/candidate-role-consideration-manager";
+import { CandidateWorkflowStateManager } from "@/components/candidate-workflow-state-manager";
 import { CandidateDetailSectionMenu } from "@/components/candidate-detail-section-menu";
 import { CandidateSelectorSidebar } from "@/components/candidate-selector-sidebar";
 import { CandidateInsightExplorer } from "@/components/candidate-insight-explorer";
@@ -355,6 +356,39 @@ export default async function CandidateDetailPage({
     throw new Error(scoresResult.error.message);
   }
 
+  const [latestMatchResult, latestDecisionResult] = activeRoleId
+    ? await Promise.all([
+        supabase
+          .from("candidate_role_matches")
+          .select("match_status, created_at")
+          .eq("organization_id", profile.organization_id)
+          .eq("candidate_id", candidate.id)
+          .eq("role_id", activeRoleId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from("hiring_decisions")
+          .select("decision, created_at")
+          .eq("organization_id", profile.organization_id)
+          .eq("candidate_id", candidate.id)
+          .eq("role_id", activeRoleId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ])
+    : [
+        { data: null, error: null },
+        { data: null, error: null },
+      ];
+
+  if (latestMatchResult.error) {
+    throw new Error(latestMatchResult.error.message);
+  }
+  if (latestDecisionResult.error) {
+    throw new Error(latestDecisionResult.error.message);
+  }
+
   let developmentRecords = developmentRecordsResult.data ?? [];
 
   if (developmentRecordsResult.error) {
@@ -606,6 +640,30 @@ export default async function CandidateDetailPage({
                           mentorNames,
                         };
                       })}
+                    />
+                  ) : null}
+
+                  {isAdmin && activeRoleId ? (
+                    <CandidateWorkflowStateManager
+                      candidateId={candidate.id}
+                      roleId={activeRoleId}
+                      readinessScore={roleGoalReadiness.readinessPercent}
+                      latestMatch={
+                        latestMatchResult.data
+                          ? {
+                              status: latestMatchResult.data.match_status as "match" | "not_yet" | "not_recommended",
+                              createdAt: latestMatchResult.data.created_at,
+                            }
+                          : null
+                      }
+                      latestDecision={
+                        latestDecisionResult.data
+                          ? {
+                              decision: latestDecisionResult.data.decision as "hire" | "continue_mentoring" | "decline",
+                              createdAt: latestDecisionResult.data.created_at,
+                            }
+                          : null
+                      }
                     />
                   ) : null}
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { FormEvent, useState, useTransition } from "react";
 import {
   getTrainingProgramMatches,
   normalizeTrainingCompetencyName,
@@ -19,6 +19,16 @@ type TrainingRole = {
     definition: string | null;
     weight: number;
   }>;
+};
+
+type TrainingSelectionStatus = "exploring" | "shortlisted" | "approved" | "scheduled";
+
+type TrainingSelectionDraft = {
+  programId: string;
+  status: TrainingSelectionStatus;
+  notes: string;
+  plannedStartDate: string;
+  plannedCompletionDate: string;
 };
 
 const strengthLabel: Record<TrainingMatchStrength, string> = {
@@ -46,6 +56,9 @@ export function OutsideTrainingFinder({
   );
   const [roleSearch, setRoleSearch] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [shortlistMessage, setShortlistMessage] = useState<string | null>(null);
+  const [isShortlisting, startShortlisting] = useTransition();
+  const [selectionDraft, setSelectionDraft] = useState<TrainingSelectionDraft | null>(null);
 
   const selectedRole = roles.find((role) => role.id === selectedRoleId) ?? roles[0] ?? null;
   const selectedCompetencies = orderedCompetencies(selectedRole);
@@ -87,6 +100,55 @@ export function OutsideTrainingFinder({
     const nextCompetencies = orderedCompetencies(role);
     setSelectedRoleId(role.id);
     setSelectedCompetencyId(nextCompetencies[0]?.id ?? "");
+  }
+
+  function openSelectionForm(programId: string) {
+    setShortlistMessage(null);
+    setSelectionDraft({
+      programId,
+      status: "shortlisted",
+      notes: "",
+      plannedStartDate: "",
+      plannedCompletionDate: "",
+    });
+  }
+
+  function saveTrainingSelection(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!selectionDraft || !selectedRole || !selectedCompetency) {
+      return;
+    }
+
+    startShortlisting(async () => {
+      try {
+        const response = await fetch("/api/training-selections", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            trainingProgramId: selectionDraft.programId,
+            roleId: selectedRole.id,
+            competencyName: selectedCompetency.name,
+            status: selectionDraft.status,
+            notes: selectionDraft.notes,
+            plannedStartDate: selectionDraft.plannedStartDate || undefined,
+            plannedCompletionDate: selectionDraft.plannedCompletionDate || undefined,
+          }),
+        });
+        const payload = (await response.json()) as { message?: string; error?: string };
+
+        if (!response.ok) {
+          throw new Error(payload.error ?? "Unable to save this training selection.");
+        }
+
+        setSelectionDraft(null);
+        setShortlistMessage(payload.message ?? "Training selection saved.");
+      } catch (error) {
+        setShortlistMessage(
+          error instanceof Error ? error.message : "Unable to save this training selection.",
+        );
+      }
+    });
   }
 
   return (
@@ -252,6 +314,13 @@ export function OutsideTrainingFinder({
               >
                 View program
               </a>
+              <button
+                type="button"
+                onClick={() => openSelectionForm(program.id)}
+                className="ml-4 text-sm font-semibold text-teal-800 transition hover:text-teal-950"
+              >
+                Select program
+              </button>
             </article>
           ))}
           {selectedCompetency && programMatches.length === 0 ? (
@@ -261,6 +330,53 @@ export function OutsideTrainingFinder({
             </p>
           ) : null}
         </div>
+        {selectionDraft ? (
+          <form
+            onSubmit={saveTrainingSelection}
+            className="mt-6 rounded-3xl border border-[rgba(82,140,94,0.3)] bg-white p-5"
+          >
+            <h3 className="text-lg font-semibold text-[#183822]">Save training selection</h3>
+            <p className="mt-1 text-sm leading-6 text-[#24512f]">
+              Save this program for {selectedRole?.title} and the {selectedCompetency?.name} priority.
+            </p>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <label className="grid gap-1.5 text-sm font-semibold text-[#183822]">
+                Selection status
+                <select
+                  value={selectionDraft.status}
+                  onChange={(event) => setSelectionDraft({ ...selectionDraft, status: event.currentTarget.value as TrainingSelectionStatus })}
+                  className="rounded-xl border border-slate-300 bg-white px-3 py-2.5 font-normal text-slate-900 outline-none focus:border-teal-600"
+                >
+                  <option value="exploring">Exploring</option>
+                  <option value="shortlisted">Shortlisted</option>
+                  <option value="approved">Approved</option>
+                  <option value="scheduled">Scheduled</option>
+                </select>
+              </label>
+              <label className="grid gap-1.5 text-sm font-semibold text-[#183822]">
+                Planned start
+                <input type="date" value={selectionDraft.plannedStartDate} onChange={(event) => setSelectionDraft({ ...selectionDraft, plannedStartDate: event.currentTarget.value })} className="rounded-xl border border-slate-300 bg-white px-3 py-2.5 font-normal text-slate-900 outline-none focus:border-teal-600" />
+              </label>
+              <label className="grid gap-1.5 text-sm font-semibold text-[#183822] sm:col-span-2">
+                Planned completion
+                <input type="date" min={selectionDraft.plannedStartDate || undefined} value={selectionDraft.plannedCompletionDate} onChange={(event) => setSelectionDraft({ ...selectionDraft, plannedCompletionDate: event.currentTarget.value })} className="rounded-xl border border-slate-300 bg-white px-3 py-2.5 font-normal text-slate-900 outline-none focus:border-teal-600" />
+              </label>
+              <label className="grid gap-1.5 text-sm font-semibold text-[#183822] sm:col-span-2">
+                Notes <span className="font-normal text-[#24512f]">(optional)</span>
+                <textarea value={selectionDraft.notes} onChange={(event) => setSelectionDraft({ ...selectionDraft, notes: event.currentTarget.value })} maxLength={2000} rows={3} className="resize-y rounded-xl border border-slate-300 bg-white px-3 py-2.5 font-normal text-slate-900 outline-none focus:border-teal-600" />
+              </label>
+            </div>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <button type="submit" disabled={isShortlisting} className="interactive-contrast rounded-xl bg-teal-800 px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
+                {isShortlisting ? "Saving…" : "Save selection"}
+              </button>
+              <button type="button" disabled={isShortlisting} onClick={() => setSelectionDraft(null)} className="rounded-xl px-4 py-2.5 text-sm font-semibold text-teal-900 hover:bg-teal-50 disabled:opacity-50">
+                Cancel
+              </button>
+            </div>
+          </form>
+        ) : null}
+        {shortlistMessage ? <p role="status" className="mt-3 text-sm font-semibold text-[#24512f]">{shortlistMessage}</p> : null}
 
         {selectedCompetency ? (
           <section className="mt-6 border-t border-[rgba(82,140,94,0.2)] pt-6">

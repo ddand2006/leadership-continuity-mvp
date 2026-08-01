@@ -48,6 +48,8 @@ export function MentoringIdeasPanel({
 
   useEffect(() => {
     if (!candidateId || !roleId || !competencyId) {
+      // Reset to the supplied server data when there is no cache identity.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setGeneratedIdeas(initialGeneratedIdeas);
       return;
     }

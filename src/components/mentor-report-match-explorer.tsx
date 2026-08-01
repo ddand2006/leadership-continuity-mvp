@@ -174,6 +174,9 @@ export function MentorReportMatchExplorer({
   }, [selectedAssessment]);
 
   useEffect(() => {
+    // This synchronizes server- and session-cache-backed suggestions when the
+    // selected candidate context changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setGeneratedIdeasByCompetency((current) => {
       const nextGeneratedIdeasByCompetency = {
         ...savedGeneratedIdeasByCompetencyId,
