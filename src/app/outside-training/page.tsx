@@ -5,9 +5,11 @@ import {
 } from "@/lib/mentor-access";
 import { canonicalizeRoleTitle } from "@/lib/role-title";
 import { OutsideTrainingFinder } from "@/components/outside-training-finder";
+import { TrainingCatalogManager } from "@/components/training-catalog-manager";
 import {
   normalizeTrainingCompetencyName,
   temporaryTrainingPrograms,
+  type TemporaryTrainingProgram,
 } from "@/lib/outside-training-programs";
 import { requirePaidWorkspaceProfile } from "@/lib/workspace";
 
@@ -22,7 +24,7 @@ export default async function OutsideTrainingPage() {
     );
   }
 
-  const [rolesResult, competenciesResult] = await Promise.all([
+  const [rolesResult, competenciesResult, programsResult] = await Promise.all([
     supabase
       .from("roles")
       .select("id, title, department, description")
@@ -35,6 +37,12 @@ export default async function OutsideTrainingPage() {
       .eq("organization_id", profile.organization_id)
       .order("weight", { ascending: false })
       .order("created_at", { ascending: true }),
+    supabase
+      .from("training_programs")
+      .select("id, name, description, website_url, delivery_formats, audience_levels, typical_duration, internal_notes, training_providers(name), training_program_competencies(competency_name, match_strength, match_explanation)")
+      .eq("organization_id", profile.organization_id)
+      .eq("is_active", true)
+      .order("name", { ascending: true }),
   ]);
 
   if (rolesResult.error) {
@@ -76,6 +84,36 @@ export default async function OutsideTrainingPage() {
   const sharedTrainingOpportunityCount = [...rolesPerCompetency.values()].filter(
     (matchingRoles) => matchingRoles.size > 1,
   ).length;
+  const programs: TemporaryTrainingProgram[] = programsResult.error
+    ? temporaryTrainingPrograms
+    : (programsResult.data ?? []).map((program) => {
+    const provider = Array.isArray(program.training_providers)
+      ? program.training_providers[0]
+      : program.training_providers;
+    const deliveryFormats = Array.isArray(program.delivery_formats)
+      ? program.delivery_formats.filter((value): value is string => typeof value === "string")
+      : [];
+    const audiences = Array.isArray(program.audience_levels)
+      ? program.audience_levels.filter((value): value is string => typeof value === "string")
+      : [];
+
+    return {
+      id: program.id,
+      name: program.name,
+      provider: provider?.name ?? "Training provider",
+      description: program.description,
+      websiteUrl: program.website_url ?? "#",
+      deliveryFormat: deliveryFormats.join(", ") || "Format not specified",
+      typicalDuration: program.typical_duration ?? "Duration not specified",
+      intendedAudience: audiences.join(", ") || "Audience not specified",
+      internalNote: program.internal_notes ?? "",
+      competencyMatches: (program.training_program_competencies ?? []).map((match) => ({
+        competencyNames: [match.competency_name],
+        strength: match.match_strength as "strong" | "moderate" | "supporting",
+        explanation: match.match_explanation,
+      })),
+    };
+  });
 
   return (
     <main className="app-page">
@@ -115,7 +153,7 @@ export default async function OutsideTrainingPage() {
               Training programs available
             </p>
             <p className="mt-3 text-4xl font-semibold text-slate-900">
-              {temporaryTrainingPrograms.length}
+              {programs.length}
             </p>
           </article>
           <article className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
@@ -128,7 +166,8 @@ export default async function OutsideTrainingPage() {
           </article>
         </section>
 
-        <OutsideTrainingFinder roles={roles} />
+        <OutsideTrainingFinder roles={roles} programs={programs} />
+        {isAdminAppRole(profile.role) ? <TrainingCatalogManager programs={programs} /> : null}
       </div>
     </main>
   );

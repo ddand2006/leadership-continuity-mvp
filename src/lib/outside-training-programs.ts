@@ -156,10 +156,13 @@ export const temporaryTrainingPrograms: TemporaryTrainingProgram[] = [
   },
 ];
 
-export function getTrainingProgramMatches(competencyName: string) {
+export function getTrainingProgramMatches(
+  competencyName: string,
+  programs: TemporaryTrainingProgram[] = temporaryTrainingPrograms,
+) {
   const normalizedCompetencyName = normalize(competencyName);
 
-  return temporaryTrainingPrograms
+  return programs
     .flatMap((program) =>
       program.competencyMatches.flatMap((match) => {
         const isMatch = match.competencyNames.some(

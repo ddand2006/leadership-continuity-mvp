@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   getTrainingProgramMatches,
   normalizeTrainingCompetencyName,
+  type TemporaryTrainingProgram,
   type TrainingMatchStrength,
 } from "@/lib/outside-training-programs";
 
@@ -32,7 +33,13 @@ function orderedCompetencies(role: TrainingRole | null) {
   );
 }
 
-export function OutsideTrainingFinder({ roles }: { roles: TrainingRole[] }) {
+export function OutsideTrainingFinder({
+  roles,
+  programs,
+}: {
+  roles: TrainingRole[];
+  programs: TemporaryTrainingProgram[];
+}) {
   const [selectedRoleId, setSelectedRoleId] = useState(roles[0]?.id ?? "");
   const [selectedCompetencyId, setSelectedCompetencyId] = useState(
     orderedCompetencies(roles[0] ?? null)[0]?.id ?? "",
@@ -59,7 +66,7 @@ export function OutsideTrainingFinder({ roles }: { roles: TrainingRole[] }) {
     return searchMatches && departmentMatches;
   });
   const programMatches = selectedCompetency
-    ? getTrainingProgramMatches(selectedCompetency.name)
+    ? getTrainingProgramMatches(selectedCompetency.name, programs)
     : [];
   const selectedCompetencyName = selectedCompetency
     ? normalizeTrainingCompetencyName(selectedCompetency.name)
@@ -159,7 +166,7 @@ export function OutsideTrainingFinder({ roles }: { roles: TrainingRole[] }) {
         <div className="mt-6 grid gap-3">
           {selectedCompetencies.map((competency, index) => {
             const isSelected = competency.id === selectedCompetency?.id;
-            const matchCount = getTrainingProgramMatches(competency.name).length;
+            const matchCount = getTrainingProgramMatches(competency.name, programs).length;
 
             return (
               <button
