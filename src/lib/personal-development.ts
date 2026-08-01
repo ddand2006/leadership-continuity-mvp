@@ -39,18 +39,31 @@ export type PersonalRoleProfileRecord = {
   updated_at: string;
 };
 
+export type PersonalRoleCompetencyRecord = {
+  id: string;
+  personal_role_profile_id: string;
+  name: string;
+  definition: string | null;
+  sort_order: number;
+};
+
 export type PersonalLeadershipCompositeRecord = {
   id: string;
   version: number;
   status: "draft" | "generated" | "archived";
   composite_json: (RoleComposite & {
     evidence?: {
-      generation_mode?: "ideal_competencies" | "existing_role_competencies" | "role_profile";
+      generation_mode?:
+        | "ideal_competencies"
+        | "existing_role_competencies"
+        | "personal_role_competencies"
+        | "role_profile";
       talents?: string[];
       skills?: string[];
       behaviors?: string[];
       strengths_on_file?: string[];
       source_role_competency_count?: number;
+      personal_role_competency_count?: number;
     };
   }) | null;
   narrative_json: PersonalLeadershipNarrative | null;
@@ -104,6 +117,7 @@ export type PersonalDevelopmentWorkspaceData = {
   roles: PersonalDevelopmentRoleOption[];
   personalProfile: PersonalDevelopmentProfileRecord | null;
   roleProfile: PersonalRoleProfileRecord | null;
+  personalRoleCompetencies: PersonalRoleCompetencyRecord[];
   latestComposite: PersonalLeadershipCompositeRecord | null;
   strengthsCount: number;
   sourceDocumentCount: number;
@@ -137,6 +151,7 @@ export function isMissingPersonalDevelopmentTablesError(
   return Boolean(
     error?.message.includes("personal_development_profiles") ||
       error?.message.includes("personal_role_profiles") ||
+      error?.message.includes("personal_role_competencies") ||
       error?.message.includes("personal_leadership_composites") ||
       error?.message.includes("personal_source_documents") ||
       error?.message.includes("personal_strength_profiles"),
@@ -200,6 +215,7 @@ export async function loadPersonalDevelopmentWorkspaceData(): Promise<PersonalDe
         roles,
         personalProfile: null,
         roleProfile: null,
+        personalRoleCompetencies: [],
         latestComposite: null,
         strengthsCount: 0,
         sourceDocumentCount: 0,
@@ -224,6 +240,7 @@ export async function loadPersonalDevelopmentWorkspaceData(): Promise<PersonalDe
       roles,
       personalProfile: null,
       roleProfile: null,
+      personalRoleCompetencies: [],
       latestComposite: null,
       strengthsCount: 0,
       sourceDocumentCount: 0,
@@ -278,6 +295,41 @@ export async function loadPersonalDevelopmentWorkspaceData(): Promise<PersonalDe
     }
   }
 
+  const roleProfile = (roleProfileResult.data as PersonalRoleProfileRecord | null) ?? null;
+  const personalRoleCompetenciesResult = roleProfile
+    ? await supabase
+        .from("personal_role_competencies")
+        .select("id, personal_role_profile_id, name, definition, sort_order")
+        .eq("organization_id", profile.organization_id)
+        .eq("personal_role_profile_id", roleProfile.id)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true })
+    : { data: [], error: null };
+
+  if (personalRoleCompetenciesResult.error) {
+    if (isMissingPersonalDevelopmentTablesError(personalRoleCompetenciesResult.error)) {
+      return {
+        account,
+        profile,
+        canReviewCoachingQueue,
+        hasOpenAI: hasOpenAIEnv(),
+        migrationReady: false,
+        profilePositionTitle: profileDetailsResult.data?.position_title ?? null,
+        roles,
+        personalProfile,
+        roleProfile,
+        personalRoleCompetencies: [],
+        latestComposite:
+          (latestCompositeResult.data as PersonalLeadershipCompositeRecord | null) ?? null,
+        strengthsCount: strengthsCountResult.count ?? 0,
+        sourceDocumentCount: sourceDocumentCountResult.count ?? 0,
+        coachingRequestCount: coachingCountResult.count ?? 0,
+      };
+    }
+
+    throw new Error(personalRoleCompetenciesResult.error.message);
+  }
+
   return {
     account,
     profile,
@@ -288,12 +340,14 @@ export async function loadPersonalDevelopmentWorkspaceData(): Promise<PersonalDe
     roles,
     personalProfile,
     roleProfile:
-      roleProfileResult.data
+      roleProfile
         ? {
-            ...(roleProfileResult.data as PersonalRoleProfileRecord),
-            title: canonicalizeRoleTitle(roleProfileResult.data.title),
+            ...roleProfile,
+            title: canonicalizeRoleTitle(roleProfile.title),
           }
         : null,
+    personalRoleCompetencies:
+      (personalRoleCompetenciesResult.data as PersonalRoleCompetencyRecord[] | null) ?? [],
     latestComposite:
       (latestCompositeResult.data as PersonalLeadershipCompositeRecord | null) ?? null,
     strengthsCount: strengthsCountResult.count ?? 0,

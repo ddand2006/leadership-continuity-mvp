@@ -95,7 +95,11 @@ function createCompositeNarrativeInput(options: {
   };
   strengths: string[];
   evidence: {
-    generation_mode: "ideal_competencies" | "existing_role_competencies" | "role_profile";
+    generation_mode:
+      | "ideal_competencies"
+      | "existing_role_competencies"
+      | "personal_role_competencies"
+      | "role_profile";
     talents: string[];
     skills: string[];
     behaviors: string[];
@@ -180,6 +184,7 @@ export async function POST() {
       strengthsResult,
       roleCharacteristicsResult,
       roleCompetenciesResult,
+      personalRoleCompetenciesResult,
       latestSurveyResult,
     ] = await Promise.all([
       admin
@@ -203,6 +208,15 @@ export async function POST() {
             .select("category, characteristic, sort_order")
             .eq("organization_id", profile.organization_id)
             .eq("role_id", roleProfile.source_role_id)
+            .order("sort_order", { ascending: true })
+            .order("created_at", { ascending: true })
+        : Promise.resolve({ data: [], error: null }),
+      roleProfile.role_mode === "personal_role"
+        ? admin
+            .from("personal_role_competencies")
+            .select("name, definition")
+            .eq("organization_id", profile.organization_id)
+            .eq("personal_role_profile_id", roleProfile.id)
             .order("sort_order", { ascending: true })
             .order("created_at", { ascending: true })
         : Promise.resolve({ data: [], error: null }),
@@ -233,6 +247,7 @@ export async function POST() {
       strengthsResult,
       roleCharacteristicsResult,
       roleCompetenciesResult,
+      personalRoleCompetenciesResult,
       latestSurveyResult,
     ]) {
       if (result.error) {
@@ -250,6 +265,7 @@ export async function POST() {
     let generationMode:
       | "ideal_competencies"
       | "existing_role_competencies"
+      | "personal_role_competencies"
       | "role_profile" = "role_profile";
     let generatedComposite: RoleComposite;
 
@@ -275,6 +291,23 @@ export async function POST() {
         department: roleProfile.department,
         description: roleProfile.description,
         competencies: (roleCompetenciesResult.data ?? []) as RoleCompetencyRow[],
+      });
+    } else if ((personalRoleCompetenciesResult.data ?? []).length > 0) {
+      generationMode = "personal_role_competencies";
+      generatedComposite = normalizeExistingRoleCompetencies({
+        title: roleProfile.title,
+        department: roleProfile.department,
+        description: roleProfile.description,
+        competencies: (personalRoleCompetenciesResult.data ?? []).map(
+          (competency) => ({
+            name: competency.name,
+            definition: competency.definition,
+            target_score: 4,
+            weight: 1,
+            behavioral_indicators: [],
+            red_flags: [],
+          }),
+        ) as RoleCompetencyRow[],
       });
     } else {
       generatedComposite = await generateRoleCompositeFromRoleProfile({
@@ -339,6 +372,8 @@ export async function POST() {
             behaviors: groupedCharacteristics.behaviors,
             strengths_on_file: sourceStrengths,
             source_role_competency_count: roleCompetenciesResult.data?.length ?? 0,
+            personal_role_competency_count:
+              personalRoleCompetenciesResult.data?.length ?? 0,
           },
         },
         narrative_json: narrative,

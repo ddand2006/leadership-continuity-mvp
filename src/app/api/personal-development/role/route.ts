@@ -17,6 +17,16 @@ const savePersonalRoleProfileSchema = z.object({
   title: z.string().trim().max(200).optional().default(""),
   department: z.string().trim().max(200).optional().default(""),
   description: z.string().trim().max(12000).optional().default(""),
+  competencies: z
+    .array(
+      z.object({
+        name: z.string().trim().min(1).max(200),
+        definition: z.string().trim().max(2000).optional().default(""),
+      }),
+    )
+    .max(30)
+    .optional()
+    .default([]),
 });
 
 export async function POST(request: Request) {
@@ -73,6 +83,13 @@ export async function POST(request: Request) {
           400,
         );
       }
+
+      if (payload.competencies.length === 0) {
+        throw new ApiRouteError(
+          "Add at least one competency for the personal role profile.",
+          400,
+        );
+      }
     }
 
     const personalProfileResult = await admin
@@ -118,11 +135,39 @@ export async function POST(request: Request) {
       throw new ApiRouteError(roleProfileResult.error.message, 500);
     }
 
+    const clearPersonalCompetenciesResult = await admin
+      .from("personal_role_competencies")
+      .delete()
+      .eq("organization_id", profile.organization_id)
+      .eq("personal_role_profile_id", roleProfileResult.data.id);
+
+    if (clearPersonalCompetenciesResult.error) {
+      throw new ApiRouteError(clearPersonalCompetenciesResult.error.message, 500);
+    }
+
+    if (payload.roleMode === "personal_role") {
+      const insertPersonalCompetenciesResult = await admin
+        .from("personal_role_competencies")
+        .insert(
+          payload.competencies.map((competency, index) => ({
+            organization_id: profile.organization_id,
+            personal_role_profile_id: roleProfileResult.data.id,
+            name: competency.name,
+            definition: competency.definition || null,
+            sort_order: index,
+          })),
+        );
+
+      if (insertPersonalCompetenciesResult.error) {
+        throw new ApiRouteError(insertPersonalCompetenciesResult.error.message, 500);
+      }
+    }
+
     return NextResponse.json({
       message:
         payload.roleMode === "organization_role"
           ? `Your Personal Development workspace is now connected to "${roleTitle}".`
-          : `Your personal role profile for "${roleTitle}" was saved.`,
+          : `Your personal role profile for "${roleTitle}" and its competencies were saved.`,
       personalDevelopmentProfileId: personalProfileResult.data.id,
       personalRoleProfileId: roleProfileResult.data.id,
     });

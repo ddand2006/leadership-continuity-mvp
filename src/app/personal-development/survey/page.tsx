@@ -84,20 +84,20 @@ export default async function PersonalDevelopmentSurveyPage() {
               Competency Survey
             </p>
             <h2 className="mt-3 font-display text-3xl text-slate-900">
-              Connect this workspace to an organizational role first
+              Your personal-role competencies are ready for development planning
             </h2>
             <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600">
-              The survey engine is reused from Leadership Continuity and currently
-              runs against organizational roles. To launch a competency survey here,
-              connect your Personal Development workspace to one of your
-              organization&apos;s saved roles.
+              Your personal role profile is private and its competencies guide your
+              composite and growth plan. The shared 360 survey engine still runs
+              against organizational roles, so connect one only when you want to
+              invite colleagues to assess the organization&apos;s role standards.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Link
                 href="/personal-development/role"
                 className="interactive-contrast rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-900"
               >
-                Connect an Organizational Role
+                Manage Role Profile
               </Link>
             </div>
           </section>

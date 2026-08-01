@@ -11,6 +11,11 @@ type RoleOption = {
   status: string;
 };
 
+type PersonalCompetencyInput = {
+  name: string;
+  definition: string;
+};
+
 export function PersonalRoleProfileForm({
   roles,
   initialRoleMode,
@@ -18,6 +23,7 @@ export function PersonalRoleProfileForm({
   initialTitle,
   initialDepartment,
   initialDescription,
+  initialPersonalCompetencies,
   initialCurrentPositionTitle,
   initialYearsInRole,
   initialLeadershipHistory,
@@ -29,6 +35,7 @@ export function PersonalRoleProfileForm({
   initialTitle: string;
   initialDepartment: string;
   initialDescription: string;
+  initialPersonalCompetencies: PersonalCompetencyInput[];
   initialCurrentPositionTitle: string;
   initialYearsInRole: string;
   initialLeadershipHistory: string;
@@ -40,6 +47,13 @@ export function PersonalRoleProfileForm({
   const [title, setTitle] = useState(initialTitle);
   const [department, setDepartment] = useState(initialDepartment);
   const [description, setDescription] = useState(initialDescription);
+  const [personalCompetencies, setPersonalCompetencies] = useState<
+    PersonalCompetencyInput[]
+  >(
+    initialPersonalCompetencies.length > 0
+      ? initialPersonalCompetencies
+      : [{ name: "", definition: "" }],
+  );
   const [currentPositionTitle, setCurrentPositionTitle] = useState(
     initialCurrentPositionTitle,
   );
@@ -83,6 +97,8 @@ export function PersonalRoleProfileForm({
           title,
           department,
           description,
+          competencies:
+            roleMode === "personal_role" ? personalCompetencies : undefined,
         }),
       });
 
@@ -267,6 +283,94 @@ export function PersonalRoleProfileForm({
                 placeholder="Describe the role, the leadership expectations, and what success looks like."
               />
             </label>
+
+            <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">
+                    Role competencies
+                  </p>
+                  <p className="mt-1 text-sm leading-6 text-slate-600">
+                    Add the capabilities this role requires. These will guide your
+                    leadership composite and growth plan.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPersonalCompetencies((items) => [
+                      ...items,
+                      { name: "", definition: "" },
+                    ])
+                  }
+                  className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition hover:border-teal-500 hover:text-teal-800"
+                >
+                  Add competency
+                </button>
+              </div>
+
+              <div className="mt-5 grid gap-4">
+                {personalCompetencies.map((competency, index) => (
+                  <div
+                    key={index}
+                    className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto]"
+                  >
+                    <label className="block">
+                      <span className="mb-2 block text-xs font-semibold tracking-[0.12em] text-slate-500 uppercase">
+                        Competency
+                      </span>
+                      <input
+                        value={competency.name}
+                        onChange={(event) =>
+                          setPersonalCompetencies((items) =>
+                            items.map((item, itemIndex) =>
+                              itemIndex === index
+                                ? { ...item, name: event.target.value }
+                                : item,
+                            ),
+                          )
+                        }
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
+                        type="text"
+                        placeholder="Strategic thinking"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="mb-2 block text-xs font-semibold tracking-[0.12em] text-slate-500 uppercase">
+                        What it means
+                      </span>
+                      <input
+                        value={competency.definition}
+                        onChange={(event) =>
+                          setPersonalCompetencies((items) =>
+                            items.map((item, itemIndex) =>
+                              itemIndex === index
+                                ? { ...item, definition: event.target.value }
+                                : item,
+                            ),
+                          )
+                        }
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
+                        type="text"
+                        placeholder="Turns long-term priorities into clear decisions."
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      disabled={personalCompetencies.length === 1}
+                      onClick={() =>
+                        setPersonalCompetencies((items) =>
+                          items.filter((_, itemIndex) => itemIndex !== index),
+                        )
+                      }
+                      className="self-end rounded-xl px-3 py-2.5 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:text-slate-300"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 

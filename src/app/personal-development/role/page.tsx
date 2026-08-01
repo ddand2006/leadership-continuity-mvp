@@ -72,6 +72,12 @@ export default async function PersonalDevelopmentRolePage() {
                 ? workspace.roleProfile.description
                 : ""
             }
+            initialPersonalCompetencies={workspace.personalRoleCompetencies.map(
+              (competency) => ({
+                name: competency.name,
+                definition: competency.definition ?? "",
+              }),
+            )}
             initialCurrentPositionTitle={
               workspace.personalProfile?.current_position_title ??
               workspace.profilePositionTitle ??
