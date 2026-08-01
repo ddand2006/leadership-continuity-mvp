@@ -126,10 +126,10 @@ export default async function OutsideTrainingPage() {
             Outside Training
           </h1>
           <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">
-            Explore outside training programs based on the leadership priorities of
-            each organizational role. Select a role, choose a development priority,
-            and compare programs that may strengthen that capability across one or
-            more leaders.
+            Compare outside training programs against the competencies required by
+            every organizational role. Start with the programs that build the most
+            competencies across the most roles, then drill into a specific role and
+            competency when you are ready to select training.
           </p>
         </section>
 
@@ -142,7 +142,7 @@ export default async function OutsideTrainingPage() {
           </article>
           <article className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
             <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
-              Leadership priorities
+              Role competencies
             </p>
             <p className="mt-3 text-4xl font-semibold text-slate-900">
               {competencyCount}

@@ -40,6 +40,12 @@ const strengthLabel: Record<TrainingMatchStrength, string> = {
   supporting: "Supporting match",
 };
 
+const strengthValue: Record<TrainingMatchStrength, number> = {
+  strong: 3,
+  moderate: 2,
+  supporting: 1,
+};
+
 function orderedCompetencies(role: TrainingRole | null) {
   return [...(role?.competencies ?? [])].sort(
     (left, right) => right.weight - left.weight,
@@ -139,6 +145,43 @@ export function OutsideTrainingFinder({
     (count, group) => count + (group.matches.length === 0 ? group.rolePriorities.length : 0),
     0,
   );
+  const investmentOpportunities = programs
+    .map((program) => {
+      const competencyMatches = roles.flatMap((role) =>
+        orderedCompetencies(role).flatMap((competency) => {
+          const match = getTrainingProgramMatches(competency.name, programs).find(
+            (candidate) => candidate.program.id === program.id,
+          );
+
+          return match ? [{ role, competency, match }] : [];
+        }),
+      );
+      const coveredRoleIds = new Set(competencyMatches.map(({ role }) => role.id));
+      const strongMatchCount = competencyMatches.filter(
+        ({ match }) => match.match.strength === "strong",
+      ).length;
+      const investmentScore = competencyMatches.reduce(
+        (score, { competency, match }) =>
+          score + Math.max(competency.weight, 1) * strengthValue[match.match.strength],
+        0,
+      );
+
+      return {
+        program,
+        competencyMatches,
+        coveredRoleIds,
+        strongMatchCount,
+        investmentScore,
+      };
+    })
+    .filter((opportunity) => opportunity.competencyMatches.length > 0)
+    .sort(
+      (left, right) =>
+        right.coveredRoleIds.size - left.coveredRoleIds.size ||
+        right.competencyMatches.length - left.competencyMatches.length ||
+        right.investmentScore - left.investmentScore,
+    );
+  const coverageGaps = coverageGroups.filter((group) => group.matches.length === 0);
 
   function openSelectionForm(programId: string) {
     if (!selectedRole || !selectedCompetency) return;
@@ -198,37 +241,52 @@ export function OutsideTrainingFinder({
       <section className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">Training coverage</p>
-            <h2 className="mt-2 font-display text-3xl text-slate-900">Every role priority, in one view</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-600">Use this overview to see which leadership skills have an outside-training resource across the organization and which need further research.</p>
+            <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">Training investment analysis</p>
+            <h2 className="mt-2 font-display text-3xl text-slate-900">Programs ranked by competency coverage</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-600">Each program is scored against every role competency. Start with programs that build the most competencies across the most roles to make training dollars go further.</p>
           </div>
           <div className="flex gap-3 text-sm">
-            <span className="rounded-full bg-teal-100 px-3 py-1.5 font-semibold text-teal-900">{coveredPriorityCount} covered priorities</span>
+            <span className="rounded-full bg-teal-100 px-3 py-1.5 font-semibold text-teal-900">{coveredPriorityCount} covered competencies</span>
             <span className="rounded-full bg-amber-100 px-3 py-1.5 font-semibold text-amber-900">{uncoveredPriorityCount} gaps</span>
           </div>
         </div>
         <div className="mt-6 grid gap-4 lg:grid-cols-2">
-          {coverageGroups.map((group) => (
-            <article key={normalizeTrainingCompetencyName(group.competencyName)} className={`rounded-2xl border p-5 ${group.matches.length > 0 ? "border-teal-100 bg-teal-50/50" : "border-amber-200 bg-amber-50/60"}`}>
+          {investmentOpportunities.map((opportunity, index) => (
+            <article key={opportunity.program.id} className="rounded-2xl border border-teal-100 bg-teal-50/50 p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-900">{group.competencyName}</h3>
-                  <p className="mt-1 text-sm text-slate-600">{group.rolePriorities.length} role {group.rolePriorities.length === 1 ? "priority" : "priorities"} · {group.matches.length} program {group.matches.length === 1 ? "match" : "matches"}</p>
+                  <p className="text-xs font-semibold tracking-[0.12em] text-teal-800 uppercase">Investment option #{index + 1}</p>
+                  <h3 className="mt-1 text-lg font-semibold text-slate-900">{opportunity.program.name}</h3>
+                  <p className="mt-1 text-sm font-medium text-teal-900">{opportunity.program.provider}</p>
                 </div>
-                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${group.matches.length > 0 ? "bg-teal-100 text-teal-900" : "bg-amber-100 text-amber-900"}`}>{group.matches.length > 0 ? "Resource available" : "Research gap"}</span>
+                <span className="rounded-full bg-teal-100 px-3 py-1 text-xs font-semibold text-teal-900">{opportunity.coveredRoleIds.size} {opportunity.coveredRoleIds.size === 1 ? "role" : "roles"}</span>
               </div>
+              <p className="mt-4 text-sm leading-6 text-slate-700"><span className="font-semibold text-slate-900">Coverage: </span>{opportunity.competencyMatches.length} competency {opportunity.competencyMatches.length === 1 ? "match" : "matches"}, including {opportunity.strongMatchCount} strong {opportunity.strongMatchCount === 1 ? "match" : "matches"}.</p>
               <div className="mt-4 flex flex-wrap gap-2">
-                {group.rolePriorities.map(({ role, competency }) => (
-                  <button key={`${role.id}-${competency.id}`} type="button" onClick={() => { selectRole(role); setSelectedCompetencyId(competency.id); }} className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-teal-500 hover:text-teal-900">
-                    {role.title}{role.department ? ` · ${role.department}` : ""}
-                  </button>
-                ))}
+                {Array.from(opportunity.coveredRoleIds).map((roleId) => {
+                  const role = roles.find((candidate) => candidate.id === roleId);
+                  return role ? (
+                    <button key={role.id} type="button" onClick={() => selectRole(role)} className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-teal-500 hover:text-teal-900">
+                      {role.title}{role.department ? ` · ${role.department}` : ""}
+                    </button>
+                  ) : null;
+                })}
               </div>
-              {group.matches.length > 0 ? <p className="mt-4 text-sm leading-6 text-slate-600">{group.matches.slice(0, 2).map(({ program }) => program.name).join(" · ")}{group.matches.length > 2 ? ` · +${group.matches.length - 2} more` : ""}</p> : <p className="mt-4 text-sm leading-6 text-amber-900">Add a program and competency mapping in the training catalog to cover this priority.</p>}
+              <p className="mt-4 text-sm leading-6 text-slate-600">Competencies: {Array.from(new Set(opportunity.competencyMatches.map(({ competency }) => competency.name))).slice(0, 4).join(" · ")}{new Set(opportunity.competencyMatches.map(({ competency }) => competency.name)).size > 4 ? " · more" : ""}</p>
+              <a href={opportunity.program.websiteUrl} target="_blank" rel="noreferrer" className="mt-4 inline-flex text-sm font-semibold text-teal-800 transition hover:text-teal-950">View program</a>
             </article>
           ))}
-          {coverageGroups.length === 0 ? <p className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-sm text-slate-600 lg:col-span-2">Add active roles and leadership priorities to begin mapping training coverage.</p> : null}
+          {investmentOpportunities.length === 0 ? <p className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-sm text-slate-600 lg:col-span-2">Add competency mappings to the training catalog to begin comparing program investments.</p> : null}
         </div>
+        {coverageGaps.length > 0 ? (
+          <section className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+            <h3 className="font-semibold text-amber-950">Competencies without an outside-training resource</h3>
+            <p className="mt-1 text-sm leading-6 text-amber-900">These are the catalog-research gaps to close before making a complete organization-wide investment decision.</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {coverageGaps.map((group) => <span key={normalizeTrainingCompetencyName(group.competencyName)} className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-amber-950">{group.competencyName} · {group.rolePriorities.length} {group.rolePriorities.length === 1 ? "role" : "roles"}</span>)}
+            </div>
+          </section>
+        ) : null}
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[0.82fr_1fr_1.28fr] xl:items-start">
