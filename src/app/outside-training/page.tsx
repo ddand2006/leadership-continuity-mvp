@@ -167,7 +167,16 @@ export default async function OutsideTrainingPage() {
         </section>
 
         <OutsideTrainingFinder roles={roles} programs={programs} />
-        {isAdminAppRole(profile.role) ? <TrainingCatalogManager programs={programs} /> : null}
+        {isAdminAppRole(profile.role) ? (
+          <TrainingCatalogManager
+            programs={programs}
+            competencyNames={Array.from(
+              new Set(
+                roles.flatMap((role) => role.competencies.map((competency) => competency.name)),
+              ),
+            ).sort()}
+          />
+        ) : null}
       </div>
     </main>
   );

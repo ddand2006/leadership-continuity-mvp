@@ -165,6 +165,14 @@ export function OutsideTrainingFinder({
           score + Math.max(competency.weight, 1) * strengthValue[match.match.strength],
         0,
       );
+      const roleCoverage = Array.from(
+        competencyMatches.reduce((coverage, item) => {
+          const existing = coverage.get(item.role.id) ?? { role: item.role, competencies: [] as typeof competencyMatches };
+          existing.competencies.push(item);
+          coverage.set(item.role.id, existing);
+          return coverage;
+        }, new Map<string, { role: TrainingRole; competencies: typeof competencyMatches }>()),
+      ).map(([, coverage]) => coverage);
 
       return {
         program,
@@ -172,6 +180,7 @@ export function OutsideTrainingFinder({
         coveredRoleIds,
         strongMatchCount,
         investmentScore,
+        roleCoverage,
       };
     })
     .filter((opportunity) => opportunity.competencyMatches.length > 0)
@@ -262,17 +271,16 @@ export function OutsideTrainingFinder({
                 <span className="rounded-full bg-teal-100 px-3 py-1 text-xs font-semibold text-teal-900">{opportunity.coveredRoleIds.size} {opportunity.coveredRoleIds.size === 1 ? "role" : "roles"}</span>
               </div>
               <p className="mt-4 text-sm leading-6 text-slate-700"><span className="font-semibold text-slate-900">Coverage: </span>{opportunity.competencyMatches.length} competency {opportunity.competencyMatches.length === 1 ? "match" : "matches"}, including {opportunity.strongMatchCount} strong {opportunity.strongMatchCount === 1 ? "match" : "matches"}.</p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {Array.from(opportunity.coveredRoleIds).map((roleId) => {
-                  const role = roles.find((candidate) => candidate.id === roleId);
-                  return role ? (
-                    <button key={role.id} type="button" onClick={() => selectRole(role)} className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-teal-500 hover:text-teal-900">
-                      {role.title}{role.department ? ` · ${role.department}` : ""}
-                    </button>
-                  ) : null;
-                })}
+              <div className="mt-4 grid gap-2">
+                <p className="text-xs font-semibold tracking-[0.12em] text-slate-500 uppercase">Roles and competencies addressed</p>
+                {opportunity.roleCoverage.map(({ role, competencies }) => (
+                  <button key={role.id} type="button" onClick={() => { selectRole(role); setSelectedCompetencyId(competencies[0]?.competency.id ?? ""); }} className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left text-sm transition hover:border-teal-500">
+                    <span className="font-semibold text-slate-900">{role.title}</span>
+                    <span className="text-slate-500">{role.department ? ` · ${role.department}` : ""}</span>
+                    <span className="mt-1 block text-xs leading-5 text-slate-600">{competencies.map(({ competency, match }) => `${competency.name} (${strengthLabel[match.match.strength].replace(" match", "")})`).join(" · ")}</span>
+                  </button>
+                ))}
               </div>
-              <p className="mt-4 text-sm leading-6 text-slate-600">Competencies: {Array.from(new Set(opportunity.competencyMatches.map(({ competency }) => competency.name))).slice(0, 4).join(" · ")}{new Set(opportunity.competencyMatches.map(({ competency }) => competency.name)).size > 4 ? " · more" : ""}</p>
               <a href={opportunity.program.websiteUrl} target="_blank" rel="noreferrer" className="mt-4 inline-flex text-sm font-semibold text-teal-800 transition hover:text-teal-950">View program</a>
             </article>
           ))}
