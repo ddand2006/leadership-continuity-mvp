@@ -161,6 +161,7 @@ export default async function MentoringPage({
   const canManageMentorAssignments = isAdmin || isMentor;
   const allowedSectionIds = new Set([
     "overview",
+    "resources",
     "preparation-worksheet",
     "leadership-development-record",
     "departmental-project",
@@ -874,6 +875,20 @@ export default async function MentoringPage({
     requestedRoleId,
     visibleAssignments: orderedVisibleAssignments,
   });
+  const selectedAssignment = orderedVisibleAssignments.find(
+    (assignment) => getAssignmentKey(assignment) === selectedAssignmentKey,
+  ) ?? null;
+  function getMentoringSectionHref(sectionId: string) {
+    const params = new URLSearchParams({ section: sectionId });
+    if (selectedAssignment) {
+      params.set("candidateId", selectedAssignment.candidate_id);
+      params.set("roleId", selectedAssignment.role_id);
+      if (selectedAssignment.mentor_profile_id) {
+        params.set("mentorProfileId", selectedAssignment.mentor_profile_id);
+      }
+    }
+    return `/mentoring?${params.toString()}`;
+  }
   const mentoringSections = [
     {
       id: "overview",
@@ -1020,6 +1035,30 @@ export default async function MentoringPage({
         ]
       : []),
     {
+      id: "resources",
+      label: "Resources",
+      content: (
+        <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+          <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">Mentoring resources</p>
+          <h2 className="mt-3 font-display text-3xl text-slate-900">Worksheets and project tools</h2>
+          <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">Use these resources within the selected mentoring track to prepare for the relationship and document departmental or cross-departmental stretch work.</p>
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
+            {[
+              { id: "preparation-worksheet", title: "Preparation Worksheet", description: "Align mentor and candidate expectations, strengths, and the initial development focus." },
+              { id: "departmental-project", title: "Departmental Project", description: "Plan and evaluate a stretch assignment inside the candidate's department." },
+              { id: "cross-departmental-project", title: "Cross-Departmental Project", description: "Develop enterprise perspective through a project that crosses teams or functions." },
+            ].map((resource) => (
+              <Link key={resource.id} href={getMentoringSectionHref(resource.id)} className="rounded-2xl border border-slate-200 bg-slate-50 p-5 transition hover:-translate-y-0.5 hover:border-teal-300 hover:bg-teal-50">
+                <h3 className="font-semibold text-slate-900">{resource.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-600">{resource.description}</p>
+                <span className="mt-4 inline-flex text-sm font-semibold text-teal-800">Open resource</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      ),
+    },
+    {
       id: "preparation-worksheet",
       label: "Preparation Worksheet",
       content: (
@@ -1132,13 +1171,9 @@ export default async function MentoringPage({
                 </ul>
               </section>
               <nav className="flex flex-wrap gap-3 border-b border-slate-200 pb-5" aria-label="Mentoring workspace sections">
-                {mentoringSections.map((section) => {
-                  const params = new URLSearchParams({ section: section.id });
-                  if (requestedCandidateId) params.set("candidateId", requestedCandidateId);
-                  if (requestedRoleId) params.set("roleId", requestedRoleId);
-                  if (requestedMentorProfileId) params.set("mentorProfileId", requestedMentorProfileId);
+                {mentoringSections.filter((section) => ["mentor-assignments", "leadership-development-record", "readiness-review", "resources"].includes(section.id)).map((section) => {
                   const isActive = section.id === selectedSectionId;
-                  return <Link key={section.id} href={`/mentoring?${params.toString()}`} className={`rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition ${isActive ? "interactive-contrast border-teal-900 bg-teal-900 text-white shadow-[0_18px_40px_rgba(15,118,110,0.18)]" : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"}`}>{section.label}</Link>;
+                  return <Link key={section.id} href={getMentoringSectionHref(section.id)} className={`rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition ${isActive ? "interactive-contrast border-teal-900 bg-teal-900 text-white shadow-[0_18px_40px_rgba(15,118,110,0.18)]" : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"}`}>{section.label}</Link>;
                 })}
               </nav>
               {selectedSectionId === "overview" ? (
