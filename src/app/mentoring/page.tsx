@@ -1036,7 +1036,7 @@ export default async function MentoringPage({
       : []),
     {
       id: "resources",
-      label: "Resources",
+      label: "Additional Resources",
       content: (
         <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
           <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">Mentoring resources</p>
@@ -1171,7 +1171,7 @@ export default async function MentoringPage({
                 </ul>
               </section>
               <nav className="flex flex-wrap gap-3 border-b border-slate-200 pb-5" aria-label="Mentoring workspace sections">
-                {mentoringSections.filter((section) => ["mentor-assignments", "leadership-development-record", "readiness-review", "resources"].includes(section.id)).map((section) => {
+                {["mentor-assignments", "leadership-development-record", "readiness-review", "resources"].flatMap((sectionId) => mentoringSections.filter((section) => section.id === sectionId)).map((section) => {
                   const isActive = section.id === selectedSectionId;
                   return <Link key={section.id} href={getMentoringSectionHref(section.id)} className={`rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition ${isActive ? "interactive-contrast border-teal-900 bg-teal-900 text-white shadow-[0_18px_40px_rgba(15,118,110,0.18)]" : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"}`}>{section.label}</Link>;
                 })}
