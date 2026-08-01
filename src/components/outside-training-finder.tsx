@@ -25,6 +25,9 @@ type TrainingSelectionStatus = "exploring" | "shortlisted" | "approved" | "sched
 
 type TrainingSelectionDraft = {
   programId: string;
+  roleId: string;
+  roleTitle: string;
+  competencyName: string;
   status: TrainingSelectionStatus;
   notes: string;
   plannedStartDate: string;
@@ -102,10 +105,49 @@ export function OutsideTrainingFinder({
     setSelectedCompetencyId(nextCompetencies[0]?.id ?? "");
   }
 
+  const coverageGroups = Array.from(
+    roles.reduce((groups, role) => {
+      for (const competency of orderedCompetencies(role)) {
+        const key = normalizeTrainingCompetencyName(competency.name);
+        const group = groups.get(key) ?? {
+          competencyName: competency.name,
+          rolePriorities: [] as Array<{ role: TrainingRole; competency: TrainingRole["competencies"][number] }>,
+        };
+        group.rolePriorities.push({ role, competency });
+        groups.set(key, group);
+      }
+      return groups;
+    }, new Map<string, {
+      competencyName: string;
+      rolePriorities: Array<{ role: TrainingRole; competency: TrainingRole["competencies"][number] }>;
+    }>()),
+  )
+    .map(([, group]) => ({
+      ...group,
+      matches: getTrainingProgramMatches(group.competencyName, programs),
+    }))
+    .sort((left, right) => {
+      if (left.matches.length === 0 && right.matches.length > 0) return -1;
+      if (right.matches.length === 0 && left.matches.length > 0) return 1;
+      return right.rolePriorities.length - left.rolePriorities.length || left.competencyName.localeCompare(right.competencyName);
+    });
+  const coveredPriorityCount = coverageGroups.reduce(
+    (count, group) => count + (group.matches.length > 0 ? group.rolePriorities.length : 0),
+    0,
+  );
+  const uncoveredPriorityCount = coverageGroups.reduce(
+    (count, group) => count + (group.matches.length === 0 ? group.rolePriorities.length : 0),
+    0,
+  );
+
   function openSelectionForm(programId: string) {
+    if (!selectedRole || !selectedCompetency) return;
     setShortlistMessage(null);
     setSelectionDraft({
       programId,
+      roleId: selectedRole.id,
+      roleTitle: selectedRole.title,
+      competencyName: selectedCompetency.name,
       status: "shortlisted",
       notes: "",
       plannedStartDate: "",
@@ -116,7 +158,7 @@ export function OutsideTrainingFinder({
   function saveTrainingSelection(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!selectionDraft || !selectedRole || !selectedCompetency) {
+    if (!selectionDraft) {
       return;
     }
 
@@ -127,8 +169,8 @@ export function OutsideTrainingFinder({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             trainingProgramId: selectionDraft.programId,
-            roleId: selectedRole.id,
-            competencyName: selectedCompetency.name,
+            roleId: selectionDraft.roleId,
+            competencyName: selectionDraft.competencyName,
             status: selectionDraft.status,
             notes: selectionDraft.notes,
             plannedStartDate: selectionDraft.plannedStartDate || undefined,
@@ -152,7 +194,44 @@ export function OutsideTrainingFinder({
   }
 
   return (
-    <section className="grid gap-6 xl:grid-cols-[0.82fr_1fr_1.28fr] xl:items-start">
+    <section className="grid gap-6">
+      <section className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">Training coverage</p>
+            <h2 className="mt-2 font-display text-3xl text-slate-900">Every role priority, in one view</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-600">Use this overview to see which leadership skills have an outside-training resource across the organization and which need further research.</p>
+          </div>
+          <div className="flex gap-3 text-sm">
+            <span className="rounded-full bg-teal-100 px-3 py-1.5 font-semibold text-teal-900">{coveredPriorityCount} covered priorities</span>
+            <span className="rounded-full bg-amber-100 px-3 py-1.5 font-semibold text-amber-900">{uncoveredPriorityCount} gaps</span>
+          </div>
+        </div>
+        <div className="mt-6 grid gap-4 lg:grid-cols-2">
+          {coverageGroups.map((group) => (
+            <article key={normalizeTrainingCompetencyName(group.competencyName)} className={`rounded-2xl border p-5 ${group.matches.length > 0 ? "border-teal-100 bg-teal-50/50" : "border-amber-200 bg-amber-50/60"}`}>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900">{group.competencyName}</h3>
+                  <p className="mt-1 text-sm text-slate-600">{group.rolePriorities.length} role {group.rolePriorities.length === 1 ? "priority" : "priorities"} · {group.matches.length} program {group.matches.length === 1 ? "match" : "matches"}</p>
+                </div>
+                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${group.matches.length > 0 ? "bg-teal-100 text-teal-900" : "bg-amber-100 text-amber-900"}`}>{group.matches.length > 0 ? "Resource available" : "Research gap"}</span>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {group.rolePriorities.map(({ role, competency }) => (
+                  <button key={`${role.id}-${competency.id}`} type="button" onClick={() => { selectRole(role); setSelectedCompetencyId(competency.id); }} className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-teal-500 hover:text-teal-900">
+                    {role.title}{role.department ? ` · ${role.department}` : ""}
+                  </button>
+                ))}
+              </div>
+              {group.matches.length > 0 ? <p className="mt-4 text-sm leading-6 text-slate-600">{group.matches.slice(0, 2).map(({ program }) => program.name).join(" · ")}{group.matches.length > 2 ? ` · +${group.matches.length - 2} more` : ""}</p> : <p className="mt-4 text-sm leading-6 text-amber-900">Add a program and competency mapping in the training catalog to cover this priority.</p>}
+            </article>
+          ))}
+          {coverageGroups.length === 0 ? <p className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-sm text-slate-600 lg:col-span-2">Add active roles and leadership priorities to begin mapping training coverage.</p> : null}
+        </div>
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[0.82fr_1fr_1.28fr] xl:items-start">
       <section className="theme-panel h-fit rounded-[1.75rem] p-5 xl:sticky xl:top-8">
         <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
           1. Select role
@@ -337,7 +416,7 @@ export function OutsideTrainingFinder({
           >
             <h3 className="text-lg font-semibold text-[#183822]">Save training selection</h3>
             <p className="mt-1 text-sm leading-6 text-[#24512f]">
-              Save this program for {selectedRole?.title} and the {selectedCompetency?.name} priority.
+              Save this program for {selectionDraft.roleTitle} and the {selectionDraft.competencyName} priority.
             </p>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <label className="grid gap-1.5 text-sm font-semibold text-[#183822]">
@@ -411,6 +490,7 @@ export function OutsideTrainingFinder({
             </div>
           </section>
         ) : null}
+      </section>
       </section>
     </section>
   );
