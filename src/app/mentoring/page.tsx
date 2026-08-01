@@ -6,7 +6,7 @@ import { MentoringDepartmentalProjectWorksheetManager } from "@/components/mento
 import { MentoringPreparationWorksheetManager } from "@/components/mentoring-preparation-worksheet-manager";
 import { MentoringReadinessReview } from "@/components/mentoring-readiness-review";
 import { LeadershipDevelopmentRecordManager } from "@/components/leadership-development-record-manager";
-import { MentoringWorkspaceMenu } from "@/components/mentoring-workspace-menu";
+import { MentoringAssignmentSidebar } from "@/components/mentoring-assignment-sidebar";
 import { isMissingCrossDepartmentalProjectWorksheetTableError } from "@/lib/mentoring-cross-departmental-project-worksheet";
 import { isMissingDepartmentalProjectWorksheetTableError } from "@/lib/mentoring-departmental-project-worksheet";
 import {
@@ -874,10 +874,6 @@ export default async function MentoringPage({
     requestedRoleId,
     visibleAssignments: orderedVisibleAssignments,
   });
-  const isResourceSection =
-    selectedSectionId === "preparation-worksheet" ||
-    selectedSectionId === "departmental-project" ||
-    selectedSectionId === "cross-departmental-project";
   const mentoringSections = [
     {
       id: "overview",
@@ -1106,18 +1102,47 @@ export default async function MentoringPage({
   const selectedMentoringSection =
     mentoringSections.find((section) => section.id === selectedSectionId) ??
     mentoringSections[0];
-  const workspaceMenuSections = mentoringSections.filter(
-    (section) =>
-      section.id !== "preparation-worksheet" &&
-      section.id !== "departmental-project" &&
-      section.id !== "cross-departmental-project",
-  );
-
   return (
     <main className="app-page">
-      <div className="mx-auto flex w-full max-w-[1380px] flex-col gap-8 px-6 py-12 sm:px-10 lg:px-12">
-        {selectedSectionId === "overview" ? (
-          <MentorFlowPanel
+      <div className="mx-auto w-full max-w-[1380px] px-6 py-12 sm:px-10 lg:px-12">
+        <section className="grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)] xl:items-start">
+          <MentoringAssignmentSidebar
+            assignments={orderedVisibleAssignments.map((assignment) => ({
+              key: getAssignmentKey(assignment),
+              candidateId: assignment.candidate_id,
+              candidateName: candidateMap.get(assignment.candidate_id)?.full_name ?? "Unknown candidate",
+              currentTitle: candidateMap.get(assignment.candidate_id)?.current_title ?? null,
+              roleId: assignment.role_id,
+              roleTitle: roleMap.get(assignment.role_id)?.title ?? "Unknown role",
+              mentorProfileId: assignment.mentor_profile_id,
+              mentorName: mentorMap.get(assignment.mentor_profile_id)?.full_name ?? "Unassigned",
+              status: assignment.status,
+            }))}
+            selectedAssignmentKey={selectedAssignmentKey}
+            sectionId={selectedSectionId}
+          />
+          <div className="min-w-0">
+            <section className="grid gap-6">
+              <section className="theme-panel-strong rounded-[2rem] p-8">
+                <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">Mentoring workspace</p>
+                <h1 className="mt-3 font-display text-5xl leading-tight text-slate-900">{canManageMentorAssignments ? "Manage mentoring by candidate and role" : "View your mentoring by role"}</h1>
+                <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">{canManageMentorAssignments ? "Use the selected candidate-role track to prepare, assign stretch work, record development evidence, and review readiness with the mentor." : "Your mentoring workspace is limited to role tracks assigned to your candidate account."}</p>
+                <ul className="mt-5 grid gap-2 text-sm leading-6 text-slate-600">
+                  {mentoringWorkspaceDetailItems.slice(0, 3).map((item) => <li key={item} className="flex gap-2"><span className="mt-2 h-1.5 w-1.5 rounded-full bg-teal-700" />{item}</li>)}
+                </ul>
+              </section>
+              <nav className="flex flex-wrap gap-3 border-b border-slate-200 pb-5" aria-label="Mentoring workspace sections">
+                {mentoringSections.map((section) => {
+                  const params = new URLSearchParams({ section: section.id });
+                  if (requestedCandidateId) params.set("candidateId", requestedCandidateId);
+                  if (requestedRoleId) params.set("roleId", requestedRoleId);
+                  if (requestedMentorProfileId) params.set("mentorProfileId", requestedMentorProfileId);
+                  const isActive = section.id === selectedSectionId;
+                  return <Link key={section.id} href={`/mentoring?${params.toString()}`} className={`rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition ${isActive ? "interactive-contrast border-teal-900 bg-teal-900 text-white shadow-[0_18px_40px_rgba(15,118,110,0.18)]" : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"}`}>{section.label}</Link>;
+                })}
+              </nav>
+              {selectedSectionId === "overview" ? (
+                <MentorFlowPanel
             assignments={visibleAssignmentsWithWorksheet.map((assignment) => ({
               candidateId: assignment.candidateId,
               roleId: assignment.roleId,
@@ -1151,36 +1176,12 @@ export default async function MentoringPage({
             selectedAssignmentKey={selectedAssignmentKey}
             canManageAssignments={canManageMentorAssignments}
             canChooseMentor={isAdmin}
-          />
-        ) : null}
-
-        {isResourceSection ? (
-          selectedMentoringSection.content
-        ) : (
-          <MentoringWorkspaceMenu
-            key={selectedSectionId}
-            detailItems={mentoringWorkspaceDetailItems}
-            initialSectionId={selectedSectionId}
-            middleContent={
-              <section className="theme-panel-strong rounded-[2rem] p-8">
-                <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">
-                  Mentoring Workflow
-                </p>
-                <h1 className="mt-3 font-display text-5xl leading-tight text-slate-900">
-                  {canManageMentorAssignments
-                    ? "Manage mentoring by candidate and role"
-                    : "View your mentoring by role"}
-                </h1>
-                <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">
-                  {canManageMentorAssignments
-                    ? "Mentors should use this worksheet to give the candidates projects where they can develop, grow and improve their skillsets in preparation for a future role. Mentors should feel free to customize the source project below to ensure the project is right for the candidate and the organization."
-                    : "Your mentoring workspace is limited to role tracks assigned to your candidate account, so you can review your own development work without seeing anyone else's information."}
-                </p>
-              </section>
-            }
-            sections={workspaceMenuSections}
-          />
-        )}
+                />
+              ) : null}
+              {selectedMentoringSection.content}
+            </section>
+          </div>
+        </section>
       </div>
     </main>
   );
