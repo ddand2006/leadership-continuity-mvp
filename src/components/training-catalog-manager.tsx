@@ -71,6 +71,31 @@ export function TrainingCatalogManager({
     });
   }
 
+  function generateAiMappings() {
+    if (!editing.id) return;
+    setMessage(null);
+    startTransition(async () => {
+      try {
+        const response = await fetch(`/api/training-programs/${editing.id}/ai-mappings`, { method: "POST" });
+        const payload = await response.json() as {
+          error?: string;
+          message?: string;
+          mappings?: Array<{ competencyName: string; strength: EditableMatch["strength"]; explanation: string }>;
+        };
+        if (!response.ok) throw new Error(payload.error ?? "Unable to generate mappings.");
+        setEditing((current) => ({
+          ...current,
+          competencyMatches: (payload.mappings ?? []).map((mapping) => ({
+            competencyNames: [mapping.competencyName], strength: mapping.strength, explanation: mapping.explanation,
+          })),
+        }));
+        setMessage(payload.message ?? "AI suggestions are ready for review.");
+      } catch (error) {
+        setMessage(error instanceof Error ? error.message : "Unable to generate mappings.");
+      }
+    });
+  }
+
   return (
     <details className="theme-panel rounded-[1.75rem] p-6">
       <summary className="cursor-pointer text-lg font-semibold text-slate-900">Manage training catalog</summary>
@@ -89,7 +114,7 @@ export function TrainingCatalogManager({
         ))}
         <label className="text-sm font-semibold text-slate-700 md:col-span-2">Description<textarea required value={editing.description} onChange={(event) => setField("description", event.target.value)} className="mt-1 min-h-20 w-full rounded-xl border border-slate-200 px-3 py-2 font-normal" /></label>
         <section className="grid gap-3 rounded-2xl bg-slate-50 p-4 md:col-span-2">
-          <div><h3 className="font-semibold text-slate-900">Competency mappings</h3><p className="mt-1 text-sm text-slate-600">Choose every competency this program genuinely develops, including competencies used by other roles.</p></div>
+          <div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-semibold text-slate-900">Competency mappings</h3><p className="mt-1 text-sm text-slate-600">Choose every competency this program genuinely develops, including competencies used by other roles.</p></div>{editing.id ? <button type="button" disabled={isPending} onClick={generateAiMappings} className="rounded-xl bg-teal-800 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">{isPending ? "Generating…" : "Generate AI mappings"}</button> : null}</div>
           {editing.competencyMatches.map((match, index) => (
             <div key={`${editing.id || "new"}-${index}`} className="grid gap-3 rounded-xl border border-slate-200 bg-white p-3 md:grid-cols-[1fr_10rem_1fr_auto]">
               <label className="text-sm font-semibold text-slate-700">Competency<input required list="organization-competencies" value={match.competencyNames[0] ?? ""} onChange={(event) => updateMatch(index, { competencyNames: [event.target.value] })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 font-normal" /></label>
