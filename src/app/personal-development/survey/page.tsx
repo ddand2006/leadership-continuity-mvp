@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { PersonalDevelopmentWorkspaceMenu } from "@/components/personal-development-workspace-menu";
 import { RoleSurveyPanel } from "@/components/role-survey-panel";
+import { PersonalCompetencySurveyPanel } from "@/components/personal-competency-survey-panel";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { hasResendEnv } from "@/lib/env";
 import {
   loadPersonalDevelopmentConnectedRoleSurveyData,
@@ -19,6 +21,24 @@ export default async function PersonalDevelopmentSurveyPage() {
     connectedRoleId && workspace.migrationReady
       ? await loadPersonalDevelopmentConnectedRoleSurveyData(connectedRoleId)
       : null;
+  const admin = createSupabaseAdminClient();
+  const personalSurveyResult =
+    workspace.personalProfile && workspace.roleProfile?.role_mode === "personal_role"
+      ? await admin
+          .from("personal_competency_surveys")
+          .select("id, title, intro_message, thank_you_message, status, created_at")
+          .eq("organization_id", workspace.profile.organization_id)
+          .eq("personal_development_profile_id", workspace.personalProfile.id)
+          .order("created_at", { ascending: false })
+      : { data: [], error: null };
+  const personalSurveyIds = (personalSurveyResult.data ?? []).map((survey) => survey.id);
+  const [personalRecipientsResult, personalResponsesResult] =
+    personalSurveyIds.length > 0
+      ? await Promise.all([
+          admin.from("personal_competency_survey_recipients").select("id, survey_id, recipient_name, recipient_email, access_token, status").in("survey_id", personalSurveyIds),
+          admin.from("personal_competency_survey_responses").select("id").in("survey_id", personalSurveyIds),
+        ])
+      : [{ data: [], error: null }, { data: [], error: null }];
   const totalResponses = surveyData?.responses.length ?? 0;
   const detailItems = [
     `Role profile: ${workspace.roleProfile?.title ?? "Not started"}`,
@@ -79,28 +99,12 @@ export default async function PersonalDevelopmentSurveyPage() {
           </section>
         ) : workspace.roleProfile.role_mode !== "organization_role" ||
           !workspace.roleProfile.source_role_id ? (
-          <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
-            <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
-              Competency Survey
-            </p>
-            <h2 className="mt-3 font-display text-3xl text-slate-900">
-              Your personal-role competencies are ready for development planning
-            </h2>
-            <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600">
-              Your personal role profile is private and its competencies guide your
-              composite and growth plan. The shared 360 survey engine still runs
-              against organizational roles, so connect one only when you want to
-              invite colleagues to assess the organization&apos;s role standards.
-            </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link
-                href="/personal-development/role"
-                className="interactive-contrast rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-900"
-              >
-                Manage Role Profile
-              </Link>
-            </div>
-          </section>
+          <PersonalCompetencySurveyPanel
+            roleTitle={workspace.roleProfile.title}
+            surveys={(personalSurveyResult.data ?? []) as never[]}
+            recipients={(personalRecipientsResult.data ?? []) as never[]}
+            responseCount={personalResponsesResult.data?.length ?? 0}
+          />
         ) : surveyData && !surveyData.migrationReady ? (
           <section className="rounded-[1.75rem] border border-amber-200 bg-amber-50/90 p-8 text-amber-950 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
             <p className="text-sm font-semibold tracking-[0.16em] uppercase">

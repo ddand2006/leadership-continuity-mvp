@@ -17,6 +17,8 @@ type RoleSurveyResponseFormProps = {
   surveyStatus: "draft" | "active" | "closed";
   recipientStatus: "pending" | "opened" | "completed";
   completedAt: string | null;
+  responseEndpoint?: string;
+  surveyLabel?: string;
 };
 
 const emptyResponsePayload: RoleSurveyResponsePayload = {
@@ -44,7 +46,10 @@ export function RoleSurveyResponseForm({
   surveyStatus,
   recipientStatus,
   completedAt,
+  responseEndpoint,
+  surveyLabel = "Role Competency Survey",
 }: RoleSurveyResponseFormProps) {
+  const endpoint = responseEndpoint ?? `/api/role-surveys/respond/${token}`;
   const [answers, setAnswers] =
     useState<RoleSurveyResponsePayload>(emptyResponsePayload);
   const [error, setError] = useState<string | null>(null);
@@ -62,10 +67,10 @@ export function RoleSurveyResponseForm({
     }
 
     hasMarkedOpenRef.current = true;
-    void fetch(`/api/role-surveys/respond/${token}`, {
+    void fetch(endpoint, {
       method: "PATCH",
     }).catch(() => null);
-  }, [recipientStatus, surveyStatus, token]);
+  }, [endpoint, recipientStatus, surveyStatus, token]);
 
   if (recipientStatus === "completed") {
     return (
@@ -130,7 +135,7 @@ export function RoleSurveyResponseForm({
     setError(null);
 
     startTransition(async () => {
-      const response = await fetch(`/api/role-surveys/respond/${token}`, {
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -155,7 +160,7 @@ export function RoleSurveyResponseForm({
   return (
     <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
       <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">
-        Role Competency Survey
+        {surveyLabel}
       </p>
       <h1 className="mt-3 font-display text-4xl text-slate-950">
         {surveyTitle}

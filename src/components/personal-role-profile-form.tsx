@@ -67,6 +67,7 @@ export function PersonalRoleProfileForm({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [isImportPending, startImportTransition] = useTransition();
 
   const selectedOrganizationRole = useMemo(
     () => roles.find((role) => role.id === sourceRoleId) ?? null,
@@ -113,6 +114,20 @@ export function PersonalRoleProfileForm({
       }
 
       setSuccess(payload.message ?? "Role profile saved.");
+      router.refresh();
+    });
+  }
+
+  function handleCompetencyImport(file: File | null) {
+    if (!file) return;
+    setError(null);
+    startImportTransition(async () => {
+      const formData = new FormData();
+      formData.set("file", file);
+      const response = await fetch("/api/personal-development/competencies/upload", { method: "POST", body: formData });
+      const payload = (await response.json().catch(() => ({}))) as { error?: string; message?: string };
+      if (!response.ok) { setError(payload.error ?? "Unable to import competencies."); return; }
+      setSuccess(payload.message ?? "Competencies imported.");
       router.refresh();
     });
   }
@@ -308,6 +323,11 @@ export function PersonalRoleProfileForm({
                   Add competency
                 </button>
               </div>
+              <label className="mt-4 flex cursor-pointer items-center justify-between gap-3 rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 transition hover:border-teal-500">
+                <span>{isImportPending ? "Importing competencies..." : "Upload a CSV, XLS, or XLSX competency list"}</span>
+                <input type="file" accept=".csv,.xls,.xlsx" className="sr-only" disabled={isImportPending} onChange={(event) => handleCompetencyImport(event.currentTarget.files?.[0] ?? null)} />
+                <span className="font-semibold text-teal-800">Choose file</span>
+              </label>
 
               <div className="mt-5 grid gap-4">
                 {personalCompetencies.map((competency, index) => (
