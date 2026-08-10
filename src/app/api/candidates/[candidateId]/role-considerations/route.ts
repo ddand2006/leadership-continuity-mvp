@@ -27,6 +27,10 @@ const updateRoleConsiderationSchema = z.object({
   makePrimary: z.boolean().optional(),
 });
 
+const removeRoleConsiderationSchema = z.object({
+  roleId: z.string().uuid(),
+});
+
 async function loadCandidateAndRole(options: {
   admin: Awaited<ReturnType<typeof requireApiWorkspaceProfile>>["admin"];
   organizationId: string;
@@ -322,5 +326,100 @@ export async function PATCH(request: Request, context: RouteContext) {
     });
   } catch (error) {
     return createApiErrorResponse(error, "Unable to update this position.");
+  }
+}
+
+export async function DELETE(request: Request, context: RouteContext) {
+  try {
+    const { admin, profile } = await requireApiWorkspaceProfile({
+      requireAdmin: true,
+    });
+    const { candidateId } = await context.params;
+    const payload = removeRoleConsiderationSchema.parse(await request.json());
+    const { candidate, role } = await loadCandidateAndRole({
+      admin,
+      organizationId: profile.organization_id,
+      candidateId,
+      roleId: payload.roleId,
+    });
+
+    const existingConsiderationsResult = await admin
+      .from("candidate_role_considerations")
+      .select("role_id, status, is_primary")
+      .eq("organization_id", profile.organization_id)
+      .eq("candidate_id", candidateId)
+      .order("created_at", { ascending: true });
+
+    if (existingConsiderationsResult.error) {
+      throw new ApiRouteError(existingConsiderationsResult.error.message, 500);
+    }
+
+    const existingConsideration = (existingConsiderationsResult.data ?? []).find(
+      (consideration) => consideration.role_id === payload.roleId,
+    );
+
+    if (!existingConsideration) {
+      throw new ApiRouteError("This role is not attached to the candidate yet.", 404);
+    }
+
+    const deleteMentorAssignmentsResult = await admin
+      .from("mentor_role_assignments")
+      .delete()
+      .eq("organization_id", profile.organization_id)
+      .eq("candidate_id", candidateId)
+      .eq("role_id", payload.roleId);
+
+    if (deleteMentorAssignmentsResult.error) {
+      throw new ApiRouteError(deleteMentorAssignmentsResult.error.message, 500);
+    }
+
+    const deleteConsiderationResult = await admin
+      .from("candidate_role_considerations")
+      .delete()
+      .eq("organization_id", profile.organization_id)
+      .eq("candidate_id", candidateId)
+      .eq("role_id", payload.roleId);
+
+    if (deleteConsiderationResult.error) {
+      throw new ApiRouteError(deleteConsiderationResult.error.message, 500);
+    }
+
+    if (
+      existingConsideration.is_primary ||
+      candidate.target_role_id === payload.roleId
+    ) {
+      const remainingConsiderations = (existingConsiderationsResult.data ?? []).filter(
+        (consideration) => consideration.role_id !== payload.roleId,
+      );
+      const replacementRole =
+        remainingConsiderations.find(
+          (consideration) => consideration.status === "active",
+        ) ?? remainingConsiderations[0];
+
+      if (replacementRole) {
+        await setPrimaryRole({
+          admin,
+          organizationId: profile.organization_id,
+          candidateId,
+          roleId: replacementRole.role_id,
+        });
+      } else {
+        const clearTargetRoleResult = await admin
+          .from("candidates")
+          .update({ target_role_id: null })
+          .eq("organization_id", profile.organization_id)
+          .eq("id", candidateId);
+
+        if (clearTargetRoleResult.error) {
+          throw new ApiRouteError(clearTargetRoleResult.error.message, 500);
+        }
+      }
+    }
+
+    return NextResponse.json({
+      message: `${canonicalizeRoleTitle(role.title)} is no longer being considered for ${candidate.full_name}. The role remains available in the organization.`,
+    });
+  } catch (error) {
+    return createApiErrorResponse(error, "Unable to remove this position.");
   }
 }

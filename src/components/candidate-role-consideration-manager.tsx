@@ -135,6 +135,44 @@ export function CandidateRoleConsiderationManager({
     });
   }
 
+  function handleRemoveRole(roleId: string, roleTitle: string) {
+    if (
+      !window.confirm(
+        `Remove ${roleTitle} from ${candidateName}'s considered positions? The role will remain available in the organization.`,
+      )
+    ) {
+      return;
+    }
+
+    setError(null);
+    setSuccess(null);
+
+    startTransition(async () => {
+      const response = await fetch(
+        `/api/candidates/${candidateId}/role-considerations`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ roleId }),
+        },
+      );
+      const payload = (await response.json()) as {
+        error?: string;
+        message?: string;
+      };
+
+      if (!response.ok) {
+        setError(payload.error ?? "Unable to remove this position.");
+        return;
+      }
+
+      setSuccess(payload.message ?? "Position removed from this candidate.");
+      router.refresh();
+    });
+  }
+
   return (
     <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
       <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
@@ -245,7 +283,7 @@ export function CandidateRoleConsiderationManager({
                   </p>
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-[12rem_auto_auto]">
+                <div className="grid gap-3 sm:grid-cols-[12rem_auto_auto_auto]">
                   <label className="block">
                     <span className="mb-2 block text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       Status
@@ -285,6 +323,20 @@ export function CandidateRoleConsiderationManager({
                     className="interactive-contrast rounded-full bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-teal-900 disabled:cursor-not-allowed disabled:bg-slate-300"
                   >
                     {consideration.isPrimary ? "Primary" : "Make Primary"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleRemoveRole(
+                        consideration.roleId,
+                        consideration.roleTitle,
+                      )
+                    }
+                    disabled={isPending}
+                    className="rounded-full border border-rose-200 bg-white px-4 py-3 text-sm font-semibold text-rose-700 transition hover:border-rose-300 hover:bg-rose-50 disabled:cursor-not-allowed disabled:text-rose-300"
+                  >
+                    Remove from Candidate
                   </button>
                 </div>
               </div>
