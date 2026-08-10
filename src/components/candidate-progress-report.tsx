@@ -336,7 +336,6 @@ export function CandidateProgressReport({
                   ["Development records", yearToDate.developmentCount, sinceStart.developmentCount],
                   ["Completed development records", yearToDate.completedDevelopmentRecords, sinceStart.completedDevelopmentRecords],
                   ["Mentor reports", yearToDate.mentorReportCount, sinceStart.mentorReportCount],
-                  ["Leadership decisions", yearToDate.decisionCount, sinceStart.decisionCount],
                 ].map(([measure, ytd, total]) => (
                   <tr key={String(measure)} className="border-b border-slate-100"><th className="px-4 py-4 font-semibold text-slate-900">{measure}</th><td className="px-4 py-4">{ytd}</td><td className="px-4 py-4">{total}</td></tr>
                 ))}

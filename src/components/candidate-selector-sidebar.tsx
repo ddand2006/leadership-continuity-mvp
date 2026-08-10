@@ -8,6 +8,8 @@ type CandidateSelectorSidebarProps = {
     status: string;
   }>;
   selectedCandidateId?: string | null;
+  selectedCandidateName?: string | null;
+  currentSectionId?: string | null;
   canCreateCandidates: boolean;
   isCreatingCandidate?: boolean;
 };
@@ -15,6 +17,8 @@ type CandidateSelectorSidebarProps = {
 export function CandidateSelectorSidebar({
   candidates,
   selectedCandidateId = null,
+  selectedCandidateName = null,
+  currentSectionId = null,
   canCreateCandidates,
   isCreatingCandidate = false,
 }: CandidateSelectorSidebarProps) {
@@ -60,11 +64,23 @@ export function CandidateSelectorSidebar({
             <div className="grid gap-2">
               {candidates.map((candidate) => {
                 const isSelected = candidate.id === selectedCandidateId;
+                const displayName =
+                  isSelected && selectedCandidateName
+                    ? selectedCandidateName
+                    : candidate.fullName;
+                const candidateParams = new URLSearchParams();
+
+                if (currentSectionId) {
+                  candidateParams.set("section", currentSectionId);
+                }
+                const candidateHref = `/candidates/${candidate.id}${
+                  candidateParams.size > 0 ? `?${candidateParams.toString()}` : ""
+                }`;
 
                 return (
                   <Link
                     key={candidate.id}
-                    href={`/candidates/${candidate.id}`}
+                    href={candidateHref}
                     aria-current={isSelected ? "page" : undefined}
                     className={`rounded-2xl border px-4 py-3 text-left transition ${
                       isSelected
@@ -72,7 +88,7 @@ export function CandidateSelectorSidebar({
                         : "border-slate-200 bg-white text-slate-800 hover:border-slate-300 hover:bg-slate-50"
                     }`}
                   >
-                    <span className="block text-sm font-semibold">{candidate.fullName}</span>
+                    <span className="block text-sm font-semibold">{displayName}</span>
                     <span
                       className={`mt-1 block text-xs ${
                         isSelected ? "text-slate-300" : "text-slate-500"

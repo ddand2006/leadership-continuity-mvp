@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState, type ReactNode } from "react";
 
 type CandidateDetailSection = {
@@ -16,14 +17,21 @@ export function CandidateDetailSectionMenu({
   sections: CandidateDetailSection[];
   initialSectionId?: string;
 }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [activeSectionId, setActiveSectionId] = useState<string>(
     sections.some((section) => section.id === initialSectionId)
       ? (initialSectionId ?? "")
       : (sections[0]?.id ?? ""),
   );
 
+  const urlSectionId = searchParams.get("section");
+  const selectedSectionId = sections.some((section) => section.id === urlSectionId)
+    ? urlSectionId
+    : activeSectionId;
   const activeSection =
-    sections.find((section) => section.id === activeSectionId) ?? sections[0] ?? null;
+    sections.find((section) => section.id === selectedSectionId) ?? sections[0] ?? null;
 
   if (!activeSection) {
     return null;
@@ -39,7 +47,14 @@ export function CandidateDetailSectionMenu({
             <button
               key={section.id}
               type="button"
-              onClick={() => setActiveSectionId(section.id)}
+              onClick={() => {
+                setActiveSectionId(section.id);
+                const nextParams = new URLSearchParams(searchParams.toString());
+                nextParams.set("section", section.id);
+                router.replace(`${pathname}?${nextParams.toString()}`, {
+                  scroll: false,
+                });
+              }}
               className={`rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition ${
                 isActive
                   ? "interactive-contrast border-teal-900 bg-teal-900 text-white shadow-[0_18px_40px_rgba(15,118,110,0.18)]"
