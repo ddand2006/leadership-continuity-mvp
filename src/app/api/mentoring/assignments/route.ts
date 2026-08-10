@@ -25,7 +25,8 @@ export async function POST(request: Request) {
       throw new ApiRouteError("Only admins or mentors can use this feature.", 403);
     }
 
-    const [candidateResult, roleResult, mentorResult] = await Promise.all([
+    const [candidateResult, roleResult, mentorResult, mentorAccountResult] =
+      await Promise.all([
       admin
         .from("candidates")
         .select("id, full_name")
@@ -44,9 +45,20 @@ export async function POST(request: Request) {
         .eq("organization_id", profile.organization_id)
         .eq("id", payload.mentorProfileId)
         .maybeSingle(),
+      admin
+        .from("organization_users")
+        .select("is_mentor, status")
+        .eq("organization_id", profile.organization_id)
+        .eq("profile_id", payload.mentorProfileId)
+        .maybeSingle(),
     ]);
 
-    for (const result of [candidateResult, roleResult, mentorResult]) {
+    for (const result of [
+      candidateResult,
+      roleResult,
+      mentorResult,
+      mentorAccountResult,
+    ]) {
       if (result.error) {
         throw new ApiRouteError(result.error.message, 500);
       }
@@ -60,7 +72,14 @@ export async function POST(request: Request) {
       throw new ApiRouteError("Selected role could not be found.", 404);
     }
 
-    if (!mentorResult.data || mentorResult.data.role !== "mentor") {
+    const isTaggedMentor =
+      mentorAccountResult.data?.is_mentor === true &&
+      mentorAccountResult.data.status === "active";
+
+    if (
+      !mentorResult.data ||
+      (mentorResult.data.role !== "mentor" && !isTaggedMentor)
+    ) {
       throw new ApiRouteError("Selected mentor could not be found.", 404);
     }
 

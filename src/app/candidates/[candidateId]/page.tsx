@@ -103,8 +103,7 @@ export default async function CandidateDetailPage({
     supabase
       .from("profiles")
       .select("id, full_name, position_title")
-      .eq("organization_id", profile.organization_id)
-      .eq("role", "mentor"),
+      .eq("organization_id", profile.organization_id),
     supabase
       .from("roles")
       .select("id, title, description")

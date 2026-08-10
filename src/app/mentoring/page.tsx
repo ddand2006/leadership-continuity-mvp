@@ -219,7 +219,6 @@ export default async function MentoringPage({
       .from("profiles")
       .select("id, full_name, position_title")
       .eq("organization_id", profile.organization_id)
-      .eq("role", "mentor")
       .order("created_at", { ascending: true }),
     supabase
       .from("mentor_role_assignments")

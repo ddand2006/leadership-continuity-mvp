@@ -79,7 +79,6 @@ export default async function AdministrationPage({
       .from("profiles")
       .select("id, full_name, position_title")
       .eq("organization_id", selectedOrganization.id)
-      .eq("role", "mentor")
       .order("full_name", { ascending: true }),
   ]);
 
@@ -99,6 +98,16 @@ export default async function AdministrationPage({
     suspendedUsers: users.filter((user) => user.status === "suspended").length,
     pendingInvitations: users.filter((user) => user.status === "invited").length,
   };
+  const activeMentorProfileIds = new Set(
+    users
+      .filter(
+        (user) =>
+          user.is_mentor &&
+          user.status === "active" &&
+          user.profile_id !== null,
+      )
+      .map((user) => user.profile_id),
+  );
 
   return (
     <main className="app-page">
@@ -170,11 +179,13 @@ export default async function AdministrationPage({
               id: role.id,
               title: canonicalizeRoleTitle(role.title),
             })),
-            mentors: (mentorsResult.data ?? []).map((mentor) => ({
-              id: mentor.id,
-              full_name: mentor.full_name,
-              position_title: mentor.position_title,
-            })),
+            mentors: (mentorsResult.data ?? [])
+              .filter((mentor) => activeMentorProfileIds.has(mentor.id))
+              .map((mentor) => ({
+                id: mentor.id,
+                full_name: mentor.full_name,
+                position_title: mentor.position_title,
+              })),
           }}
           users={users}
           summary={summary}
