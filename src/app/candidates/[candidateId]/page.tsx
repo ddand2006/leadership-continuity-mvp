@@ -900,6 +900,7 @@ export default async function CandidateDetailPage({
                 "Review year-to-date, program-to-date, and annual evidence of growth for this candidate.",
               content: (
                 <CandidateProgressReport
+                  candidateId={candidate.id}
                   candidateName={candidate.full_name}
                   roles={considerations
                     .filter((consideration) => allowedRoleIds.has(consideration.role_id))

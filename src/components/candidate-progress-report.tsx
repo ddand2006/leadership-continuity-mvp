@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 
 type RoleProgress = {
   roleId: string;
@@ -131,6 +131,7 @@ function buildNarrative(options: {
 }
 
 export function CandidateProgressReport({
+  candidateId,
   candidateName,
   roles,
   interviews,
@@ -139,6 +140,7 @@ export function CandidateProgressReport({
   events,
   decisionEvents,
 }: {
+  candidateId: string;
   candidateName: string;
   roles: RoleProgress[];
   interviews: InterviewProgress[];
@@ -159,6 +161,8 @@ export function CandidateProgressReport({
   ).sort((left, right) => right - left);
   const [period, setPeriod] = useState<ReportPeriod>("year-to-date");
   const [selectedYear, setSelectedYear] = useState(years[0] ?? currentYear);
+  const [isDownloading, startDownload] = useTransition();
+  const [downloadError, setDownloadError] = useState<string | null>(null);
   const activeRoleTitles = roles
     .filter((role) => role.status === "active")
     .map((role) => role.roleTitle);
@@ -208,17 +212,54 @@ export function CandidateProgressReport({
     )
     .slice(0, 6);
 
+  function downloadWordReport() {
+    setDownloadError(null);
+    startDownload(async () => {
+      try {
+        const response = await fetch(
+          `/api/candidates/${candidateId}/progress-report-docx`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              period,
+              year: period === "selected-year" ? selectedYear : undefined,
+            }),
+          },
+        );
+
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => null)) as {
+            error?: string;
+          } | null;
+          throw new Error(payload?.error ?? "Unable to create the Word report.");
+        }
+
+        const file = await response.blob();
+        const downloadUrl = URL.createObjectURL(file);
+        const link = document.createElement("a");
+        const candidateFileName = candidateName
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "");
+        link.href = downloadUrl;
+        link.download = `${candidateFileName || "candidate"}-${periodLabel.toLowerCase().replaceAll(" ", "-")}-progress-report.docx`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(downloadUrl);
+      } catch (error) {
+        setDownloadError(
+          error instanceof Error
+            ? error.message
+            : "Unable to create the Word report.",
+        );
+      }
+    });
+  }
+
   return (
     <section className="candidate-progress-report grid gap-6">
-      <style jsx global>{`
-        @media print {
-          body * { visibility: hidden; }
-          .candidate-progress-report, .candidate-progress-report * { visibility: visible; }
-          .candidate-progress-report { position: absolute; inset: 0; width: 100%; }
-          .progress-report-controls { display: none !important; }
-        }
-      `}</style>
-
       <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -235,12 +276,18 @@ export function CandidateProgressReport({
           </div>
           <button
             type="button"
-            onClick={() => window.print()}
+            onClick={downloadWordReport}
+            disabled={isDownloading}
             className="progress-report-controls rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
           >
-            Print This Report
+            {isDownloading ? "Preparing Word Report…" : "Download Word Report"}
           </button>
         </div>
+        {downloadError ? (
+          <p className="mt-4 text-sm font-medium text-rose-700" role="alert">
+            {downloadError}
+          </p>
+        ) : null}
 
         <div className="progress-report-controls mt-6 flex flex-wrap gap-3 border-t border-slate-200 pt-6">
           <button
