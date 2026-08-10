@@ -41,10 +41,6 @@ function formatDate(value: string) {
       }).format(date);
 }
 
-function formatScore(value: number | null) {
-  return value === null ? "Not scored" : `${value.toFixed(1)} / 5`;
-}
-
 function buildReportSummary(options: {
   label: string;
   interviews: InterviewProgress[];
@@ -75,6 +71,53 @@ function buildReportSummary(options: {
     mentorReportCount: options.mentorReportCount,
     decisionCount: options.decisions.length,
   };
+}
+
+function buildNarrative(options: {
+  candidateName: string;
+  period: string;
+  summary: ReturnType<typeof buildReportSummary>;
+  roleContext?: string;
+}) {
+  const { summary } = options;
+  const activity: string[] = [];
+
+  if (summary.interviewCount > 0) {
+    activity.push(
+      `${summary.interviewCount} interview round${summary.interviewCount === 1 ? " was" : "s were"} recorded`,
+    );
+  }
+
+  if (summary.developmentCount > 0) {
+    activity.push(
+      `${summary.developmentCount} development record${summary.developmentCount === 1 ? " was" : "s were"} maintained${summary.completedDevelopmentRecords > 0 ? `, with ${summary.completedDevelopmentRecords} completed` : ""}`,
+    );
+  }
+
+  if (summary.mentorReportCount > 0) {
+    activity.push(
+      `${summary.mentorReportCount} mentor report${summary.mentorReportCount === 1 ? " was" : "s were"} added`,
+    );
+  }
+
+  if (summary.decisionCount > 0) {
+    activity.push(
+      `${summary.decisionCount} leadership decision${summary.decisionCount === 1 ? " was" : "s were"} documented`,
+    );
+  }
+
+  const trend =
+    summary.scoreChange === null
+      ? summary.interviewCount > 0
+        ? "Interview feedback is available, though another scored interview will make the change over time clearer."
+        : "No interview feedback has been recorded in this period yet."
+      : summary.scoreChange > 0.15
+        ? "Interview feedback indicates meaningful improvement from the first recorded assessment."
+        : summary.scoreChange < -0.15
+          ? "Interview feedback indicates an area for renewed attention compared with the first recorded assessment."
+          : "Interview feedback has remained broadly consistent across the recorded assessments.";
+
+  return `${options.candidateName}${options.roleContext ? ` is currently being considered for ${options.roleContext}.` : " has no active role consideration recorded."} During ${options.period}, ${activity.length > 0 ? `${activity.join("; ")}.` : "no mentoring, development, interview, or decision activity was recorded."} ${trend}`;
 }
 
 export function CandidateProgressReport({
@@ -125,6 +168,13 @@ export function CandidateProgressReport({
         new Date(right.occurredAt).getTime() - new Date(left.occurredAt).getTime(),
     )
     .slice(0, 6);
+  const activeRoleTitles = roles
+    .filter((role) => role.status === "active")
+    .map((role) => role.roleTitle);
+  const roleContext =
+    activeRoleTitles.length > 0
+      ? activeRoleTitles.join(activeRoleTitles.length === 2 ? " and " : ", ")
+      : undefined;
 
   return (
     <section className="grid gap-6">
@@ -136,75 +186,44 @@ export function CandidateProgressReport({
           Progress for {candidateName}
         </h2>
         <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600">
-          Track growth through interviews, mentoring, development work, and
-          leadership decisions. Use the summaries below to compare progress this
-          year, across the full program, and year by year.
+          A narrative record of the candidate&apos;s development, drawing from
+          interviews, mentoring, development work, and leadership decisions.
         </p>
-
-        <div className="mt-6 grid gap-4 lg:grid-cols-3">
-          <article className="rounded-3xl border border-teal-200 bg-teal-50 p-5">
-            <p className="text-xs font-semibold tracking-[0.14em] text-teal-900 uppercase">
-              Roles in consideration
-            </p>
-            <p className="mt-3 text-3xl font-semibold text-slate-900">{roles.length}</p>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              {roles.filter((role) => role.status === "active").length} active role
-              {roles.filter((role) => role.status === "active").length === 1 ? "" : "s"}
-              {roles.some((role) => role.isPrimary) ? ", including a primary role." : "."}
-            </p>
-          </article>
-          <article className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-            <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
-              Latest interview average
-            </p>
-            <p className="mt-3 text-3xl font-semibold text-slate-900">
-              {formatScore(sinceStart.latestScore)}
-            </p>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              {sinceStart.scoreChange === null
-                ? "Complete at least two scored interviews to show change over time."
-                : `${sinceStart.scoreChange >= 0 ? "+" : ""}${sinceStart.scoreChange.toFixed(1)} since the first scored interview.`}
-            </p>
-          </article>
-          <article className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-            <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
-              Development momentum
-            </p>
-            <p className="mt-3 text-3xl font-semibold text-slate-900">
-              {sinceStart.completedDevelopmentRecords} completed
-            </p>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              {sinceStart.developmentCount} development record
-              {sinceStart.developmentCount === 1 ? "" : "s"} saved overall.
-            </p>
-          </article>
-        </div>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-2">
-        {[yearToDate, sinceStart].map((summary) => (
-          <article
-            key={summary.label}
-            className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.05)]"
-          >
-            <p className="text-sm font-semibold tracking-[0.14em] text-slate-500 uppercase">
-              {summary.label}
-            </p>
-            <div className="mt-5 grid grid-cols-2 gap-4 text-sm">
-              <p><span className="block text-2xl font-semibold text-slate-900">{summary.interviewCount}</span>interview round{summary.interviewCount === 1 ? "" : "s"}</p>
-              <p><span className="block text-2xl font-semibold text-slate-900">{summary.developmentCount}</span>development record{summary.developmentCount === 1 ? "" : "s"}</p>
-              <p><span className="block text-2xl font-semibold text-slate-900">{summary.mentorReportCount}</span>mentor report{summary.mentorReportCount === 1 ? "" : "s"}</p>
-              <p><span className="block text-2xl font-semibold text-slate-900">{summary.decisionCount}</span>leadership decision{summary.decisionCount === 1 ? "" : "s"}</p>
-            </div>
-          </article>
-        ))}
+      <section className="rounded-[1.75rem] border border-teal-200 bg-teal-50 p-8 shadow-[0_20px_60px_rgba(15,23,42,0.05)]">
+        <p className="text-sm font-semibold tracking-[0.16em] text-teal-900 uppercase">
+          {yearToDate.label}
+        </p>
+        <p className="mt-4 max-w-4xl text-base leading-8 text-slate-700">
+          {buildNarrative({
+            candidateName,
+            period: `the ${currentYear} calendar year to date`,
+            summary: yearToDate,
+            roleContext,
+          })}
+        </p>
       </section>
 
       <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
         <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
-          Annual History
+          Since Program Start
         </p>
-        <div className="mt-6 grid gap-4 lg:grid-cols-3">
+        <p className="mt-4 max-w-4xl text-base leading-8 text-slate-700">
+          {buildNarrative({
+            candidateName,
+            period: "the full program period",
+            summary: sinceStart,
+            roleContext,
+          })}
+        </p>
+      </section>
+
+      <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+        <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
+          Annual Narrative History
+        </p>
+        <div className="mt-6 grid gap-4">
           {years.length > 0 ? years.map((year) => {
             const summary = buildReportSummary({
               label: String(year),
@@ -215,11 +234,16 @@ export function CandidateProgressReport({
             });
 
             return (
-              <article key={year} className="rounded-3xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-700">
-                <p className="text-2xl font-semibold text-slate-900">{year}</p>
-                <p className="mt-3">{summary.interviewCount} interview rounds · {summary.developmentCount} development records</p>
-                <p className="mt-2">Latest interview: {formatScore(summary.latestScore)}</p>
-                <p className="mt-2">{summary.mentorReportCount} mentor reports · {summary.decisionCount} decisions</p>
+              <article key={year} className="rounded-3xl border border-slate-200 bg-slate-50 p-6 text-slate-700">
+                <p className="text-lg font-semibold text-slate-900">{year}</p>
+                <p className="mt-3 leading-7">
+                  {buildNarrative({
+                    candidateName,
+                    period: String(year),
+                    summary,
+                    roleContext,
+                  })}
+                </p>
               </article>
             );
           }) : (
