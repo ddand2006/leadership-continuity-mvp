@@ -8,6 +8,11 @@ const ROLE_CONSIDERATION_STATUSES = [
   { value: "on_hold", label: "On Hold" },
 ] as const;
 
+const ASSIGNED_ROLE_STATUS_OPTIONS = [
+  ...ROLE_CONSIDERATION_STATUSES,
+  { value: "remove", label: "Remove from candidate" },
+] as const;
+
 type RoleOption = {
   id: string;
   title: string;
@@ -100,7 +105,16 @@ export function CandidateRoleConsiderationManager({
     });
   }
 
-  function handleUpdateRole(roleId: string, makePrimary = false) {
+  function handleUpdateRole(
+    roleId: string,
+    roleTitle: string,
+    makePrimary = false,
+  ) {
+    if (statusByRoleId[roleId] === "remove" && !makePrimary) {
+      handleRemoveRole(roleId, roleTitle);
+      return;
+    }
+
     setError(null);
     setSuccess(null);
 
@@ -283,7 +297,7 @@ export function CandidateRoleConsiderationManager({
                   </p>
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-[12rem_auto_auto_auto]">
+                <div className="grid gap-3 sm:grid-cols-[12rem_auto_auto]">
                   <label className="block">
                     <span className="mb-2 block text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       Status
@@ -299,7 +313,7 @@ export function CandidateRoleConsiderationManager({
                       }
                       disabled={isPending}
                     >
-                      {ROLE_CONSIDERATION_STATUSES.map((status) => (
+                      {ASSIGNED_ROLE_STATUS_OPTIONS.map((status) => (
                         <option key={status.value} value={status.value}>
                           {status.label}
                         </option>
@@ -309,7 +323,12 @@ export function CandidateRoleConsiderationManager({
 
                   <button
                     type="button"
-                    onClick={() => handleUpdateRole(consideration.roleId)}
+                    onClick={() =>
+                      handleUpdateRole(
+                        consideration.roleId,
+                        consideration.roleTitle,
+                      )
+                    }
                     disabled={isPending}
                     className="rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-400"
                   >
@@ -318,26 +337,23 @@ export function CandidateRoleConsiderationManager({
 
                   <button
                     type="button"
-                    onClick={() => handleUpdateRole(consideration.roleId, true)}
-                    disabled={isPending || consideration.isPrimary}
+                    onClick={() =>
+                      handleUpdateRole(
+                        consideration.roleId,
+                        consideration.roleTitle,
+                        true,
+                      )
+                    }
+                    disabled={
+                      isPending ||
+                      consideration.isPrimary ||
+                      statusByRoleId[consideration.roleId] === "remove"
+                    }
                     className="interactive-contrast rounded-full bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-teal-900 disabled:cursor-not-allowed disabled:bg-slate-300"
                   >
                     {consideration.isPrimary ? "Primary" : "Make Primary"}
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleRemoveRole(
-                        consideration.roleId,
-                        consideration.roleTitle,
-                      )
-                    }
-                    disabled={isPending}
-                    className="rounded-full border border-rose-200 bg-white px-4 py-3 text-sm font-semibold text-rose-700 transition hover:border-rose-300 hover:bg-rose-50 disabled:cursor-not-allowed disabled:text-rose-300"
-                  >
-                    Remove from Candidate
-                  </button>
                 </div>
               </div>
             </article>
