@@ -1,3 +1,14 @@
 allowBuilds:
   sharp: true
   unrs-resolver: true
+
+overrides:
+  "@xmldom/xmldom": "0.8.13"
+  "brace-expansion@<2.0.0": "1.1.18"
+  "brace-expansion@>=2.0.0 <3.0.0": "2.1.4"
+  "brace-expansion@>=3.0.0": "5.0.9"
+  "js-yaml": "5.2.2"
+  "minimatch": "10.2.6"
+  "nanoid": "3.3.17"
+  "postcss": "8.5.26"
+  "uuid": "11.1.1"
