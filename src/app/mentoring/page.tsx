@@ -883,6 +883,9 @@ export default async function MentoringPage({
   const selectedAssignment = orderedVisibleAssignments.find(
     (assignment) => getAssignmentKey(assignment) === selectedAssignmentKey,
   ) ?? null;
+  const selectedCandidateHref = selectedAssignment
+    ? `/candidates/${selectedAssignment.candidate_id}?roleId=${selectedAssignment.role_id}`
+    : "/candidates";
   function getMentoringSectionHref(sectionId: string) {
     const params = new URLSearchParams({ section: sectionId });
     if (selectedAssignment) {
@@ -984,12 +987,12 @@ export default async function MentoringPage({
                           : "Current candidate-role assignments"}
                       </h2>
                     </div>
-                    {isAdmin ? (
+                    {isAdmin || isMentorOnly ? (
                       <Link
-                        href="/candidates"
+                        href={selectedCandidateHref}
                         className="interactive-contrast rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-900"
                       >
-                        Open Candidates
+                        {selectedAssignment ? "Open Candidate" : "Open Candidates"}
                       </Link>
                     ) : null}
                   </div>
