@@ -665,6 +665,13 @@ export default async function CandidateDetailPage({
         averageScore === null ? null : Number(averageScore.toFixed(2)),
     };
   });
+  const progressDecisionEvents = (progressDecisionsResult.data ?? []).map(
+    (decision) => ({
+      occurredAt: decision.created_at,
+      label: "Leadership decision recorded",
+      detail: `${roleMap.get(decision.role_id)?.title ?? "Role"} · ${decision.decision.replaceAll("_", " ")}.`,
+    }),
+  );
   const progressEvents = [
     ...progressInterviews.map((interview) => ({
       occurredAt: interview.occurredAt,
@@ -686,11 +693,7 @@ export default async function CandidateDetailPage({
       label: "Role-match assessment recorded",
       detail: `${roleMap.get(match.role_id)?.title ?? "Role"} · ${match.match_status.replaceAll("_", " ")}.`,
     })),
-    ...(progressDecisionsResult.data ?? []).map((decision) => ({
-      occurredAt: decision.created_at,
-      label: "Leadership decision recorded",
-      detail: `${roleMap.get(decision.role_id)?.title ?? "Role"} · ${decision.decision.replaceAll("_", " ")}.`,
-    })),
+    ...progressDecisionEvents,
   ].filter((event) => Boolean(event.occurredAt));
   return (
     <main className="app-page">
@@ -922,6 +925,7 @@ export default async function CandidateDetailPage({
                     (report) => report.created_at,
                   )}
                   events={progressEvents}
+                  decisionEvents={progressDecisionEvents}
                 />
               ),
             },
