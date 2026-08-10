@@ -375,7 +375,9 @@ export default async function CandidateDetailPage({
       .eq("candidate_id", candidate.id),
     supabase
       .from("development_records")
-      .select("role_id, status, date_assigned, updated_at, mentor_review_date")
+      .select(
+        "role_id, status, experience_title, project_summary, date_assigned, updated_at, mentor_review_date",
+      )
       .eq("organization_id", profile.organization_id)
       .eq("candidate_id", candidate.id),
     supabase
@@ -907,6 +909,9 @@ export default async function CandidateDetailPage({
                   interviews={progressInterviews}
                   developmentRecords={progressDevelopmentRecords.map((record) => ({
                     roleId: record.role_id,
+                    roleTitle: roleMap.get(record.role_id)?.title ?? "Unknown role",
+                    title: record.experience_title,
+                    summary: record.project_summary,
                     status: record.status,
                     occurredAt: record.updated_at ?? record.date_assigned,
                     mentorReviewed: Boolean(record.mentor_review_date),
