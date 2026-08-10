@@ -12,20 +12,30 @@ type MentoringAssignmentSidebarProps = {
     mentorName: string;
     status: string | null;
   }>;
+  isMentorOnly?: boolean;
   selectedAssignmentKey: string | null;
   sectionId: string;
 };
 
 export function MentoringAssignmentSidebar({
   assignments,
+  isMentorOnly = false,
   selectedAssignmentKey,
   sectionId,
 }: MentoringAssignmentSidebarProps) {
   return (
     <aside className="theme-panel h-fit rounded-[1.75rem] p-5 xl:sticky xl:top-8">
-      <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">Mentoring tracks</p>
-      <h1 className="mt-2 font-display text-3xl text-slate-900">Select a mentoring track</h1>
-      <p className="mt-3 text-sm leading-6 text-slate-600">Open a candidate, role, and mentor combination to work in its mentoring record.</p>
+      <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
+        {isMentorOnly ? "My mentees" : "Mentoring tracks"}
+      </p>
+      <h1 className="mt-2 font-display text-3xl text-slate-900">
+        {isMentorOnly ? "Choose a mentee" : "Select a mentoring track"}
+      </h1>
+      <p className="mt-3 text-sm leading-6 text-slate-600">
+        {isMentorOnly
+          ? "Only your active mentees appear here. Choose one to continue their development process."
+          : "Open a candidate, role, and mentor combination to work in its mentoring record."}
+      </p>
       <nav className="mt-6 grid gap-2" aria-label="Mentoring track selection">
         {assignments.map((assignment) => {
           const isSelected = assignment.key === selectedAssignmentKey;

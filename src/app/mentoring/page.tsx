@@ -11,6 +11,7 @@ import { isMissingCrossDepartmentalProjectWorksheetTableError } from "@/lib/ment
 import { isMissingDepartmentalProjectWorksheetTableError } from "@/lib/mentoring-departmental-project-worksheet";
 import {
   isAdminAppRole,
+  isActiveMentorAssignmentStatus,
   isCandidateAppUser,
   isMentorAppUser,
 } from "@/lib/mentor-access";
@@ -156,6 +157,7 @@ export default async function MentoringPage({
   const { account, profile, supabase } = await requirePaidWorkspaceProfile();
   const isAdmin = isAdminAppRole(profile.role);
   const isMentor = isMentorAppUser(profile, account);
+  const isMentorOnly = isMentor && !isAdmin;
   const isCandidate = isCandidateAppUser(account);
   const candidateIdForSelfAccess = account?.candidate_id ?? null;
   const canManageMentorAssignments = isAdmin || isMentor;
@@ -172,7 +174,9 @@ export default async function MentoringPage({
   const selectedSectionId =
     requestedSection && allowedSectionIds.has(requestedSection)
       ? requestedSection
-      : "overview";
+      : isMentorOnly
+        ? "mentor-assignments"
+        : "overview";
 
   if (!isAdmin && !isMentor && !isCandidate) {
     redirect(
@@ -293,7 +297,8 @@ export default async function MentoringPage({
     ? mentorAssignmentsResult.data ?? []
     : (mentorAssignmentsResult.data ?? []).filter((assignment) =>
         isMentor
-          ? assignment.mentor_profile_id === profile.id
+          ? assignment.mentor_profile_id === profile.id &&
+            isActiveMentorAssignmentStatus(assignment.status)
           : candidateIdForSelfAccess !== null &&
             assignment.candidate_id === candidateIdForSelfAccess,
       );
@@ -974,16 +979,28 @@ export default async function MentoringPage({
                         Mentor Assignments
                       </p>
                       <h2 className="mt-3 font-display text-3xl text-slate-900">
-                        Current candidate-role assignments
+                        {isMentorOnly
+                          ? "Your mentees"
+                          : "Current candidate-role assignments"}
                       </h2>
                     </div>
-                    <Link
-                      href="/candidates"
-                      className="interactive-contrast rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-900"
-                    >
-                      Open Candidates
-                    </Link>
+                    {isAdmin ? (
+                      <Link
+                        href="/candidates"
+                        className="interactive-contrast rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-900"
+                      >
+                        Open Candidates
+                      </Link>
+                    ) : null}
                   </div>
+
+                  {isMentorOnly ? (
+                    <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600">
+                      Start with the preparation worksheet for a mentee, then use
+                      the leadership development record to guide and document
+                      their growth.
+                    </p>
+                  ) : null}
 
                   <div className="mt-6 grid gap-3">
                     {visibleAssignments.length > 0 ? (
@@ -996,10 +1013,9 @@ export default async function MentoringPage({
                         );
 
                         return (
-                          <Link
+                          <article
                             key={`${assignment.candidate_id}-${assignment.role_id}-${assignment.mentor_profile_id}`}
-                            href={`/candidates/${assignment.candidate_id}?roleId=${assignment.role_id}`}
-                            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700 transition hover:-translate-y-0.5 hover:shadow-[0_20px_60px_rgba(15,23,42,0.06)]"
+                            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700"
                           >
                             <p className="font-semibold text-slate-900">
                               {candidate?.full_name ?? "Unknown candidate"}
@@ -1017,7 +1033,25 @@ export default async function MentoringPage({
                               Report status:{" "}
                               {hasReport ? "Report generated" : "Needs mentor report"}
                             </p>
-                          </Link>
+                            <div className="mt-4 flex flex-wrap gap-3">
+                              <Link
+                                href={`/mentoring?section=preparation-worksheet&candidateId=${assignment.candidate_id}&roleId=${assignment.role_id}&mentorProfileId=${assignment.mentor_profile_id}`}
+                                className="interactive-contrast rounded-full bg-teal-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-900"
+                              >
+                                {isMentorOnly
+                                  ? "Start mentoring"
+                                  : "Open mentoring track"}
+                              </Link>
+                              {isAdmin ? (
+                                <Link
+                                  href={`/candidates/${assignment.candidate_id}?roleId=${assignment.role_id}`}
+                                  className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+                                >
+                                  Open candidate
+                                </Link>
+                              ) : null}
+                            </div>
+                          </article>
                         );
                       })
                     ) : (
@@ -1157,6 +1191,7 @@ export default async function MentoringPage({
               mentorName: mentorMap.get(assignment.mentor_profile_id)?.full_name ?? "Unassigned",
               status: assignment.status,
             }))}
+            isMentorOnly={isMentorOnly}
             selectedAssignmentKey={selectedAssignmentKey}
             sectionId={selectedSectionId}
           />
@@ -1164,8 +1199,8 @@ export default async function MentoringPage({
             <section className="grid gap-6">
               <section className="theme-panel-strong rounded-[2rem] p-8">
                 <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">Mentoring workspace</p>
-                <h1 className="mt-3 font-display text-5xl leading-tight text-slate-900">{canManageMentorAssignments ? "Manage mentoring by candidate and role" : "View your mentoring by role"}</h1>
-                <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">{canManageMentorAssignments ? "Use the selected candidate-role track to prepare, assign stretch work, record development evidence, and review readiness with the mentor." : "Your mentoring workspace is limited to role tracks assigned to your candidate account."}</p>
+                <h1 className="mt-3 font-display text-5xl leading-tight text-slate-900">{isAdmin ? "Manage mentoring by candidate and role" : isMentorOnly ? "Guide your mentees through their development" : "View your mentoring by role"}</h1>
+                <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">{isAdmin ? "Use the selected candidate-role track to prepare, assign stretch work, record development evidence, and review readiness with the mentor." : isMentorOnly ? "Choose a mentee below to begin with shared expectations, then document development work and review progress in one role-based track." : "Your mentoring workspace is limited to role tracks assigned to your candidate account."}</p>
                 <ul className="mt-5 grid gap-2 text-sm leading-6 text-slate-600">
                   {mentoringWorkspaceDetailItems.slice(0, 3).map((item) => <li key={item} className="flex gap-2"><span className="mt-2 h-1.5 w-1.5 rounded-full bg-teal-700" />{item}</li>)}
                 </ul>
