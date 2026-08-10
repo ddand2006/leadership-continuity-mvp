@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CandidateRoleConsiderationManager } from "@/components/candidate-role-consideration-manager";
+import { CandidateProgressReport } from "@/components/candidate-progress-report";
 import { CandidateWorkflowStateManager } from "@/components/candidate-workflow-state-manager";
 import { CandidateDetailSectionMenu } from "@/components/candidate-detail-section-menu";
 import { CandidateSelectorSidebar } from "@/components/candidate-selector-sidebar";
@@ -355,6 +356,73 @@ export default async function CandidateDetailPage({
     throw new Error(scoresResult.error.message);
   }
 
+  const [
+    progressPanelsResult,
+    progressMentorReportsResult,
+    progressDevelopmentRecordsResult,
+    progressMatchesResult,
+    progressDecisionsResult,
+  ] = await Promise.all([
+    supabase
+      .from("interview_panels")
+      .select("id, role_id, panel_name, date_completed, created_at")
+      .eq("organization_id", profile.organization_id)
+      .eq("candidate_id", candidate.id),
+    supabase
+      .from("mentor_reports")
+      .select("created_at")
+      .eq("organization_id", profile.organization_id)
+      .eq("candidate_id", candidate.id),
+    supabase
+      .from("development_records")
+      .select("role_id, status, date_assigned, updated_at, mentor_review_date")
+      .eq("organization_id", profile.organization_id)
+      .eq("candidate_id", candidate.id),
+    supabase
+      .from("candidate_role_matches")
+      .select("role_id, match_status, created_at")
+      .eq("organization_id", profile.organization_id)
+      .eq("candidate_id", candidate.id),
+    supabase
+      .from("hiring_decisions")
+      .select("role_id, decision, created_at")
+      .eq("organization_id", profile.organization_id)
+      .eq("candidate_id", candidate.id),
+  ]);
+
+  for (const result of [
+    progressPanelsResult,
+    progressMentorReportsResult,
+    progressMatchesResult,
+    progressDecisionsResult,
+  ]) {
+    if (result.error) {
+      throw new Error(result.error.message);
+    }
+  }
+
+  const progressDevelopmentRecords = progressDevelopmentRecordsResult.error
+    ? isMissingLeadershipDevelopmentRecordTableError(
+        progressDevelopmentRecordsResult.error,
+      )
+      ? []
+      : (() => {
+          throw new Error(progressDevelopmentRecordsResult.error.message);
+        })()
+    : (progressDevelopmentRecordsResult.data ?? []);
+  const progressPanelIds = (progressPanelsResult.data ?? []).map((panel) => panel.id);
+  const progressScoresResult =
+    progressPanelIds.length > 0
+      ? await supabase
+          .from("interview_scores")
+          .select("panel_id, score_numeric")
+          .in("panel_id", progressPanelIds)
+      : { data: [], error: null };
+
+  if (progressScoresResult.error) {
+    throw new Error(progressScoresResult.error.message);
+  }
+
   const [latestMatchResult, latestDecisionResult] = activeRoleId
     ? await Promise.all([
         supabase
@@ -577,6 +645,51 @@ export default async function CandidateDetailPage({
       Boolean(record.mentor_review_date),
     ),
   });
+  const progressInterviews = (progressPanelsResult.data ?? []).map((panel) => {
+    const panelScores = (progressScoresResult.data ?? []).filter(
+      (score) => score.panel_id === panel.id,
+    );
+    const averageScore =
+      panelScores.length > 0
+        ? panelScores.reduce((sum, score) => sum + score.score_numeric, 0) /
+          panelScores.length
+        : null;
+
+    return {
+      roleId: panel.role_id,
+      panelName: panel.panel_name,
+      occurredAt: panel.date_completed ?? panel.created_at,
+      averageScore:
+        averageScore === null ? null : Number(averageScore.toFixed(2)),
+    };
+  });
+  const progressEvents = [
+    ...progressInterviews.map((interview) => ({
+      occurredAt: interview.occurredAt,
+      label: "Interview completed",
+      detail: `${interview.panelName} for ${roleMap.get(interview.roleId)?.title ?? "a role"}${interview.averageScore === null ? "" : ` · average score ${interview.averageScore.toFixed(1)} / 5`}.`,
+    })),
+    ...progressDevelopmentRecords.map((record) => ({
+      occurredAt: record.updated_at ?? record.date_assigned,
+      label: "Development record updated",
+      detail: `${roleMap.get(record.role_id)?.title ?? "Role"} · ${record.status.replaceAll("_", " ")}${record.mentor_review_date ? " · mentor review completed" : ""}.`,
+    })),
+    ...(progressMentorReportsResult.data ?? []).map((report) => ({
+      occurredAt: report.created_at,
+      label: "Mentor report generated",
+      detail: "Mentor observations and readiness recommendations were recorded.",
+    })),
+    ...(progressMatchesResult.data ?? []).map((match) => ({
+      occurredAt: match.created_at,
+      label: "Role-match assessment recorded",
+      detail: `${roleMap.get(match.role_id)?.title ?? "Role"} · ${match.match_status.replaceAll("_", " ")}.`,
+    })),
+    ...(progressDecisionsResult.data ?? []).map((decision) => ({
+      occurredAt: decision.created_at,
+      label: "Leadership decision recorded",
+      detail: `${roleMap.get(decision.role_id)?.title ?? "Role"} · ${decision.decision.replaceAll("_", " ")}.`,
+    })),
+  ].filter((event) => Boolean(event.occurredAt));
   return (
     <main className="app-page">
       <div className="mx-auto w-full max-w-[1380px] px-6 py-12 sm:px-10 lg:px-12">
@@ -771,6 +884,38 @@ export default async function CandidateDetailPage({
                     </div>
                   </section>
                 </section>
+              ),
+            },
+            {
+              id: "progress-report",
+              label: "Progress Report",
+              summary:
+                "Review year-to-date, program-to-date, and annual evidence of growth for this candidate.",
+              content: (
+                <CandidateProgressReport
+                  candidateName={candidate.full_name}
+                  roles={considerations
+                    .filter((consideration) => allowedRoleIds.has(consideration.role_id))
+                    .map((consideration) => ({
+                      roleId: consideration.role_id,
+                      roleTitle:
+                        roleMap.get(consideration.role_id)?.title ?? "Unknown role",
+                      status:
+                        consideration.status === "on_hold" ? "on_hold" : "active",
+                      isPrimary: consideration.is_primary,
+                    }))}
+                  interviews={progressInterviews}
+                  developmentRecords={progressDevelopmentRecords.map((record) => ({
+                    roleId: record.role_id,
+                    status: record.status,
+                    occurredAt: record.updated_at ?? record.date_assigned,
+                    mentorReviewed: Boolean(record.mentor_review_date),
+                  }))}
+                  mentorReportDates={(progressMentorReportsResult.data ?? []).map(
+                    (report) => report.created_at,
+                  )}
+                  events={progressEvents}
+                />
               ),
             },
             {
