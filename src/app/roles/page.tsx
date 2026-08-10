@@ -522,11 +522,6 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
           href: `/roles?roleId=${selectedRoleId}&mode=view`,
         },
         {
-          id: "create",
-          label: "Role Setup",
-          href: `/roles?roleId=${selectedRoleId}&mode=create`,
-        },
-        {
           id: "workflow",
           label: "Role Workflow",
           href: `/roles?roleId=${selectedRoleId}&mode=import`,
@@ -535,6 +530,11 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
           id: "interview",
           label: "Narrative & Interview",
           href: `/roles?roleId=${selectedRoleId}&mode=resources`,
+        },
+        {
+          id: "create",
+          label: "Role Modification",
+          href: `/roles?roleId=${selectedRoleId}&mode=create`,
         },
       ]
     : [];

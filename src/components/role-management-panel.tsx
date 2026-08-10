@@ -82,6 +82,17 @@ async function readApiResult(response: Response): Promise<ApiResult> {
   }
 }
 
+function haveSameCharacteristics(left: string[], right: string[]) {
+  return (
+    left.length === right.length &&
+    left.every(
+      (characteristic, index) =>
+        characteristic.trim().toLowerCase() ===
+        right[index]?.trim().toLowerCase(),
+    )
+  );
+}
+
 export function RoleManagementPanel({
   roles,
   sharedLibrary,
@@ -94,6 +105,7 @@ export function RoleManagementPanel({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const editorFormRef = useRef<HTMLFormElement>(null);
   const uploadCharacteristicsFormRef = useRef<HTMLFormElement>(null);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createSuccess, setCreateSuccess] = useState<string | null>(null);
@@ -155,6 +167,8 @@ export function RoleManagementPanel({
   const [selectedMasterTemplateId, setSelectedMasterTemplateId] = useState("");
   const [isEditingCompetencies, setIsEditingCompetencies] = useState(false);
   const [isCreatePending, startCreateTransition] = useTransition();
+  const [isSaveAndGeneratePending, startSaveAndGenerateTransition] =
+    useTransition();
   const [isUploadCharacteristicsPending, startUploadCharacteristicsTransition] = useTransition();
   const [isUploadRoleDocumentPending, startUploadRoleDocumentTransition] = useTransition();
   const [isEditCompetenciesPending, startEditCompetenciesTransition] = useTransition();
@@ -211,6 +225,20 @@ export function RoleManagementPanel({
     : selectedEditorRole
       ? "Save Role Changes"
       : "Create Role";
+  const currentTalents = parseCharacteristicsTextarea("talent", talentsValue).map(
+    (item) => item.characteristic,
+  );
+  const currentSkills = parseCharacteristicsTextarea("skill", skillsValue).map(
+    (item) => item.characteristic,
+  );
+  const currentBehaviors = parseCharacteristicsTextarea(
+    "behavior",
+    behaviorsValue,
+  ).map((item) => item.characteristic);
+  const hasCompetencyChanges =
+    !haveSameCharacteristics(currentTalents, selectedEditorRole?.talents ?? []) ||
+    !haveSameCharacteristics(currentSkills, selectedEditorRole?.skills ?? []) ||
+    !haveSameCharacteristics(currentBehaviors, selectedEditorRole?.behaviors ?? []);
   const normalizedEditorTitle = title.trim().toLowerCase();
   const orderedMasterRoleTemplates = [...masterRoleTemplates].sort((left, right) => {
     const leftIndustryScore = left.industry ? 0 : 1;
@@ -589,6 +617,77 @@ export function RoleManagementPanel({
     });
   }
 
+  function handleSaveAndGenerateComposite() {
+    if (!editorFormRef.current?.reportValidity()) {
+      return;
+    }
+
+    setCreateError(null);
+    setCreateSuccess(null);
+
+    startSaveAndGenerateTransition(async () => {
+      const payload = {
+        roleId: editorRoleId || undefined,
+        title,
+        department,
+        description,
+        status,
+        mentorProfileId: mentorProfileId || undefined,
+        talents: parseCharacteristicsTextarea("talent", talentsValue).map(
+          (item) => item.characteristic,
+        ),
+        skills: parseCharacteristicsTextarea("skill", skillsValue).map(
+          (item) => item.characteristic,
+        ),
+        behaviors: parseCharacteristicsTextarea("behavior", behaviorsValue).map(
+          (item) => item.characteristic,
+        ),
+      };
+      const saveResponse = await fetch("/api/roles", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+      const saveResult = (await saveResponse.json()) as ApiResult;
+
+      if (!saveResponse.ok || !saveResult.roleId) {
+        setCreateError(saveResult.error ?? "Unable to save role.");
+        return;
+      }
+
+      const generateResponse = await fetch("/api/roles/generate-composite", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          roleId: saveResult.roleId,
+          regenerate: selectedEditorRole?.compositeDocumentSource === "generated",
+        }),
+      });
+      const generateResult = (await generateResponse.json()) as ApiResult;
+
+      if (!generateResponse.ok) {
+        setEditorRoleId(saveResult.roleId);
+        setCreateError(
+          generateResult.error
+            ? `Role saved, but the role composite could not be generated: ${generateResult.error}`
+            : "Role saved, but the role composite could not be generated.",
+        );
+        router.refresh();
+        return;
+      }
+
+      setEditorRoleId(saveResult.roleId);
+      setCreateSuccess(
+        generateResult.message ?? "Role saved and role composite generated.",
+      );
+      router.refresh();
+    });
+  }
+
   function handleUploadCharacteristics(formData: FormData) {
     setUploadCharacteristicsError(null);
     setUploadCharacteristicsSuccess(null);
@@ -924,6 +1023,7 @@ export function RoleManagementPanel({
             </p>
 
             <form
+              ref={editorFormRef}
               className="mt-6 space-y-5"
               onSubmit={(event) => {
                 event.preventDefault();
@@ -1074,7 +1174,7 @@ export function RoleManagementPanel({
                 <button
                   className="interactive-contrast rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-900 disabled:cursor-not-allowed disabled:bg-slate-300"
                   type="submit"
-                  disabled={isCreatePending}
+                  disabled={isCreatePending || isSaveAndGeneratePending}
                 >
                   {saveRoleButtonLabel}
                 </button>
@@ -1291,9 +1391,25 @@ export function RoleManagementPanel({
                 <button
                   className="interactive-contrast rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-900 disabled:cursor-not-allowed disabled:bg-slate-300"
                   type="submit"
-                  disabled={isCreatePending}
+                  disabled={isCreatePending || isSaveAndGeneratePending}
                 >
                   {saveRoleButtonLabel}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveAndGenerateComposite}
+                  disabled={
+                    isCreatePending ||
+                    isSaveAndGeneratePending ||
+                    !canGenerateComposite ||
+                    !hasCompetencyChanges ||
+                    selectedEditorRole?.compositeDocumentSource === "manual"
+                  }
+                  className="interactive-contrast rounded-full bg-teal-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-600 disabled:cursor-not-allowed disabled:bg-teal-900/40"
+                >
+                  {isSaveAndGeneratePending
+                    ? "Saving and generating role composite..."
+                    : "Save and Re-Generate Role Composite"}
                 </button>
                 {selectedEditorRole ? (
                   <button
@@ -1305,6 +1421,21 @@ export function RoleManagementPanel({
                   </button>
                 ) : null}
               </div>
+              {!canGenerateComposite ? (
+                <p className="text-sm text-slate-600">
+                  Add `OPENAI_API_KEY` to enable role composite generation.
+                </p>
+              ) : selectedEditorRole?.compositeDocumentSource === "manual" ? (
+                <p className="text-sm text-slate-600">
+                  This role already has a composite. Download it, edit it in Word,
+                  and upload the corrected version instead of generating another.
+                </p>
+              ) : !hasCompetencyChanges ? (
+                <p className="text-sm text-slate-600">
+                  Update at least one talent, skill, or behavior to re-generate the
+                  role composite.
+                </p>
+              ) : null}
             </form>
 
             {createError ? <p className="mt-4 text-sm text-rose-700">{createError}</p> : null}

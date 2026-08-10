@@ -19,6 +19,7 @@ import { canonicalizeRoleTitle } from "@/lib/role-title";
 
 const payloadSchema = z.object({
   roleId: z.string().uuid(),
+  regenerate: z.boolean().optional().default(false),
 });
 
 function createSafeFileName(title: string) {
@@ -70,7 +71,7 @@ export async function POST(request: Request) {
         .order("created_at", { ascending: true }),
       admin
         .from("role_composite_documents")
-        .select("id")
+        .select("id, document_source, storage_bucket, storage_path")
         .eq("organization_id", profile.organization_id)
         .eq("role_id", payload.roleId)
         .maybeSingle(),
@@ -94,9 +95,18 @@ export async function POST(request: Request) {
 
     const roleTitle = canonicalizeRoleTitle(roleResult.data.title);
 
-    if (existingDocumentResult.data) {
+    const existingDocument = existingDocumentResult.data;
+
+    if (existingDocument?.document_source === "manual") {
       throw new ApiRouteError(
-        "A role composite document already exists for this role. Download it, edit it in Word, and upload corrections manually instead of regenerating.",
+        "This role has a manually corrected composite. Download it, edit it in Word, and upload another corrected version instead of regenerating it.",
+        409,
+      );
+    }
+
+    if (existingDocument && !payload.regenerate) {
+      throw new ApiRouteError(
+        "A role composite document already exists for this role. Use Save and Re-Generate Role Composite to replace the generated version.",
         409,
       );
     }
@@ -117,6 +127,20 @@ export async function POST(request: Request) {
     }
 
     let roleCompetencies = existingCompetenciesResult.data ?? [];
+
+    if (payload.regenerate && existingDocument) {
+      const deleteCompetenciesResult = await admin
+        .from("role_competencies")
+        .delete()
+        .eq("organization_id", profile.organization_id)
+        .eq("role_id", payload.roleId);
+
+      if (deleteCompetenciesResult.error) {
+        throw new ApiRouteError(deleteCompetenciesResult.error.message, 500);
+      }
+
+      roleCompetencies = [];
+    }
 
     if (roleCompetencies.length === 0) {
       const generatedComposite = await generateRoleCompositeFromIdealCompetencies({
@@ -193,9 +217,9 @@ export async function POST(request: Request) {
       throw new ApiRouteError(uploadResult.error.message, 500);
     }
 
-    const insertDocumentResult = await admin
+    const saveDocumentResult = await admin
       .from("role_composite_documents")
-      .insert({
+      .upsert({
         organization_id: profile.organization_id,
         role_id: payload.roleId,
         created_by_profile_id: profile.id,
@@ -207,15 +231,21 @@ export async function POST(request: Request) {
         file_size_bytes: buffer.length,
         storage_bucket: bucket,
         storage_path: storagePath,
-      });
+      }, { onConflict: "role_id" });
 
-    if (insertDocumentResult.error) {
+    if (saveDocumentResult.error) {
       await admin.storage.from(bucket).remove([storagePath]);
-      throw new ApiRouteError(insertDocumentResult.error.message, 500);
+      throw new ApiRouteError(saveDocumentResult.error.message, 500);
+    }
+
+    if (existingDocument && existingDocument.storage_path !== storagePath) {
+      await admin.storage
+        .from(existingDocument.storage_bucket)
+        .remove([existingDocument.storage_path]);
     }
 
     return NextResponse.json({
-      message: `Role composite created for "${roleTitle}". Download the Word file, make any edits manually, and upload the corrected version if needed.`,
+      message: `Role composite ${payload.regenerate ? "re-generated" : "created"} for "${roleTitle}". Download the Word file, make any edits manually, and upload the corrected version if needed.`,
       roleId: payload.roleId,
       competenciesCreated: roleCompetencies.length,
     });
