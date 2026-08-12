@@ -474,6 +474,7 @@ export function LeadershipDevelopmentRecordManager({
 }) {
   const [isPending, startTransition] = useTransition();
   const [isLoading, setIsLoading] = useState(false);
+  const [isRemovingProject, setIsRemovingProject] = useState(false);
   const [storageReady, setStorageReady] = useState(true);
   const [selectedAssignmentKey, setSelectedAssignmentKey] = useState(
     assignments.some(
@@ -1251,6 +1252,64 @@ export function LeadershipDevelopmentRecordManager({
     });
   }
 
+  async function handleRemoveProject() {
+    if (!selectedAssignment || !linkedSourceProject) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Remove “${linkedSourceProject.title}” from ${selectedAssignment.candidateName}? This will also delete its linked leadership development record. The reusable project template will remain available.`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setError(null);
+    setSuccess(null);
+    setIsRemovingProject(true);
+
+    try {
+      const response = await fetch("/api/mentoring/leadership-development-record", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          candidateId: selectedAssignment.candidateId,
+          roleId: selectedAssignment.roleId,
+          mentorId: selectedAssignment.mentorProfileId,
+          projectAssignmentId: linkedSourceProject.id,
+        }),
+      });
+      const result = (await response.json()) as { error?: string; message?: string };
+
+      if (!response.ok) {
+        setError(result.error ?? "Unable to remove this project.");
+        return;
+      }
+
+      const assignmentKey = getAssignmentKey(selectedAssignment);
+      setSourceProjectsByAssignmentKey((current) => ({
+        ...current,
+        [assignmentKey]: (current[assignmentKey] ?? []).filter(
+          (project) => project.id !== linkedSourceProject.id,
+        ),
+      }));
+      setRecordsByAssignmentKey((current) => ({
+        ...current,
+        [assignmentKey]: (current[assignmentKey] ?? []).filter(
+          (record) => record.sourceProjectAssignmentId !== linkedSourceProject.id,
+        ),
+      }));
+      clearPendingMentoringProjectTransfer();
+      handleCreateNewRecord();
+      setSuccess(result.message ?? "Project removed from this candidate.");
+    } catch {
+      setError("Unable to remove this project.");
+    } finally {
+      setIsRemovingProject(false);
+    }
+  }
+
   if (assignments.length === 0) {
     return (
       <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
@@ -1465,16 +1524,28 @@ export function LeadershipDevelopmentRecordManager({
                     )}
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      selectionRevisionRef.current += 1;
-                      setProjectDetailsOpen((current) => !current);
-                    }}
-                    className="rounded-full border border-teal-200 bg-white px-4 py-2 text-sm font-semibold text-teal-900 transition hover:bg-teal-100"
-                  >
-                    {projectDetailsOpen ? "Hide Project Details" : "Show Project Details"}
-                  </button>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        selectionRevisionRef.current += 1;
+                        setProjectDetailsOpen((current) => !current);
+                      }}
+                      className="rounded-full border border-teal-200 bg-white px-4 py-2 text-sm font-semibold text-teal-900 transition hover:bg-teal-100"
+                    >
+                      {projectDetailsOpen ? "Hide Project Details" : "Show Project Details"}
+                    </button>
+                    {linkedSourceProject ? (
+                      <button
+                        type="button"
+                        onClick={handleRemoveProject}
+                        disabled={isRemovingProject}
+                        className="rounded-full border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:text-rose-300"
+                      >
+                        {isRemovingProject ? "Removing Project…" : "Remove Project"}
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
 
                 {projectDetailsOpen ? (

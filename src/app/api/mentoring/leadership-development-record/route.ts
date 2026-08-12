@@ -44,6 +44,13 @@ const leadershipDevelopmentQuerySchema = z.object({
   projectId: z.string().uuid().optional(),
 });
 
+const removeProjectSchema = z.object({
+  candidateId: z.string().uuid(),
+  roleId: z.string().uuid(),
+  mentorId: z.string().uuid(),
+  projectAssignmentId: z.string().uuid(),
+});
+
 function assertScore(value: string, fieldLabel: string) {
   const parsed = parseLeadershipDevelopmentScore(value);
 
@@ -1066,5 +1073,95 @@ export async function POST(request: Request) {
       error,
       "Unable to save the leadership development record.",
     );
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { account, admin, profile } = await requireApiWorkspaceProfile();
+    const payload = removeProjectSchema.parse(await request.json());
+
+    ensureUserCanAccessRecord({
+      account,
+      profile,
+      candidateId: payload.candidateId,
+      mentorId: payload.mentorId,
+    });
+    await ensureAssignmentExists({
+      admin,
+      organizationId: profile.organization_id,
+      candidateId: payload.candidateId,
+      roleId: payload.roleId,
+      mentorId: payload.mentorId,
+    });
+
+    const projectAssignmentResult = await admin
+      .from("candidate_project_assignments")
+      .select("id")
+      .eq("organization_id", profile.organization_id)
+      .eq("id", payload.projectAssignmentId)
+      .eq("candidate_id", payload.candidateId)
+      .eq("mentor_profile_id", payload.mentorId)
+      .maybeSingle();
+
+    if (projectAssignmentResult.error) {
+      throw new ApiRouteError(projectAssignmentResult.error.message, 500);
+    }
+
+    if (!projectAssignmentResult.data) {
+      throw new ApiRouteError("This project is no longer assigned to the candidate.", 404);
+    }
+
+    const linkedRecordsResult = await admin
+      .from("development_records")
+      .select("id")
+      .eq("organization_id", profile.organization_id)
+      .eq("candidate_id", payload.candidateId)
+      .eq("role_id", payload.roleId)
+      .eq("mentor_id", payload.mentorId)
+      .eq("source_project_assignment_id", payload.projectAssignmentId);
+
+    if (linkedRecordsResult.error) {
+      if (isMissingLeadershipDevelopmentRecordTableError(linkedRecordsResult.error)) {
+        throw new ApiRouteError(
+          "Leadership development record storage is not available yet. Run the latest Supabase migration first.",
+          503,
+        );
+      }
+
+      throw new ApiRouteError(linkedRecordsResult.error.message, 500);
+    }
+
+    const linkedRecordIds = (linkedRecordsResult.data ?? []).map((record) => record.id);
+    if (linkedRecordIds.length > 0) {
+      const deleteRecordsResult = await admin
+        .from("development_records")
+        .delete()
+        .eq("organization_id", profile.organization_id)
+        .in("id", linkedRecordIds);
+
+      if (deleteRecordsResult.error) {
+        throw new ApiRouteError(deleteRecordsResult.error.message, 500);
+      }
+    }
+
+    const deleteProjectAssignmentResult = await admin
+      .from("candidate_project_assignments")
+      .delete()
+      .eq("organization_id", profile.organization_id)
+      .eq("id", payload.projectAssignmentId)
+      .eq("candidate_id", payload.candidateId)
+      .eq("mentor_profile_id", payload.mentorId);
+
+    if (deleteProjectAssignmentResult.error) {
+      throw new ApiRouteError(deleteProjectAssignmentResult.error.message, 500);
+    }
+
+    return NextResponse.json({
+      message:
+        "Project removed from this candidate. Any linked leadership development record was removed as well.",
+    });
+  } catch (error) {
+    return createApiErrorResponse(error, "Unable to remove this candidate project.");
   }
 }
