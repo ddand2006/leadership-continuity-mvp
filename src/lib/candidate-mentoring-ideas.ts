@@ -84,7 +84,7 @@ export async function generateCandidateMentoringIdeas(options: {
       {
         role: "system",
         content:
-          "You are an expert organizational leadership mentor. Generate candidate-specific mentoring assignments for one competency gap. Make the ideas concrete, role-relevant, and shaped by the candidate's strengths. Do not simply repeat the reference library ideas. Use them only as inspiration. Each idea should feel personal to this candidate's readiness profile, current role, and strengths pattern. Structure every idea like a mentoring working document inspired by leadership development worksheets, not a short summary.",
+          "You are an expert organizational leadership mentor. Generate candidate-specific mentoring assignments for one competency gap. Make the ideas concrete, role-relevant, and shaped by the candidate's strengths. Do not simply repeat the reference library ideas. Use them only as inspiration. Each idea should feel personal to this candidate's readiness profile, current role, and strengths pattern. Structure every idea like a mentoring working document inspired by leadership development worksheets, not a short summary. Write for a seventh-grade reader: use plain, everyday words, short sentences, and an active voice. Explain leadership terms in simple language when they are needed. Avoid corporate jargon, abstract phrases, and long or layered sentences. Keep the work meaningful, but make every instruction easy for a mentor and candidate to understand and act on.",
       },
         {
           role: "user",
@@ -101,6 +101,8 @@ export async function generateCandidateMentoringIdeas(options: {
             },
             reference_library_ideas: options.referenceIdeas,
             instructions: {
+              reading_level:
+                "Use clear seventh-grade language in every field. Prefer short sentences, common words, and direct actions. Replace jargon with plain language; for example, say 'help people feel safe to speak up' instead of 'improve psychological safety.'",
               count: "Return exactly 3 ideas.",
               project_type:
                 "Choose either departmental or cross_departmental based on the best learning experience for this candidate.",
@@ -109,13 +111,13 @@ export async function generateCandidateMentoringIdeas(options: {
               title:
                 "Use specific, non-generic titles that sound like real mentoring assignments.",
               description:
-                "Describe a practical stretch assignment or project in 1 to 2 sentences.",
+                "Describe a practical stretch assignment or project in 1 to 2 short, plain-language sentences.",
               working_goal:
                 "State the concrete improvement, project, or leadership outcome the mentee should own.",
               why_it_fits:
-                "Explain why this idea fits this candidate specifically, considering strengths, readiness, and competency gap.",
+                "Explain in plain language why this idea fits this candidate's strengths and growth area.",
               strengths_application:
-                "Explain clearly how the candidate should use their specific strengths to succeed in this assignment.",
+                "Explain in plain language how the candidate can use their specific strengths in this assignment.",
               mentor_focus:
                 "Describe what the mentor should watch, coach, or reinforce.",
               first_step:
@@ -123,7 +125,7 @@ export async function generateCandidateMentoringIdeas(options: {
               key_partners:
                 "List the departments, leaders, or partners the mentee should work with.",
               leadership_actions_required:
-                "List 2 to 5 leadership actions this assignment requires, written like observable leadership behaviors.",
+                "List 2 to 5 clear actions the candidate can take. Write each as an observable behavior in plain language.",
               mentor_preparation:
                 "List what the mentor should do to prepare or frame this assignment well.",
               mentee_preparation:
