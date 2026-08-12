@@ -56,7 +56,7 @@ export function MentoringAssignmentSidebar({
               <span
                 className={`block text-sm font-bold ${isSelected ? "text-white" : "text-slate-900"}`}
               >
-                Candidate: {candidateName}
+                {candidateName}
               </span>
               <span className={`mt-1 block text-xs ${isSelected ? "text-slate-300" : "text-slate-500"}`}>{assignment.roleTitle}</span>
               <span className={`mt-1 block text-xs ${isSelected ? "text-slate-300" : "text-slate-500"}`}>Mentor: {assignment.mentorName}</span>
