@@ -378,6 +378,21 @@ function hasTransferredProjectDetails(
   );
 }
 
+function EditableFieldLabel({ label }: { label: string }) {
+  return (
+    <span className="flex items-center gap-2 text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+      {label}
+      <span
+        aria-label="Editable"
+        className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-teal-100 text-sm font-bold normal-case text-teal-800"
+        title="Editable field"
+      >
+        ✎
+      </span>
+    </span>
+  );
+}
+
 function ProjectDetailTextCard({
   label,
   value,
@@ -400,9 +415,7 @@ function ProjectDetailTextCard({
   return (
     <div className="rounded-2xl bg-white px-4 py-4">
       <label className="block">
-        <span className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
-          {label}
-        </span>
+        <EditableFieldLabel label={label} />
         <textarea
           value={value}
           onChange={(event) => onChange(event.target.value)}
@@ -434,9 +447,7 @@ function ProjectDetailListCard({
   return (
     <div className="rounded-2xl bg-white px-4 py-4">
       <label className="block">
-        <span className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
-          {label}
-        </span>
+        <EditableFieldLabel label={label} />
         <textarea
           value={formatProjectDetailList(values)}
           onChange={(event) => onChange(parseProjectDetailList(event.target.value))}
