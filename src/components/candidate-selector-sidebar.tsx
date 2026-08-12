@@ -90,7 +90,13 @@ export function CandidateSelectorSidebar({
                         : "border-slate-200 bg-white text-slate-800 hover:border-slate-300 hover:bg-slate-50"
                     }`}
                   >
-                    <span className="block text-sm font-semibold">{visibleCandidateName}</span>
+                    <span
+                      className={`block text-sm font-bold ${
+                        isSelected ? "text-white" : "text-slate-900"
+                      }`}
+                    >
+                      {visibleCandidateName}
+                    </span>
                     <span
                       className={`mt-1 block text-xs ${
                         isSelected ? "text-slate-300" : "text-slate-500"
