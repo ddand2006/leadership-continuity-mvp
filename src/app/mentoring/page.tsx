@@ -1185,7 +1185,9 @@ export default async function MentoringPage({
             assignments={orderedVisibleAssignments.map((assignment) => ({
               key: getAssignmentKey(assignment),
               candidateId: assignment.candidate_id,
-              candidateName: candidateMap.get(assignment.candidate_id)?.full_name ?? "Unknown candidate",
+              candidateName:
+                candidateMap.get(assignment.candidate_id)?.full_name?.trim() ||
+                "Candidate name not entered",
               currentTitle: candidateMap.get(assignment.candidate_id)?.current_title ?? null,
               roleId: assignment.role_id,
               roleTitle: roleMap.get(assignment.role_id)?.title ?? "Unknown role",
