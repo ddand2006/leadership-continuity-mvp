@@ -7,6 +7,7 @@ import {
 } from "@/components/dashboard-setup-journey";
 import { requireUser } from "@/lib/auth";
 import { computeCandidateAward } from "@/lib/candidate-awards";
+import { getCandidateDisplayName } from "@/lib/candidate-display-name";
 import Image from "next/image";
 import { canAccessLeadershipHelpPreview } from "@/lib/leadership-help-preview";
 import { getLegacyCertificationAsset } from "@/lib/legacy-certifications";
@@ -993,7 +994,7 @@ function buildDashboardIntelligence(options: {
       tracks.push({
         key,
         candidateId: candidate.id,
-        candidateName: candidate.full_name,
+        candidateName: getCandidateDisplayName(candidate.full_name),
         candidateCreatedAt: candidate.created_at,
         currentTitle: candidate.current_title,
         candidateStatus: candidate.status,
@@ -2206,7 +2207,7 @@ async function getDashboardSnapshot(
 
     return {
       id: candidate.id,
-      full_name: candidate.full_name,
+      full_name: getCandidateDisplayName(candidate.full_name),
       current_title: candidate.current_title,
       created_at: candidate.created_at,
       role_ids: roleIds,

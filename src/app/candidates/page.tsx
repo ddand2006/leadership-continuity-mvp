@@ -1,5 +1,6 @@
 import { CandidateManagementPanel } from "@/components/candidate-management-panel";
 import { CandidateSelectorSidebar } from "@/components/candidate-selector-sidebar";
+import { getCandidateDisplayName } from "@/lib/candidate-display-name";
 import {
   buildCompetencyAssessments,
   computeOverallReadiness,
@@ -346,7 +347,7 @@ export default async function CandidatesPage() {
 
     return {
       id: candidate.id,
-      fullName: candidate.full_name,
+      fullName: getCandidateDisplayName(candidate.full_name),
       currentTitle: candidate.current_title,
       primaryRoleTitle: primaryRole?.title ?? "No target role yet",
       primaryRoleId: primaryRole?.id ?? null,

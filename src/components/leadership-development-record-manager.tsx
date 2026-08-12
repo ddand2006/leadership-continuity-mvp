@@ -1441,13 +1441,13 @@ export function LeadershipDevelopmentRecordManager({
                       </p>
                     ) : null}
                     {selectedProjectId ? (
-                      <p className="mt-2 text-sm leading-7 text-teal-900">
+                      <p className="mt-2 text-sm font-semibold leading-7 text-teal-900">
                         This draft is being built from the selected project. You can refine
                         these transferred cards before saving the formal leadership
                         development record.
                       </p>
                     ) : (
-                      <p className="mt-2 text-sm leading-7 text-teal-900">
+                      <p className="mt-2 text-sm font-semibold leading-7 text-teal-900">
                         These transferred project details are editable and will save with
                         the leadership development record.
                       </p>

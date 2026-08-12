@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AdministrationPanel } from "@/components/administration-panel";
+import { getCandidateDisplayName } from "@/lib/candidate-display-name";
 import { isAdminAppRole } from "@/lib/mentor-access";
 import { loadAdministrationUsers } from "@/lib/organization-user-admin";
 import { canonicalizeRoleTitle } from "@/lib/role-title";
@@ -173,7 +174,7 @@ export default async function AdministrationPage({
           mentorAssignmentOptions={{
             candidates: (candidatesResult.data ?? []).map((candidate) => ({
               id: candidate.id,
-              full_name: candidate.full_name,
+              full_name: getCandidateDisplayName(candidate.full_name),
             })),
             roles: (rolesResult.data ?? []).map((role) => ({
               id: role.id,

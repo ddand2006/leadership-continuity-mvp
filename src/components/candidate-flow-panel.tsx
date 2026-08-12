@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { getCandidateDisplayName } from "@/lib/candidate-display-name";
 import {
   FLOWCHART_ACTION_DISABLED_CLASS,
   FLOWCHART_ACTION_ENABLED_CLASS,
@@ -191,13 +192,13 @@ export function CandidateFlowPanel({
                       value={candidate.id}
                       className="text-slate-900"
                     >
-                      {candidate.fullName}
+                      {getCandidateDisplayName(candidate.fullName)}
                     </option>
                   ))}
                 </select>
                 <p className="mt-3 text-center text-xs leading-6 text-white/80">
                   {selectedCandidate
-                    ? `${selectedCandidate.fullName}${selectedCandidate.currentTitle ? ` • ${selectedCandidate.currentTitle}` : ""}`
+                    ? `${getCandidateDisplayName(selectedCandidate.fullName)}${selectedCandidate.currentTitle ? ` • ${selectedCandidate.currentTitle}` : ""}`
                     : "Choose one candidate to activate the next steps."}
                 </p>
               </div>
@@ -285,7 +286,7 @@ export function CandidateFlowPanel({
                 ) : null}
                 {candidates.map((candidate) => (
                   <option key={candidate.id} value={candidate.id} className="text-slate-900">
-                    {candidate.fullName}
+                    {getCandidateDisplayName(candidate.fullName)}
                   </option>
                 ))}
               </select>

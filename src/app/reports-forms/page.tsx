@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getCandidateDisplayName } from "@/lib/candidate-display-name";
 import { getAccessibleCandidateIds } from "@/lib/mentor-access";
 import { canonicalizeRoleTitle } from "@/lib/role-title";
 import { requirePaidWorkspaceProfile } from "@/lib/workspace";
@@ -65,7 +66,10 @@ export default async function ReportsFormsPage() {
   );
 
   const candidateMap = new Map(
-    visibleCandidates.map((candidate) => [candidate.id, candidate]),
+    visibleCandidates.map((candidate) => [
+      candidate.id,
+      { ...candidate, full_name: getCandidateDisplayName(candidate.full_name) },
+    ]),
   );
   const roleMap = new Map(
     (rolesResult.data ?? []).map((role) => [

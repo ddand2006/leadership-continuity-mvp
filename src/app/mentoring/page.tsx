@@ -7,6 +7,7 @@ import { MentoringPreparationWorksheetManager } from "@/components/mentoring-pre
 import { MentoringReadinessReview } from "@/components/mentoring-readiness-review";
 import { LeadershipDevelopmentRecordManager } from "@/components/leadership-development-record-manager";
 import { MentoringAssignmentSidebar } from "@/components/mentoring-assignment-sidebar";
+import { getCandidateDisplayName } from "@/lib/candidate-display-name";
 import { isMissingCrossDepartmentalProjectWorksheetTableError } from "@/lib/mentoring-cross-departmental-project-worksheet";
 import { isMissingDepartmentalProjectWorksheetTableError } from "@/lib/mentoring-departmental-project-worksheet";
 import {
@@ -283,7 +284,10 @@ export default async function MentoringPage({
     ]),
   );
   const candidateMap = new Map(
-    (candidatesResult.data ?? []).map((candidate) => [candidate.id, candidate]),
+    (candidatesResult.data ?? []).map((candidate) => [
+      candidate.id,
+      { ...candidate, full_name: getCandidateDisplayName(candidate.full_name) },
+    ]),
   );
   const mentorMap = new Map(
     (mentorsResult.data ?? []).map((mentor) => [mentor.id, mentor]),

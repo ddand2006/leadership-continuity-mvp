@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { getCandidateDisplayName } from "@/lib/candidate-display-name";
 
 type CandidateFocusSelectorProps = {
   candidates: {
@@ -111,7 +112,7 @@ export function CandidateFocusSelector({
               ) : null}
               {candidates.map((candidate) => (
                 <option key={candidate.id} value={candidate.id}>
-                  {candidate.fullName}
+                  {getCandidateDisplayName(candidate.fullName)}
                 </option>
               ))}
             </select>

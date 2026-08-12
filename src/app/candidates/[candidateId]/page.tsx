@@ -5,6 +5,7 @@ import { CandidateProgressReport } from "@/components/candidate-progress-report"
 import { CandidateWorkflowStateManager } from "@/components/candidate-workflow-state-manager";
 import { CandidateDetailSectionMenu } from "@/components/candidate-detail-section-menu";
 import { CandidateSelectorSidebar } from "@/components/candidate-selector-sidebar";
+import { getCandidateDisplayName } from "@/lib/candidate-display-name";
 import { CandidateInsightExplorer } from "@/components/candidate-insight-explorer";
 import { MentorReportMatchExplorer } from "@/components/mentor-report-match-explorer";
 import { CandidateStrengthsUploadCard } from "@/components/candidate-strengths-upload-card";
@@ -140,11 +141,14 @@ export default async function CandidateDetailPage({
     }
   }
 
-  const candidate = candidateResult.data;
-
-  if (!candidate) {
+  if (!candidateResult.data) {
     throw new Error("Candidate could not be loaded.");
   }
+
+  const candidate = {
+    ...candidateResult.data,
+    full_name: getCandidateDisplayName(candidateResult.data.full_name),
+  };
 
   const considerations = considerationsResult.data ?? [];
   const mentorAssignments = mentorAssignmentsResult.data ?? [];

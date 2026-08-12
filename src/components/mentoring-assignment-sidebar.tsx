@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getCandidateDisplayName } from "@/lib/candidate-display-name";
 
 type MentoringAssignmentSidebarProps = {
   assignments: Array<{
@@ -39,7 +40,7 @@ export function MentoringAssignmentSidebar({
       <nav className="mt-6 grid gap-2" aria-label="Mentoring track selection">
         {assignments.map((assignment) => {
           const isSelected = assignment.key === selectedAssignmentKey;
-          const candidateName = assignment.candidateName.trim() || "Candidate name not entered";
+          const candidateName = getCandidateDisplayName(assignment.candidateName);
           const params = new URLSearchParams({
             section: sectionId,
             candidateId: assignment.candidateId,
