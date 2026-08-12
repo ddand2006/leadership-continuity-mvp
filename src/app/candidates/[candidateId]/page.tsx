@@ -711,7 +711,6 @@ export default async function CandidateDetailPage({
               status: sidebarCandidate.status,
             }))}
             selectedCandidateId={candidate.id}
-            selectedCandidateName={candidate.full_name}
             currentSectionId={requestedSection ?? "role-context"}
             canCreateCandidates={isAdmin}
           />

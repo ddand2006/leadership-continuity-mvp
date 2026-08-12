@@ -9,7 +9,6 @@ type CandidateSelectorSidebarProps = {
     status: string;
   }>;
   selectedCandidateId?: string | null;
-  selectedCandidateName?: string | null;
   currentSectionId?: string | null;
   canCreateCandidates: boolean;
   isCreatingCandidate?: boolean;
@@ -18,7 +17,6 @@ type CandidateSelectorSidebarProps = {
 export function CandidateSelectorSidebar({
   candidates,
   selectedCandidateId = null,
-  selectedCandidateName = null,
   currentSectionId = null,
   canCreateCandidates,
   isCreatingCandidate = false,
@@ -65,11 +63,7 @@ export function CandidateSelectorSidebar({
             <div className="grid gap-2">
               {candidates.map((candidate) => {
                 const isSelected = candidate.id === selectedCandidateId;
-                const displayName =
-                  isSelected
-                    ? selectedCandidateName?.trim() || candidate.fullName
-                    : candidate.fullName;
-                const visibleCandidateName = getCandidateDisplayName(displayName);
+                const visibleCandidateName = getCandidateDisplayName(candidate.fullName);
                 const candidateParams = new URLSearchParams();
 
                 if (currentSectionId) {
