@@ -86,7 +86,7 @@ export function CandidateSelectorSidebar({
                     aria-current={isSelected ? "page" : undefined}
                     className={`rounded-2xl border px-4 py-3 text-left transition ${
                       isSelected
-                        ? "border-slate-900 bg-slate-900 text-white shadow-[0_14px_30px_rgba(15,23,42,0.14)]"
+                        ? "interactive-contrast border-slate-900 bg-slate-900 text-white shadow-[0_14px_30px_rgba(15,23,42,0.14)]"
                         : "border-slate-200 bg-white text-slate-800 hover:border-slate-300 hover:bg-slate-50"
                     }`}
                   >
@@ -99,7 +99,7 @@ export function CandidateSelectorSidebar({
                     </span>
                     <span
                       className={`mt-1 block text-xs ${
-                        isSelected ? "text-slate-300" : "text-slate-500"
+                        isSelected ? "text-white" : "text-slate-500"
                       }`}
                     >
                       {candidate.currentTitle ?? "No current title"} · {candidate.status.replaceAll("_", " ")}

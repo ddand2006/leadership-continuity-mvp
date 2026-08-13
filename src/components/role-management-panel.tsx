@@ -1708,7 +1708,7 @@ export function RoleManagementPanel({
                     : "Download Role Composite Document"}
                 </button>
                 <button
-                  className="interactive-contrast rounded-full border border-teal-700 bg-white px-5 py-3 text-sm font-semibold text-teal-800 transition hover:bg-teal-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+                  className="rounded-full border border-teal-700 bg-white px-5 py-3 text-sm font-semibold text-teal-800 transition hover:bg-teal-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
                   type="button"
                   onClick={handleDownloadCondensedCompositeDocument}
                   disabled={
