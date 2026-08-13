@@ -124,6 +124,8 @@ export function RoleManagementPanel({
   const [generateCompositeError, setGenerateCompositeError] = useState<string | null>(null);
   const [generateCompositeSuccess, setGenerateCompositeSuccess] = useState<string | null>(null);
   const [downloadCompositeError, setDownloadCompositeError] = useState<string | null>(null);
+  const [downloadCondensedCompositeError, setDownloadCondensedCompositeError] =
+    useState<string | null>(null);
   const [uploadCompositeDocumentError, setUploadCompositeDocumentError] = useState<string | null>(null);
   const [uploadCompositeDocumentSuccess, setUploadCompositeDocumentSuccess] = useState<string | null>(null);
   const [uploadCharacteristicsResetKey, setUploadCharacteristicsResetKey] = useState(0);
@@ -176,6 +178,8 @@ export function RoleManagementPanel({
     useTransition();
   const [isGenerateCompositePending, startGenerateCompositeTransition] = useTransition();
   const [isDownloadCompositePending, startDownloadCompositeTransition] = useTransition();
+  const [isDownloadCondensedCompositePending, startDownloadCondensedCompositeTransition] =
+    useTransition();
   const [isUploadCompositeDocumentPending, startUploadCompositeDocumentTransition] =
     useTransition();
   const selectedEditorRole =
@@ -933,6 +937,44 @@ export function RoleManagementPanel({
     });
   }
 
+  function handleDownloadCondensedCompositeDocument() {
+    if (!selectedCompetencyRoleId || !selectedCompetencyRole) {
+      return;
+    }
+
+    setDownloadCondensedCompositeError(null);
+    startDownloadCondensedCompositeTransition(async () => {
+      const currentRole = selectedCompetencyRole;
+      const response = await fetch(
+        `/api/roles/${selectedCompetencyRoleId}/condensed-composite-docx`,
+        { method: "GET" },
+      );
+
+      if (!response.ok) {
+        const result = (await response.json().catch(() => ({}))) as {
+          error?: string;
+        };
+        setDownloadCondensedCompositeError(
+          result.error ?? "Unable to generate the condensed role profile.",
+        );
+        return;
+      }
+
+      const blob = await response.blob();
+      const downloadUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = `${currentRole.title
+        .replace(/[^a-zA-Z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .toLowerCase()}-condensed-profile.docx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(downloadUrl);
+    });
+  }
+
   function handleUploadCompositeDocument(formData: FormData) {
     if (!selectedCompetencyRoleId) {
       return;
@@ -1666,6 +1708,19 @@ export function RoleManagementPanel({
                     : "Download Role Composite Document"}
                 </button>
                 <button
+                  className="interactive-contrast rounded-full border border-teal-700 bg-white px-5 py-3 text-sm font-semibold text-teal-800 transition hover:bg-teal-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+                  type="button"
+                  onClick={handleDownloadCondensedCompositeDocument}
+                  disabled={
+                    isDownloadCondensedCompositePending ||
+                    selectedCompetencyRole.compositeDocumentSource === null
+                  }
+                >
+                  {isDownloadCondensedCompositePending
+                    ? "Creating condensed profile..."
+                    : "Download Condensed Profile"}
+                </button>
+                <button
                   type="button"
                   onClick={openCompetencyEditorPage}
                   className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
@@ -1727,6 +1782,11 @@ export function RoleManagementPanel({
           ) : null}
           {downloadCompositeError ? (
             <p className="mt-4 text-sm text-rose-700">{downloadCompositeError}</p>
+          ) : null}
+          {downloadCondensedCompositeError ? (
+            <p className="mt-4 text-sm text-rose-700">
+              {downloadCondensedCompositeError}
+            </p>
           ) : null}
           {uploadCompositeDocumentError ? (
             <p className="mt-4 text-sm text-rose-700">{uploadCompositeDocumentError}</p>

@@ -1,0 +1,122 @@
+import { NextResponse } from "next/server";
+import {
+  ApiRouteError,
+  createApiErrorResponse,
+  requireApiWorkspaceProfile,
+} from "@/lib/api-route";
+import { groupCharacteristicsByCategory } from "@/lib/role-characteristics";
+import {
+  buildCondensedRoleCompositeDocumentBuffer,
+  generateCondensedRoleCompositeDocumentContent,
+} from "@/lib/role-composite-document";
+import { canonicalizeRoleTitle } from "@/lib/role-title";
+
+type RouteContext = {
+  params: Promise<{
+    roleId: string;
+  }>;
+};
+
+function createSafeFileName(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+export const runtime = "nodejs";
+
+export async function GET(_request: Request, context: RouteContext) {
+  try {
+    const { admin, profile } = await requireApiWorkspaceProfile({
+      requireAdmin: true,
+    });
+    const { roleId } = await context.params;
+    const [organizationResult, roleResult, characteristicsResult, competenciesResult] =
+      await Promise.all([
+        admin
+          .from("organizations")
+          .select("name")
+          .eq("id", profile.organization_id)
+          .maybeSingle(),
+        admin
+          .from("roles")
+          .select("id, title, department, description")
+          .eq("organization_id", profile.organization_id)
+          .eq("id", roleId)
+          .maybeSingle(),
+        admin
+          .from("role_candidate_characteristics")
+          .select("category, characteristic, sort_order")
+          .eq("organization_id", profile.organization_id)
+          .eq("role_id", roleId)
+          .order("sort_order", { ascending: true })
+          .order("created_at", { ascending: true }),
+        admin
+          .from("role_competencies")
+          .select("name, definition, behavioral_indicators, red_flags")
+          .eq("organization_id", profile.organization_id)
+          .eq("role_id", roleId)
+          .order("created_at", { ascending: true }),
+      ]);
+
+    for (const result of [
+      organizationResult,
+      roleResult,
+      characteristicsResult,
+      competenciesResult,
+    ]) {
+      if (result.error) {
+        throw new ApiRouteError(result.error.message, 500);
+      }
+    }
+
+    if (!roleResult.data) {
+      throw new ApiRouteError("Selected role could not be found.", 404);
+    }
+
+    if ((competenciesResult.data ?? []).length === 0) {
+      throw new ApiRouteError(
+        "Generate the full role composite first so the condensed profile can use the role competencies.",
+        400,
+      );
+    }
+
+    const roleTitle = canonicalizeRoleTitle(roleResult.data.title);
+    const content = await generateCondensedRoleCompositeDocumentContent({
+      organizationName: organizationResult.data?.name ?? "Organization",
+      roleTitle,
+      roleDepartment: roleResult.data.department,
+      roleDescription: roleResult.data.description ?? "",
+      idealCompetencies: groupCharacteristicsByCategory(
+        characteristicsResult.data ?? [],
+      ),
+      roleCompetencies: (competenciesResult.data ?? []).map((competency) => ({
+        name: competency.name,
+        definition: competency.definition ?? "",
+        behavioral_indicators:
+          (competency.behavioral_indicators as string[] | null) ?? [],
+        red_flags: (competency.red_flags as string[] | null) ?? [],
+      })),
+    });
+    const buffer = await buildCondensedRoleCompositeDocumentBuffer({
+      organizationName: organizationResult.data?.name ?? "Organization",
+      roleTitle,
+      roleDepartment: roleResult.data.department,
+      content,
+    });
+
+    return new NextResponse(new Uint8Array(buffer), {
+      headers: {
+        "Content-Type":
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "Content-Disposition": `attachment; filename="${createSafeFileName(roleTitle)}-condensed-profile.docx"`,
+      },
+    });
+  } catch (error) {
+    return createApiErrorResponse(
+      error,
+      "Unable to generate the condensed role profile Word document.",
+    );
+  }
+}
