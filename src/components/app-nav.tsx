@@ -153,6 +153,9 @@ export async function AppNav({ pathname }: { pathname: string }) {
         ...(hasContinuityAccess && (isAdmin || isMentor)
           ? [{ href: "/dashboard", label: "Dashboard" }]
           : []),
+        ...(hasContinuityAccess && isAdmin
+          ? [{ href: "/360-review", label: "360 Review" }]
+          : []),
         ...((hasContinuityAccess && isAdmin) || isSystemAdmin
           ? [{ href: "/administration", label: "Administration" }]
           : []),
