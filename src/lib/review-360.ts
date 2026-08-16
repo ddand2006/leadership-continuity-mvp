@@ -17,7 +17,7 @@ export const addReview360RespondentSchema = z.object({
 
 export const submitReview360Schema = z.object({
   relationship: z.enum(review360Relationships),
-  ratings: z.array(z.object({ competencyId: z.string().uuid(), rating: z.number().int().min(1).max(5).nullable(), comment: z.string().trim().max(4000).optional() })).min(1),
+  ratings: z.array(z.object({ questionId: z.string().uuid(), rating: z.number().int().min(1).max(5).nullable(), comment: z.string().trim().max(4000).optional() })).min(1),
   strength: z.string().trim().max(4000).optional(), development: z.string().trim().max(4000).optional(), additionalFeedback: z.string().trim().max(4000).optional(),
 });
 
