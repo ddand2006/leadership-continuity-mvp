@@ -352,14 +352,6 @@ export function RoleManagementPanel({
     setSelectedMasterTemplateId("");
   }
 
-  function startNewRole() {
-    const nextParams = new URLSearchParams(searchParams.toString());
-    nextParams.set("mode", "create");
-    nextParams.delete("roleId");
-    const nextQuery = nextParams.toString();
-    router.push(nextQuery ? `${pathname}?${nextQuery}` : pathname);
-  }
-
   function applyMasterTemplate() {
     if (!selectedMasterTemplate) {
       return;
@@ -1443,15 +1435,6 @@ export function RoleManagementPanel({
                     ? "Saving and generating role composite..."
                     : "Save and Re-Generate Role Composite"}
                 </button>
-                {selectedEditorRole ? (
-                  <button
-                    type="button"
-                    onClick={startNewRole}
-                    className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                  >
-                    Start a New Role
-                  </button>
-                ) : null}
               </div>
               {!canGenerateComposite ? (
                 <p className="text-sm text-slate-600">
