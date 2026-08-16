@@ -1212,16 +1212,6 @@ export function RoleManagementPanel({
                 )}
               </div>
 
-              <div className="flex flex-wrap gap-3">
-                <button
-                  className="interactive-contrast rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-900 disabled:cursor-not-allowed disabled:bg-slate-300"
-                  type="submit"
-                  disabled={isCreatePending || isSaveAndGeneratePending}
-                >
-                  {saveRoleButtonLabel}
-                </button>
-              </div>
-
               <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
                 <p className="text-sm font-semibold tracking-[0.14em] text-slate-500 uppercase">
                   Competency Options
