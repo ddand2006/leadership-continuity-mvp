@@ -559,11 +559,6 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
           href: `/roles?roleId=${selectedRoleId}&mode=import`,
         },
         {
-          id: "interview",
-          label: "Narrative & Interview",
-          href: `/roles?roleId=${selectedRoleId}&mode=resources`,
-        },
-        {
           id: "printables",
           label: "Role Printables",
           href: `/roles?roleId=${selectedRoleId}&mode=printables`,
@@ -772,10 +767,10 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                   const generation = (documentType: "role_composite" | "condensed_profile" | "printable_narrative" | "interview_scorecard") => printableGenerationByRoleAndType.get(`${selectedRole.id}:${documentType}`);
                   const ready = competencies.length > 0;
                   return [
-                    { id: "role_composite" as const, title: "Full Role Composite", description: "The complete role composite and competency model.", endpoint: `/api/roles/${selectedRole.id}/composite-docx`, enabled: compositeDocumentByRole.has(selectedRole.id), generated: compositeDocumentByRole.has(selectedRole.id), outdated: false },
-                    { id: "condensed_profile" as const, title: "Condensed Role Profile", description: "A concise profile for leaders and selection discussions.", endpoint: `/api/roles/${selectedRole.id}/condensed-composite-docx`, enabled: ready, generated: Boolean(generation("condensed_profile")), outdated: Boolean(generation("condensed_profile")) && generation("condensed_profile") !== signature },
-                    { id: "printable_narrative" as const, title: "Printable Role Narrative", description: "A readable narrative of the role, its expectations, and competency model.", endpoint: `/api/roles/${selectedRole.id}/printable-narrative-docx`, enabled: ready, generated: Boolean(generation("printable_narrative")), outdated: Boolean(generation("printable_narrative")) && generation("printable_narrative") !== signature },
-                    { id: "interview_scorecard" as const, title: "Behavioral Interview Scorecard", description: "Structured interview questions tied directly to the role competencies.", endpoint: `/api/roles/${selectedRole.id}/interview-scorecard-docx`, enabled: ready, generated: Boolean(generation("interview_scorecard")), outdated: Boolean(generation("interview_scorecard")) && generation("interview_scorecard") !== signature },
+                    { id: "role_composite" as const, title: "Full Role Composite", description: "The source-of-truth role document. It captures the role purpose, scope, success priorities, ideal competencies, observable behaviors, and red flags used across development, selection, and succession planning.", endpoint: `/api/roles/${selectedRole.id}/composite-docx`, enabled: compositeDocumentByRole.has(selectedRole.id), generated: compositeDocumentByRole.has(selectedRole.id), outdated: false },
+                    { id: "condensed_profile" as const, title: "Condensed Role Profile", description: "A short leadership-ready summary for hiring conversations, succession reviews, and quick role alignment. It highlights the role’s core requirements and the leadership profile needed for success.", endpoint: `/api/roles/${selectedRole.id}/condensed-composite-docx`, enabled: ready, generated: Boolean(generation("condensed_profile")), outdated: Boolean(generation("condensed_profile")) && generation("condensed_profile") !== signature },
+                    { id: "printable_narrative" as const, title: "Printable Role Narrative", description: "A plain-language explanation of what the role is accountable for and what strong performance looks like. Use it to align the employee, supervisor, mentor, and leadership team around clear expectations.", endpoint: `/api/roles/${selectedRole.id}/printable-narrative-docx`, enabled: ready, generated: Boolean(generation("printable_narrative")), outdated: Boolean(generation("printable_narrative")) && generation("printable_narrative") !== signature },
+                    { id: "interview_scorecard" as const, title: "Behavioral Interview Scorecard", description: "An interviewer packet with competency-based questions, what each question is intended to validate, and scoring space. Use it to compare candidates consistently and focus on evidence rather than impressions.", endpoint: `/api/roles/${selectedRole.id}/interview-scorecard-docx`, enabled: ready, generated: Boolean(generation("interview_scorecard")), outdated: Boolean(generation("interview_scorecard")) && generation("interview_scorecard") !== signature },
                   ];
                 })()}
               />
