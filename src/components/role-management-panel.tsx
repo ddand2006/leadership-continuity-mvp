@@ -128,6 +128,7 @@ export function RoleManagementPanel({
     useState<string | null>(null);
   const [uploadCompositeDocumentError, setUploadCompositeDocumentError] = useState<string | null>(null);
   const [uploadCompositeDocumentSuccess, setUploadCompositeDocumentSuccess] = useState<string | null>(null);
+  const [printableReminderRoleId, setPrintableReminderRoleId] = useState<string | null>(null);
   const [uploadCharacteristicsResetKey, setUploadCharacteristicsResetKey] = useState(0);
   const [uploadRoleDocumentResetKey, setUploadRoleDocumentResetKey] = useState(0);
   const [uploadCompositeDocumentResetKey, setUploadCompositeDocumentResetKey] =
@@ -680,6 +681,7 @@ export function RoleManagementPanel({
       setCreateSuccess(
         generateResult.message ?? "Role saved and role composite generated.",
       );
+      setPrintableReminderRoleId(saveResult.roleId);
       router.refresh();
     });
   }
@@ -1041,6 +1043,16 @@ export function RoleManagementPanel({
 
   return (
     <section className="grid gap-6">
+      {printableReminderRoleId ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-6" role="dialog" aria-modal="true" aria-labelledby="printable-reminder-title">
+          <div className="w-full max-w-lg rounded-[2rem] bg-white p-7 shadow-2xl">
+            <p className="text-sm font-semibold tracking-[.16em] text-teal-700 uppercase">Role composite updated</p>
+            <h2 id="printable-reminder-title" className="mt-2 font-display text-3xl text-slate-900">Update the supporting printables</h2>
+            <p className="mt-4 text-sm leading-7 text-slate-600">The competency model has changed and the new role composite has been generated. The condensed profile, printable role narrative, and behavioral interview scorecard should now be regenerated so they match the updated competencies.</p>
+            <div className="mt-6 flex flex-wrap gap-3"><button type="button" onClick={() => router.push(`/roles?roleId=${printableReminderRoleId}&mode=printables`)} className="interactive-contrast rounded-full bg-teal-900 px-5 py-3 text-sm font-semibold text-white">Go to Role Printables</button><button type="button" onClick={() => setPrintableReminderRoleId(null)} className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700">Not now</button></div>
+          </div>
+        </div>
+      ) : null}
       {mode === "create" ? (
         <div className="grid gap-6">
           <div className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
