@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { RoleManagementPanel } from "@/components/role-management-panel";
 import { RoleMentorDialog } from "@/components/role-mentor-dialog";
 import { RoleResourcesPanel } from "@/components/role-resources-panel";
+import { RolePrintablesPanel } from "@/components/role-printables-panel";
 import { RoleSelectorSidebar } from "@/components/role-selector-sidebar";
 import { RoleSurveyPanel } from "@/components/role-survey-panel";
 import { RoleWorkspaceMenu } from "@/components/role-workspace-menu";
@@ -19,6 +20,7 @@ import {
 } from "@/lib/role-competency-surveys";
 import { groupCharacteristicsByCategory } from "@/lib/role-characteristics";
 import { canonicalizeRoleTitle } from "@/lib/role-title";
+import { createRolePrintableCompetencySignature } from "@/lib/role-printable-signature";
 import {
   getFallbackMasterRoleCompetencyTemplates,
   isMissingMasterRoleCompetencyTemplatesTableError,
@@ -42,14 +44,16 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
     requestedMode === "import" ||
     requestedMode === "composite" ||
     requestedMode === "resources" ||
-    requestedMode === "survey";
+    requestedMode === "survey" ||
+    requestedMode === "printables";
   const dataMode:
     | "create"
     | "import"
     | "composite"
     | "view"
     | "resources"
-    | "survey" =
+    | "survey"
+    | "printables" =
     requestedMode === "view"
       ? "import"
       : requestedModeIsValid
@@ -69,13 +73,15 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
     dataMode === "composite" ||
     dataMode === "survey" ||
     dataMode === "view" ||
-    dataMode === "resources";
+    dataMode === "resources" ||
+    dataMode === "printables";
   const needsCharacteristicDetails =
     dataMode === "create" ||
     dataMode === "import" ||
     dataMode === "composite" ||
     dataMode === "survey" ||
-    dataMode === "view";
+    dataMode === "view" ||
+    dataMode === "printables";
   const needsCharacteristicPresence = needsCharacteristicDetails;
   const needsSharedLibrary =
     dataMode === "create" ||
@@ -87,7 +93,8 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
     dataMode === "import" ||
     dataMode === "composite" ||
     dataMode === "survey" ||
-    dataMode === "view";
+    dataMode === "view" ||
+    dataMode === "printables";
   const needsCompositeDocumentPresence = needsCompositeDocumentDetails;
   const needsMentors = dataMode === "view";
   const needsRoleMentorAssignments = dataMode === "view";
@@ -95,6 +102,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
     dataMode === "import" ||
     dataMode === "composite" ||
     dataMode === "survey";
+  const needsPrintableGenerations = dataMode === "printables";
   const [
     rolesResult,
     competenciesResult,
@@ -108,6 +116,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
     roleSurveyResponsesResult,
     organizationResult,
     masterRoleTemplatesResult,
+    printableGenerationsResult,
   ] =
     await Promise.all([
       supabase
@@ -208,6 +217,12 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
         )
         .order("industry", { ascending: true, nullsFirst: false })
         .order("role_title", { ascending: true }),
+      needsPrintableGenerations
+        ? supabase
+            .from("role_printable_generations")
+            .select("role_id,document_type,competency_signature")
+            .eq("organization_id", profile.organization_id)
+        : Promise.resolve({ data: [], error: null }),
     ]);
 
   if (rolesResult.error) {
@@ -216,6 +231,10 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
 
   if (competenciesResult.error) {
     throw new Error(competenciesResult.error.message);
+  }
+
+  if (printableGenerationsResult.error) {
+    throw new Error(printableGenerationsResult.error.message);
   }
 
   if (characteristicsResult.error) {
@@ -499,6 +518,12 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
     []) as RoleSurveyRecipientRecord[];
   const roleSurveyResponses = (roleSurveyResponsesResult.data ??
     []) as RoleSurveyResponseRecord[];
+  const printableGenerationByRoleAndType = new Map(
+    (printableGenerationsResult.data ?? []).map((generation) => [
+      `${generation.role_id}:${generation.document_type}`,
+      generation.competency_signature,
+    ]),
+  );
   const selectedRoleId =
     requestedRoleId && roles.some((role) => role.id === requestedRoleId)
       ? requestedRoleId
@@ -537,6 +562,11 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
           id: "interview",
           label: "Narrative & Interview",
           href: `/roles?roleId=${selectedRoleId}&mode=resources`,
+        },
+        {
+          id: "printables",
+          label: "Role Printables",
+          href: `/roles?roleId=${selectedRoleId}&mode=printables`,
         },
         {
           id: "create",
@@ -732,6 +762,23 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                   mode="composite"
                 />
               </>
+            ) : selectedMode === "printables" && selectedRole ? (
+              <RolePrintablesPanel
+                roleId={selectedRole.id}
+                roleTitle={selectedRole.title}
+                printables={(() => {
+                  const competencies = competenciesByRole.get(selectedRole.id) ?? [];
+                  const signature = createRolePrintableCompetencySignature(competencies);
+                  const generation = (documentType: "role_composite" | "condensed_profile" | "printable_narrative" | "interview_scorecard") => printableGenerationByRoleAndType.get(`${selectedRole.id}:${documentType}`);
+                  const ready = competencies.length > 0;
+                  return [
+                    { id: "role_composite" as const, title: "Full Role Composite", description: "The complete role composite and competency model.", endpoint: `/api/roles/${selectedRole.id}/composite-docx`, enabled: compositeDocumentByRole.has(selectedRole.id), generated: compositeDocumentByRole.has(selectedRole.id), outdated: false },
+                    { id: "condensed_profile" as const, title: "Condensed Role Profile", description: "A concise profile for leaders and selection discussions.", endpoint: `/api/roles/${selectedRole.id}/condensed-composite-docx`, enabled: ready, generated: Boolean(generation("condensed_profile")), outdated: Boolean(generation("condensed_profile")) && generation("condensed_profile") !== signature },
+                    { id: "printable_narrative" as const, title: "Printable Role Narrative", description: "A readable narrative of the role, its expectations, and competency model.", endpoint: `/api/roles/${selectedRole.id}/printable-narrative-docx`, enabled: ready, generated: Boolean(generation("printable_narrative")), outdated: Boolean(generation("printable_narrative")) && generation("printable_narrative") !== signature },
+                    { id: "interview_scorecard" as const, title: "Behavioral Interview Scorecard", description: "Structured interview questions tied directly to the role competencies.", endpoint: `/api/roles/${selectedRole.id}/interview-scorecard-docx`, enabled: ready, generated: Boolean(generation("interview_scorecard")), outdated: Boolean(generation("interview_scorecard")) && generation("interview_scorecard") !== signature },
+                  ];
+                })()}
+              />
             ) : selectedMode === "resources" ? (
               <RoleResourcesPanel
                 roles={roleOptionsForPanels.map((role) => ({
