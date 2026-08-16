@@ -36,23 +36,25 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
   const { roleId: requestedRoleId, mode: requestedMode } = await searchParams;
   const isEmailDeliveryEnabled = hasResendEnv();
   const { profile, supabase } = await requirePaidWorkspaceProfile();
-  const selectedMode:
+  const requestedModeIsValid =
+    requestedMode === "view" ||
+    requestedMode === "create" ||
+    requestedMode === "import" ||
+    requestedMode === "composite" ||
+    requestedMode === "resources" ||
+    requestedMode === "survey";
+  const dataMode:
     | "create"
     | "import"
     | "composite"
     | "view"
     | "resources"
     | "survey" =
-    requestedMode === "view" ||
-    requestedMode === "create" ||
-    requestedMode === "import" ||
-    requestedMode === "composite" ||
-    requestedMode === "resources" ||
-    requestedMode === "survey"
-      ? requestedMode
-      : requestedRoleId
-        ? "view"
-        : "create";
+    requestedMode === "view"
+      ? "import"
+      : requestedModeIsValid
+        ? requestedMode
+        : "import";
 
   if (!isAdminAppRole(profile.role)) {
     redirect(
@@ -62,37 +64,37 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
 
   const canGenerateComposite = hasOpenAIEnv();
   const needsCompetencies =
-    selectedMode === "create" ||
-    selectedMode === "import" ||
-    selectedMode === "composite" ||
-    selectedMode === "survey" ||
-    selectedMode === "view" ||
-    selectedMode === "resources";
+    dataMode === "create" ||
+    dataMode === "import" ||
+    dataMode === "composite" ||
+    dataMode === "survey" ||
+    dataMode === "view" ||
+    dataMode === "resources";
   const needsCharacteristicDetails =
-    selectedMode === "create" ||
-    selectedMode === "import" ||
-    selectedMode === "composite" ||
-    selectedMode === "survey" ||
-    selectedMode === "view";
+    dataMode === "create" ||
+    dataMode === "import" ||
+    dataMode === "composite" ||
+    dataMode === "survey" ||
+    dataMode === "view";
   const needsCharacteristicPresence = needsCharacteristicDetails;
   const needsSharedLibrary =
-    selectedMode === "create" ||
-    selectedMode === "import" ||
-    selectedMode === "composite" ||
-    selectedMode === "survey";
+    dataMode === "create" ||
+    dataMode === "import" ||
+    dataMode === "composite" ||
+    dataMode === "survey";
   const needsCompositeDocumentDetails =
-    selectedMode === "create" ||
-    selectedMode === "import" ||
-    selectedMode === "composite" ||
-    selectedMode === "survey" ||
-    selectedMode === "view";
+    dataMode === "create" ||
+    dataMode === "import" ||
+    dataMode === "composite" ||
+    dataMode === "survey" ||
+    dataMode === "view";
   const needsCompositeDocumentPresence = needsCompositeDocumentDetails;
-  const needsMentors = selectedMode === "view";
-  const needsRoleMentorAssignments = selectedMode === "view";
+  const needsMentors = dataMode === "view";
+  const needsRoleMentorAssignments = dataMode === "view";
   const needsSurveyRecords =
-    selectedMode === "import" ||
-    selectedMode === "composite" ||
-    selectedMode === "survey";
+    dataMode === "import" ||
+    dataMode === "composite" ||
+    dataMode === "survey";
   const [
     rolesResult,
     competenciesResult,
@@ -500,7 +502,17 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
   const selectedRoleId =
     requestedRoleId && roles.some((role) => role.id === requestedRoleId)
       ? requestedRoleId
-      : null;
+      : requestedMode === "create"
+        ? null
+        : (roles[0]?.id ?? null);
+  const selectedMode =
+    requestedMode === "view"
+      ? "import"
+      : requestedModeIsValid
+        ? requestedMode
+        : selectedRoleId
+          ? "import"
+          : "create";
   const visibleRoles = selectedRoleId
     ? roles.filter((role) => role.id === selectedRoleId)
     : roles;
@@ -516,11 +528,6 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
         : selectedMode;
   const roleWorkspaceSections = selectedRoleId
     ? [
-        {
-          id: "view",
-          label: "Overview",
-          href: `/roles?roleId=${selectedRoleId}&mode=view`,
-        },
         {
           id: "workflow",
           label: "Role Workflow",

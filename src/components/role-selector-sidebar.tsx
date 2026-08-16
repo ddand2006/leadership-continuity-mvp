@@ -50,7 +50,7 @@ export function RoleSelectorSidebar({
                 return (
                   <Link
                     key={role.id}
-                    href={`/roles?roleId=${role.id}&mode=view`}
+                    href={`/roles?roleId=${role.id}&mode=import`}
                     aria-current={isSelected ? "page" : undefined}
                     className={`rounded-2xl border px-4 py-3 text-left transition ${
                       isSelected
