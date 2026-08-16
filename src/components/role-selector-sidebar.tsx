@@ -9,12 +9,14 @@ type RoleSelectorSidebarProps = {
   }>;
   selectedRoleId: string | null;
   isCreatingRole: boolean;
+  selectedWorkspaceMode: "import" | "printables" | "create";
 };
 
 export function RoleSelectorSidebar({
   roles,
   selectedRoleId,
   isCreatingRole,
+  selectedWorkspaceMode,
 }: RoleSelectorSidebarProps) {
   return (
     <aside className="theme-panel h-fit rounded-[1.75rem] p-5 xl:sticky xl:top-8">
@@ -50,7 +52,7 @@ export function RoleSelectorSidebar({
                 return (
                   <Link
                     key={role.id}
-                    href={`/roles?roleId=${role.id}&mode=import`}
+                    href={`/roles?roleId=${role.id}&mode=${selectedWorkspaceMode}`}
                     aria-current={isSelected ? "page" : undefined}
                     className={`rounded-2xl border px-4 py-3 text-left transition ${
                       isSelected

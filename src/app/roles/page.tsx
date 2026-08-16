@@ -551,6 +551,12 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
       : selectedMode === "resources"
         ? "interview"
         : selectedMode;
+  const selectedWorkspaceMode =
+    activeWorkspaceSectionId === "printables"
+      ? "printables"
+      : activeWorkspaceSectionId === "create"
+        ? "create"
+        : "import";
   const roleWorkspaceSections = selectedRoleId
     ? [
         {
@@ -580,6 +586,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
             roles={roles}
             selectedRoleId={selectedRoleId}
             isCreatingRole={!selectedRoleId && selectedMode === "create"}
+            selectedWorkspaceMode={selectedWorkspaceMode}
           />
           <div className="grid min-w-0 gap-6">
         {isRoleWorkspaceMode && selectedRole ? (
