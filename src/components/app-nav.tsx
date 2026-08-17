@@ -88,6 +88,7 @@ export async function AppNav({ pathname }: { pathname: string }) {
   let hasContinuityAccess = true;
   let hasLeadershipHelpAccess = true;
   let hasLeadershipHelpPreviewAccess = false;
+  let organizationName: string | null = null;
 
   if (user) {
     const supabase = await createSupabaseServerClient();
@@ -122,10 +123,23 @@ export async function AppNav({ pathname }: { pathname: string }) {
     isCandidateOnly = Boolean(user && !isAdmin && !isMentor && isCandidate);
 
     if (profileResult.data) {
-      const subscription = await loadOrganizationSubscription(
-        supabase as unknown as OrganizationSubscriptionClient,
-        profileResult.data.organization_id,
-      );
+      const [subscription, organizationResult] = await Promise.all([
+        loadOrganizationSubscription(
+          supabase as unknown as OrganizationSubscriptionClient,
+          profileResult.data.organization_id,
+        ),
+        supabase
+          .from("organizations")
+          .select("name")
+          .eq("id", profileResult.data.organization_id)
+          .maybeSingle(),
+      ]);
+
+      if (organizationResult.error) {
+        throw new Error(organizationResult.error.message);
+      }
+
+      organizationName = organizationResult.data?.name?.trim() || null;
       hasContinuityAccess = hasProductAccess(
         subscription,
         "leadership_continuity",
@@ -203,7 +217,7 @@ export async function AppNav({ pathname }: { pathname: string }) {
                   Leadership Continuity
                 </p>
                 <p className="text-sm text-slate-600">
-                  Organization succession planning MVP
+                  {organizationName ?? "Organization succession planning MVP"}
                 </p>
               </div>
             </Link>
