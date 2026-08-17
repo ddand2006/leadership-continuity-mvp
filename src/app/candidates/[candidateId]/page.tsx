@@ -387,7 +387,7 @@ export default async function CandidateDetailPage({
             .in("review_cycle_id", candidate360CycleIds),
           supabase
             .from("review_360_question_ratings")
-            .select("review_cycle_id, respondent_id, rating, not_observed")
+            .select("review_cycle_id, respondent_id, snapshot_question_id, rating, not_observed")
             .eq("organization_id", profile.organization_id)
             .in("review_cycle_id", candidate360CycleIds),
         ])
@@ -397,6 +397,30 @@ export default async function CandidateDetailPage({
     throw new Error(
       candidate360RespondentsResult.error?.message ??
         candidate360RatingsResult.error?.message,
+    );
+  }
+
+  const latest360CycleId = candidate360CyclesResult.data?.[0]?.id;
+  const [latest360CompetenciesResult, latest360QuestionsResult] =
+    isAdmin && latest360CycleId
+      ? await Promise.all([
+          supabase
+            .from("review_360_snapshot_competencies")
+            .select("id, name, definition, display_order")
+            .eq("organization_id", profile.organization_id)
+            .eq("review_cycle_id", latest360CycleId)
+            .order("display_order"),
+          supabase
+            .from("review_360_snapshot_questions")
+            .select("id, snapshot_competency_id")
+            .eq("organization_id", profile.organization_id)
+            .eq("review_cycle_id", latest360CycleId),
+        ])
+      : [{ data: [], error: null }, { data: [], error: null }];
+
+  if (latest360CompetenciesResult.error || latest360QuestionsResult.error) {
+    throw new Error(
+      latest360CompetenciesResult.error?.message ?? latest360QuestionsResult.error?.message,
     );
   }
 
@@ -726,6 +750,65 @@ export default async function CandidateDetailPage({
       ? latest360Ratings.reduce((total, rating) => total + (rating.rating ?? 0), 0) /
         latest360Ratings.length
       : null;
+  const latest360QuestionsByCompetency = new Map<string, string[]>();
+  for (const question of latest360QuestionsResult.data ?? []) {
+    latest360QuestionsByCompetency.set(question.snapshot_competency_id, [
+      ...(latest360QuestionsByCompetency.get(question.snapshot_competency_id) ?? []),
+      question.id,
+    ]);
+  }
+  const get360Relationship = (respondentId: string) => {
+    const respondent = respondentById.get(respondentId);
+    return respondent
+      ? respondent.confirmed_relationship ?? respondent.invited_relationship
+      : null;
+  };
+  const calculate360Score = (
+    questionIds: string[],
+    relationship?: string,
+    requiresThreshold = false,
+  ) => {
+    const matchingRatings = (candidate360RatingsResult.data ?? []).filter(
+      (rating) =>
+        rating.review_cycle_id === latest360Cycle?.id &&
+        questionIds.includes(rating.snapshot_question_id) &&
+        !rating.not_observed &&
+        rating.rating !== null &&
+        (relationship
+          ? get360Relationship(rating.respondent_id) === relationship
+          : get360Relationship(rating.respondent_id) !== "self"),
+    );
+    const responseCount = new Set(
+      matchingRatings.map((rating) => rating.respondent_id),
+    ).size;
+    if (
+      requiresThreshold &&
+      (!latest360Cycle || responseCount < latest360Cycle.confidentiality_threshold)
+    ) {
+      return "Protected";
+    }
+    if (matchingRatings.length === 0) {
+      return "—";
+    }
+    const average =
+      matchingRatings.reduce((total, rating) => total + (rating.rating ?? 0), 0) /
+      matchingRatings.length;
+    return average.toFixed(1);
+  };
+  const latest360GroupResults = (latest360CompetenciesResult.data ?? []).map(
+    (competency) => {
+      const questionIds = latest360QuestionsByCompetency.get(competency.id) ?? [];
+      return {
+        id: competency.id,
+        name: competency.name,
+        feedback: calculate360Score(questionIds, undefined, true),
+        self: calculate360Score(questionIds, "self"),
+        supervisor: calculate360Score(questionIds, "supervisor"),
+        peer: calculate360Score(questionIds, "peer", true),
+        directReport: calculate360Score(questionIds, "direct_report", true),
+      };
+    },
+  );
   const assessmentDashboard = (
     <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
       <div>
@@ -1160,6 +1243,58 @@ export default async function CandidateDetailPage({
                       </p>
                     )}
                   </div>
+
+                  {latest360Cycle ? (
+                    <section className="mt-8 overflow-hidden rounded-3xl border border-slate-200">
+                      <div className="border-b border-slate-200 bg-slate-50 px-6 py-5">
+                        <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">
+                          Group-level results
+                        </p>
+                        <h3 className="mt-2 font-display text-2xl text-slate-900">
+                          {latest360Cycle.title}
+                        </h3>
+                        <p className="mt-2 text-sm leading-6 text-slate-600">
+                          Individual answers are never displayed. Peer, direct-report, and overall feedback remain protected until the confidentiality threshold is met.
+                        </p>
+                      </div>
+                      {latest360GroupResults.length > 0 ? (
+                        <div className="overflow-x-auto">
+                          <table className="w-full min-w-[840px] text-left text-sm">
+                            <thead className="border-b bg-white text-slate-500">
+                              <tr>
+                                <th className="px-6 py-4">Competency</th>
+                                <th className="px-4 py-4">Feedback</th>
+                                <th className="px-4 py-4">Self</th>
+                                <th className="px-4 py-4">Supervisor</th>
+                                <th className="px-4 py-4">Peer</th>
+                                <th className="px-4 py-4">Direct report</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {latest360GroupResults.map((result) => (
+                                <tr key={result.id} className="border-b last:border-0">
+                                  <td className="px-6 py-4 font-semibold text-slate-900">
+                                    {result.name}
+                                  </td>
+                                  <td className="px-4 py-4 font-semibold text-teal-900">
+                                    {result.feedback}
+                                  </td>
+                                  <td className="px-4 py-4">{result.self}</td>
+                                  <td className="px-4 py-4">{result.supervisor}</td>
+                                  <td className="px-4 py-4">{result.peer}</td>
+                                  <td className="px-4 py-4">{result.directReport}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <p className="px-6 py-6 text-sm leading-7 text-slate-600">
+                          This 360 review does not have any scored questions yet.
+                        </p>
+                      )}
+                    </section>
+                  ) : null}
                 </section>
               ),
             },
