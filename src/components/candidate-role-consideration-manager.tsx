@@ -361,7 +361,7 @@ export function CandidateRoleConsiderationManager({
       <div className="mt-6 grid gap-4 rounded-3xl border border-slate-200 bg-slate-50 p-5 lg:grid-cols-[1.2fr_0.8fr_auto]">
         <label className="block">
           <span className="mb-2 block text-sm font-semibold text-slate-700">
-            Add position
+            Add potential position
           </span>
           <select
             className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500"
