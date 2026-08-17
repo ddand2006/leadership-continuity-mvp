@@ -50,6 +50,8 @@ export function CandidateRoleConsiderationManager({
   );
   const [newCurrentRoleTitle, setNewCurrentRoleTitle] = useState("");
   const [isCurrentRoleOpen, setIsCurrentRoleOpen] = useState(true);
+  const [isAddingCurrentRolePlaceholder, setIsAddingCurrentRolePlaceholder] =
+    useState(false);
   const [arePotentialPositionsOpen, setArePotentialPositionsOpen] = useState(true);
   const [statusByRoleId, setStatusByRoleId] = useState<Record<string, string>>(() =>
     Object.fromEntries(
@@ -190,6 +192,7 @@ export function CandidateRoleConsiderationManager({
       }
 
       setNewCurrentRoleTitle("");
+      setIsAddingCurrentRolePlaceholder(false);
       router.push(`/roles?roleId=${rolePayload.roleId}&mode=import`);
     });
   }
@@ -339,24 +342,27 @@ export function CandidateRoleConsiderationManager({
             {isPending ? "Saving..." : "Save Current Role"}
           </button>
         </div>
-        <p className="mt-3 text-sm leading-6 text-teal-950">
-          This is separate from succession positions below. It identifies the role
-          the person holds today and will be used as the basis for their 360 review.
-        </p>
-        <div className="mt-4 border-t border-teal-200 pt-4">
-          <p className="text-sm font-semibold text-teal-950">
-            Add a title that is not in the list yet
-          </p>
-          <p className="mt-1 text-sm leading-6 text-teal-900">
-            This creates a draft placeholder in Roles, assigns it as {candidateName}&apos;s current role, and opens the role workspace so you can add competencies when ready.
-          </p>
-          <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm leading-6 text-teal-950">
+          <p>Used for this person&apos;s 360 review. Potential positions are managed separately.</p>
+          {!isAddingCurrentRolePlaceholder ? (
+            <button
+              type="button"
+              onClick={() => setIsAddingCurrentRolePlaceholder(true)}
+              disabled={isPending}
+              className="font-semibold text-teal-800 underline decoration-teal-300 underline-offset-4 transition hover:text-teal-950 disabled:cursor-not-allowed disabled:text-slate-400"
+            >
+              + Add new title
+            </button>
+          ) : null}
+        </div>
+        {isAddingCurrentRolePlaceholder ? (
+          <div className="mt-3 flex flex-col gap-3 border-t border-teal-200 pt-3 sm:flex-row">
             <input
               value={newCurrentRoleTitle}
               onChange={(event) => setNewCurrentRoleTitle(event.target.value)}
               disabled={isPending}
               className="min-w-0 flex-1 rounded-2xl border border-teal-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-teal-500"
-              placeholder="e.g., Director of Med-Surg Services"
+              placeholder="New role title"
               type="text"
             />
             <button
@@ -365,10 +371,21 @@ export function CandidateRoleConsiderationManager({
               disabled={isPending || !newCurrentRoleTitle.trim()}
               className="rounded-full border border-teal-900 bg-white px-5 py-3 text-sm font-semibold text-teal-900 transition hover:bg-teal-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
             >
-              {isPending ? "Creating..." : "Add title placeholder"}
+              {isPending ? "Creating..." : "Create placeholder"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setNewCurrentRoleTitle("");
+                setIsAddingCurrentRolePlaceholder(false);
+              }}
+              disabled={isPending}
+              className="rounded-full px-4 py-3 text-sm font-semibold text-teal-900 transition hover:bg-teal-100 disabled:cursor-not-allowed disabled:text-slate-400"
+            >
+              Cancel
             </button>
           </div>
-        </div>
+        ) : null}
         {currentRoleId ? (
           <Link
             href={`/360-review?candidateId=${candidateId}`}
