@@ -48,6 +48,7 @@ export function CandidateRoleConsiderationManager({
   const [selectedCurrentRoleId, setSelectedCurrentRoleId] = useState(
     currentRoleId ?? "",
   );
+  const [newCurrentRoleTitle, setNewCurrentRoleTitle] = useState("");
   const [statusByRoleId, setStatusByRoleId] = useState<Record<string, string>>(() =>
     Object.fromEntries(
       considerations.map((consideration) => [
@@ -130,6 +131,64 @@ export function CandidateRoleConsiderationManager({
 
       setSuccess(payload.message ?? "Current organizational role updated.");
       router.refresh();
+    });
+  }
+
+  function handleCreateCurrentRolePlaceholder() {
+    const title = newCurrentRoleTitle.trim();
+
+    if (!title) {
+      setError("Enter the title to add it as a placeholder role.");
+      setSuccess(null);
+      return;
+    }
+
+    setError(null);
+    setSuccess(null);
+
+    startTransition(async () => {
+      const roleResponse = await fetch("/api/roles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          description: `Placeholder role created from ${candidateName}'s position management. Add the role description, competencies, and printable documents before activating it.`,
+          status: "draft",
+        }),
+      });
+      const rolePayload = (await roleResponse.json()) as {
+        error?: string;
+        roleId?: string;
+      };
+
+      if (!roleResponse.ok || !rolePayload.roleId) {
+        setError(rolePayload.error ?? "Unable to create the placeholder role.");
+        return;
+      }
+
+      const currentRoleResponse = await fetch(
+        `/api/candidates/${candidateId}/current-role`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ roleId: rolePayload.roleId }),
+        },
+      );
+      const currentRolePayload = (await currentRoleResponse.json()) as {
+        error?: string;
+      };
+
+      if (!currentRoleResponse.ok) {
+        setError(
+          currentRolePayload.error ??
+            "The placeholder was created, but could not be assigned as the current role.",
+        );
+        router.refresh();
+        return;
+      }
+
+      setNewCurrentRoleTitle("");
+      router.push(`/roles?roleId=${rolePayload.roleId}&mode=import`);
     });
   }
 
@@ -263,6 +322,32 @@ export function CandidateRoleConsiderationManager({
           This is separate from succession positions below. It identifies the role
           the person holds today and will be used as the basis for their 360 review.
         </p>
+        <div className="mt-4 border-t border-teal-200 pt-4">
+          <p className="text-sm font-semibold text-teal-950">
+            Add a title that is not in the list yet
+          </p>
+          <p className="mt-1 text-sm leading-6 text-teal-900">
+            This creates a draft placeholder in Roles, assigns it as {candidateName}&apos;s current role, and opens the role workspace so you can add competencies when ready.
+          </p>
+          <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+            <input
+              value={newCurrentRoleTitle}
+              onChange={(event) => setNewCurrentRoleTitle(event.target.value)}
+              disabled={isPending}
+              className="min-w-0 flex-1 rounded-2xl border border-teal-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-teal-500"
+              placeholder="e.g., Director of Med-Surg Services"
+              type="text"
+            />
+            <button
+              type="button"
+              onClick={handleCreateCurrentRolePlaceholder}
+              disabled={isPending || !newCurrentRoleTitle.trim()}
+              className="rounded-full border border-teal-900 bg-white px-5 py-3 text-sm font-semibold text-teal-900 transition hover:bg-teal-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+            >
+              {isPending ? "Creating..." : "Add title placeholder"}
+            </button>
+          </div>
+        </div>
         {currentRoleId ? (
           <Link
             href={`/360-review?candidateId=${candidateId}`}
