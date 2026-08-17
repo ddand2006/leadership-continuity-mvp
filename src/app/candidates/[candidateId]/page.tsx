@@ -9,6 +9,7 @@ import { getCandidateDisplayName } from "@/lib/candidate-display-name";
 import { CandidateInsightExplorer } from "@/components/candidate-insight-explorer";
 import { MentorReportMatchExplorer } from "@/components/mentor-report-match-explorer";
 import { CandidateStrengthsUploadCard } from "@/components/candidate-strengths-upload-card";
+import { CandidateAssessmentDashboard } from "@/components/candidate-assessment-dashboard";
 import { GenerateMentorReportButton } from "@/components/generate-mentor-report-button";
 import { InterviewScoreEntryPanel } from "@/components/interview-score-entry-panel";
 import {
@@ -810,63 +811,25 @@ export default async function CandidateDetailPage({
     },
   );
   const assessmentDashboard = (
-    <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
-      <div>
-        <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">
-          Assessment Dashboard
-        </p>
-        <h2 className="mt-3 font-display text-3xl text-slate-900">
-          Candidate evidence at a glance
-        </h2>
-        <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
-          Review the latest interview, confidential 360 feedback, and Gallup strengths side by side. Use the tabs below to add or manage the underlying information.
-        </p>
-      </div>
-      <div className="mt-6 grid gap-4 lg:grid-cols-3">
-        <article className="rounded-3xl border border-sky-100 bg-sky-50/70 p-5">
-          <p className="text-sm font-semibold tracking-[0.14em] text-sky-800 uppercase">Interview</p>
-          <p className="mt-3 font-display text-4xl text-slate-900">
-            {latestInterviewPanel?.averageScore !== null && latestInterviewPanel
-              ? latestInterviewPanel.averageScore.toFixed(1)
-              : "—"}
-          </p>
-          <p className="mt-1 text-sm text-slate-600">out of 5 · latest saved panel</p>
-          <p className="mt-3 text-sm font-medium text-slate-800">
-            {latestInterviewPanel?.panelName ?? "No scored interview round yet"}
-          </p>
-        </article>
-        <article className="rounded-3xl border border-teal-100 bg-teal-50/70 p-5">
-          <p className="text-sm font-semibold tracking-[0.14em] text-teal-800 uppercase">360 Feedback</p>
-          <p className="mt-3 font-display text-4xl text-slate-900">
-            {latest360Score !== null
-              ? latest360Score.toFixed(1)
-              : latest360Cycle
-                ? "Protected"
-                : "—"}
-          </p>
-          <p className="mt-1 text-sm text-slate-600">
-            {latest360Score !== null
-              ? "out of 5 · non-self feedback"
-              : latest360Cycle
-                ? "awaiting the confidentiality threshold"
-                : "no review launched"}
-          </p>
-          <p className="mt-3 text-sm font-medium text-slate-800">
-            {latest360Cycle?.title ?? "No current-role 360 review"}
-          </p>
-        </article>
-        <article className="rounded-3xl border border-emerald-100 bg-emerald-50/70 p-5">
-          <p className="text-sm font-semibold tracking-[0.14em] text-emerald-800 uppercase">Strengths</p>
-          <p className="mt-3 font-display text-4xl text-slate-900">{importedStrengthCount || "—"}</p>
-          <p className="mt-1 text-sm text-slate-600">
-            {importedStrengthCount ? "strengths imported" : "no Gallup strengths imported"}
-          </p>
-          <p className="mt-3 text-sm font-medium leading-6 text-slate-800">
-            {topStrengthNames.length > 0 ? topStrengthNames.join(", ") : "Add a Gallup strengths document"}
-          </p>
-        </article>
-      </div>
-    </section>
+    <CandidateAssessmentDashboard
+      interviewCompetencies={(competenciesResult.data ?? []).map((competency) => ({
+        name: competency.name,
+        targetScore: competency.target_score,
+        interviewScore:
+          latestInterviewPanel?.scores.find(
+            (score) => score.competencyId === competency.id,
+          )?.scoreNumeric ?? null,
+      }))}
+      latestInterviewPanelName={latestInterviewPanel?.panelName ?? null}
+      latest360Score={latest360Score}
+      latest360Title={latest360Cycle?.title ?? null}
+      has360Review={Boolean(latest360Cycle)}
+      strengths={(strengthsResult.data ?? []).map((strength) => ({
+        themeName: strength.theme_name,
+        rank: strength.rank,
+        domain: strength.domain,
+      }))}
+    />
   );
   const candidateStrengthsFilesHref = activeRoleId
     ? `/candidates/${candidate.id}?roleId=${activeRoleId}&section=strengths-files`
