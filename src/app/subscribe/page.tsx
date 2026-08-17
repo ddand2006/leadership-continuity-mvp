@@ -17,7 +17,7 @@ export default async function SubscribePage() {
   const [organizationResult, subscription] = await Promise.all([
     supabase
       .from("organizations")
-      .select("name")
+      .select("name, hide_billing_controls")
       .eq("id", profile.organization_id)
       .single(),
     loadOrganizationSubscription(
@@ -28,6 +28,10 @@ export default async function SubscribePage() {
 
   if (organizationResult.error) {
     throw new Error(organizationResult.error.message);
+  }
+
+  if (organizationResult.data.hide_billing_controls) {
+    redirect("/dashboard");
   }
 
   return (

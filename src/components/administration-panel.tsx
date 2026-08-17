@@ -63,6 +63,7 @@ type AdministrationPanelProps = {
     leadership_help_tier: string;
     included_seats: number | null;
     additional_seat_packs: number | null;
+    hide_billing_controls: boolean | null;
   }>;
   selectedOrganizationId: string;
   canEditOrganizationAccess: boolean;
@@ -665,23 +666,23 @@ export function AdministrationPanel({
                 <span className="font-semibold text-slate-950">Industry:</span>{" "}
                 {selectedOrganization.industry || "Not set"}
               </div>
-              <div>
+              {!selectedOrganization.hide_billing_controls ? <div>
                 <span className="font-semibold text-slate-950">Continuity:</span>{" "}
                 {selectedOrganization.leadership_continuity_enabled
                   ? selectedOrganization.leadership_continuity_tier
                   : "Disabled"}
-              </div>
-              <div>
+              </div> : null}
+              {!selectedOrganization.hide_billing_controls ? <div>
                 <span className="font-semibold text-slate-950">Personal Development:</span>{" "}
                 {selectedOrganization.leadership_help_enabled
                   ? selectedOrganization.leadership_help_tier
                   : "Disabled"}
-              </div>
-              <div>
+              </div> : null}
+              {!selectedOrganization.hide_billing_controls ? <div>
                 <span className="font-semibold text-slate-950">Internal seats:</span>{" "}
                 {(selectedOrganization.included_seats ?? 10) +
                   (selectedOrganization.additional_seat_packs ?? 0) * 5}
-              </div>
+              </div> : null}
             </div>
           </div>
 
@@ -757,6 +758,7 @@ export function AdministrationPanel({
                 </label>
               </div>
 
+              {!selectedOrganization.hide_billing_controls ? <>
               <fieldset className="rounded-[1.25rem] border border-slate-200 bg-white/80 p-4">
                 <p className="text-sm font-semibold text-slate-800">Internal team seats</p>
                 <p className="mt-2 text-sm leading-6 text-slate-600">
@@ -825,6 +827,7 @@ export function AdministrationPanel({
                   </select>
                 </label>
               </div>
+              </> : null}
 
               <div className="grid gap-4 md:grid-cols-2">
                 <fieldset className="rounded-[1.25rem] border border-slate-200 bg-white/80 p-4">

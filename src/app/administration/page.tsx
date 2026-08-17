@@ -34,13 +34,13 @@ export default async function AdministrationPage({
     ? await admin
         .from("organizations")
         .select(
-          "id, name, industry, subscription_status, billing_contact_email, leadership_continuity_enabled, leadership_continuity_tier, leadership_help_enabled, leadership_help_tier, included_seats, additional_seat_packs",
+          "id, name, industry, subscription_status, billing_contact_email, leadership_continuity_enabled, leadership_continuity_tier, leadership_help_enabled, leadership_help_tier, included_seats, additional_seat_packs, hide_billing_controls",
         )
         .order("name", { ascending: true })
     : await admin
         .from("organizations")
         .select(
-          "id, name, industry, subscription_status, billing_contact_email, leadership_continuity_enabled, leadership_continuity_tier, leadership_help_enabled, leadership_help_tier, included_seats, additional_seat_packs",
+          "id, name, industry, subscription_status, billing_contact_email, leadership_continuity_enabled, leadership_continuity_tier, leadership_help_enabled, leadership_help_tier, included_seats, additional_seat_packs, hide_billing_controls",
         )
         .eq("id", profile.organization_id)
         .order("name", { ascending: true });
@@ -204,6 +204,7 @@ export default async function AdministrationPage({
             leadership_help_tier: organization.leadership_help_tier,
             included_seats: organization.included_seats,
             additional_seat_packs: organization.additional_seat_packs,
+            hide_billing_controls: organization.hide_billing_controls,
           }))}
           selectedOrganizationId={selectedOrganization.id}
           canEditOrganizationAccess={isAdminAppRole(profile.role)}
