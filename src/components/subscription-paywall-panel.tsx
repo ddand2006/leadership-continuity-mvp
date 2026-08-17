@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { StripeBillingActions } from "@/components/stripe-billing-actions";
 import {
   formatSubscriptionProductLabel,
   formatOrganizationSubscriptionLabel,
@@ -24,13 +25,19 @@ const productDescriptions: Record<SubscriptionProduct, string[]> = {
 
 type SubscriptionPaywallPanelProps = {
   canOpenLeadershipHelp?: boolean;
+  canManageBilling?: boolean;
+  hasStripeSubscription?: boolean;
   organizationName: string;
+  stripeConfigured?: boolean;
   subscription: OrganizationSubscriptionState;
 };
 
 export function SubscriptionPaywallPanel({
   canOpenLeadershipHelp = true,
+  canManageBilling = false,
+  hasStripeSubscription = false,
   organizationName,
+  stripeConfigured = false,
   subscription,
 }: SubscriptionPaywallPanelProps) {
   const trialEndLabel = formatOrganizationTrialEndDate(subscription.trialEndsAt);
@@ -158,13 +165,12 @@ export function SubscriptionPaywallPanel({
         </aside>
       </div>
 
-      {!subscription.hasAccess ? (
-        <div className="mt-8 rounded-[1.5rem] border border-dashed border-slate-300 bg-white/75 px-5 py-5 text-sm leading-7 text-slate-700">
-          Billing checkout is not wired yet in this MVP. To restore access, connect
-          your payment flow or activate the organization manually by updating the
-          organization subscription record.
-        </div>
-      ) : null}
+      <StripeBillingActions
+        additionalSeatPacks={subscription.additionalSeatPacks}
+        canManageBilling={canManageBilling}
+        hasStripeSubscription={hasStripeSubscription}
+        stripeConfigured={stripeConfigured}
+      />
 
       <p className="mt-6 text-sm leading-7 text-slate-600">
         Foundation includes 10 internal users. Additional capacity is purchased in five-person packs. Secure external 360 respondents do not need a paid account or consume an internal seat.
@@ -175,7 +181,7 @@ export function SubscriptionPaywallPanel({
           href={activationMailto}
           className="interactive-contrast inline-flex items-center justify-center rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-teal-900"
         >
-          {subscription.hasAccess ? "Contact Billing" : "Request Activation"}
+          Contact Billing
         </a>
         <Link
           href={returnHref}

@@ -88,6 +88,7 @@ export async function AppNav({ pathname }: { pathname: string }) {
   let hasContinuityAccess = true;
   let hasLeadershipHelpAccess = true;
   let hasLeadershipHelpPreviewAccess = false;
+  let hideBillingControls = false;
   let organizationName: string | null = null;
 
   if (user) {
@@ -130,7 +131,7 @@ export async function AppNav({ pathname }: { pathname: string }) {
         ),
         supabase
           .from("organizations")
-          .select("name")
+          .select("name, hide_billing_controls")
           .eq("id", profileResult.data.organization_id)
           .maybeSingle(),
       ]);
@@ -140,6 +141,7 @@ export async function AppNav({ pathname }: { pathname: string }) {
       }
 
       organizationName = organizationResult.data?.name?.trim() || null;
+      hideBillingControls = Boolean(organizationResult.data?.hide_billing_controls);
       hasContinuityAccess = hasProductAccess(
         subscription,
         "leadership_continuity",
@@ -173,7 +175,9 @@ export async function AppNav({ pathname }: { pathname: string }) {
         ...((hasContinuityAccess && isAdmin) || isSystemAdmin
           ? [{ href: "/administration", label: "Administration" }]
           : []),
-        ...(isPaywallEnabled() ? [{ href: "/subscribe", label: "Access" }] : []),
+        ...(isPaywallEnabled() && !hideBillingControls
+          ? [{ href: "/subscribe", label: "Access" }]
+          : []),
       ]
     : [
         { href: "/", label: "Home" },

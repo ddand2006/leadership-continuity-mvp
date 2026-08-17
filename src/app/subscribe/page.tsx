@@ -1,23 +1,20 @@
 import { redirect } from "next/navigation";
 import { SubscriptionPaywallPanel } from "@/components/subscription-paywall-panel";
 import { canAccessLeadershipHelpPreview } from "@/lib/leadership-help-preview";
+import { isAdminAppRole } from "@/lib/mentor-access";
+import { hasStripeBillingConfiguration } from "@/lib/stripe-billing";
 import {
-  isPaywallEnabled,
   loadOrganizationSubscription,
   type OrganizationSubscriptionClient,
 } from "@/lib/subscription";
 import { requireWorkspaceProfile } from "@/lib/workspace";
 
 export default async function SubscribePage() {
-  if (!isPaywallEnabled()) {
-    redirect("/dashboard");
-  }
-
   const { profile, supabase, user } = await requireWorkspaceProfile();
   const [organizationResult, subscription] = await Promise.all([
     supabase
       .from("organizations")
-      .select("name, hide_billing_controls")
+      .select("name, hide_billing_controls, stripe_subscription_id")
       .eq("id", profile.organization_id)
       .single(),
     loadOrganizationSubscription(
@@ -43,7 +40,10 @@ export default async function SubscribePage() {
             organizationId: profile.organization_id,
             role: profile.role,
           })}
+          canManageBilling={isAdminAppRole(profile.role)}
+          hasStripeSubscription={Boolean(organizationResult.data.stripe_subscription_id)}
           organizationName={organizationResult.data.name}
+          stripeConfigured={hasStripeBillingConfiguration()}
           subscription={subscription}
         />
       </div>
