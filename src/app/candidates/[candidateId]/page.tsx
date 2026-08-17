@@ -818,33 +818,6 @@ export default async function CandidateDetailPage({
                     />
                   ) : null}
 
-                  {isAdmin && activeRoleId ? (
-                    <CandidateWorkflowStateManager
-                      candidateId={candidate.id}
-                      roleId={activeRoleId}
-                      roleOptions={workflowRoleOptions}
-                      readinessScore={roleGoalReadiness.readinessPercent}
-                      readinessRoleId={activeRoleId}
-                      latestStateByRoleId={latestStateByRoleId}
-                      latestMatch={
-                        latestMatchResult.data
-                          ? {
-                              status: latestMatchResult.data.match_status as "match" | "not_yet" | "not_recommended",
-                              createdAt: latestMatchResult.data.created_at,
-                            }
-                          : null
-                      }
-                      latestDecision={
-                        latestDecisionResult.data
-                          ? {
-                              decision: latestDecisionResult.data.decision as "hire" | "continue_mentoring" | "decline",
-                              createdAt: latestDecisionResult.data.created_at,
-                            }
-                          : null
-                      }
-                    />
-                  ) : null}
-
                   <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
                     <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
                       Roles Under Consideration
@@ -1171,6 +1144,55 @@ export default async function CandidateDetailPage({
                       )}
                     </div>
                   </section>
+                </section>
+              ),
+            },
+            {
+              id: "talent-review",
+              label: "Talent Review",
+              summary:
+                "Bring mentors, HR, and leadership together to record a role-based readiness recommendation and decision.",
+              content: isAdmin && activeRoleId ? (
+                <section className="grid gap-6">
+                  <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+                    <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">
+                      Talent Review
+                    </p>
+                    <h2 className="mt-3 font-display text-3xl text-slate-900">
+                      Record the group&apos;s readiness recommendation
+                    </h2>
+                    <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
+                      Use this space after reviewing role-fit evidence, interviews, 360 feedback, and development progress. It preserves the dated recommendation for the selected potential role.
+                    </p>
+                  </section>
+                  <CandidateWorkflowStateManager
+                    candidateId={candidate.id}
+                    roleId={activeRoleId}
+                    roleOptions={workflowRoleOptions}
+                    readinessScore={roleGoalReadiness.readinessPercent}
+                    readinessRoleId={activeRoleId}
+                    latestStateByRoleId={latestStateByRoleId}
+                    latestMatch={
+                      latestMatchResult.data
+                        ? {
+                            status: latestMatchResult.data.match_status as "match" | "not_yet" | "not_recommended",
+                            createdAt: latestMatchResult.data.created_at,
+                          }
+                        : null
+                    }
+                    latestDecision={
+                      latestDecisionResult.data
+                        ? {
+                            decision: latestDecisionResult.data.decision as "hire" | "continue_mentoring" | "decline",
+                            createdAt: latestDecisionResult.data.created_at,
+                          }
+                        : null
+                    }
+                  />
+                </section>
+              ) : (
+                <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 text-sm leading-7 text-slate-600 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+                  Talent Review is available to organization administrators after a potential role has been selected.
                 </section>
               ),
             },
