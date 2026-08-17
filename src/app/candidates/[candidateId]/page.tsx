@@ -462,6 +462,41 @@ export default async function CandidateDetailPage({
     throw new Error(latestDecisionResult.error.message);
   }
 
+  const workflowRoleOptions = considerations
+    .filter((consideration) => allowedRoleIds.has(consideration.role_id))
+    .map((consideration) => ({
+      id: consideration.role_id,
+      title: canonicalizeRoleTitle(roleMap.get(consideration.role_id)?.title ?? "Role"),
+    }));
+  const latestStateByRoleId = Object.fromEntries(
+    workflowRoleOptions.map((role) => {
+      const latestMatch = (progressMatchesResult.data ?? [])
+        .filter((match) => match.role_id === role.id)
+        .sort((left, right) => right.created_at.localeCompare(left.created_at))[0];
+      const latestDecision = (progressDecisionsResult.data ?? [])
+        .filter((decision) => decision.role_id === role.id)
+        .sort((left, right) => right.created_at.localeCompare(left.created_at))[0];
+
+      return [
+        role.id,
+        {
+          match: latestMatch
+            ? {
+                status: latestMatch.match_status as "match" | "not_yet" | "not_recommended",
+                createdAt: latestMatch.created_at,
+              }
+            : null,
+          decision: latestDecision
+            ? {
+                decision: latestDecision.decision as "hire" | "continue_mentoring" | "decline",
+                createdAt: latestDecision.created_at,
+              }
+            : null,
+        },
+      ];
+    }),
+  );
+
   let developmentRecords = developmentRecordsResult.data ?? [];
 
   if (developmentRecordsResult.error) {
@@ -771,7 +806,10 @@ export default async function CandidateDetailPage({
                     <CandidateWorkflowStateManager
                       candidateId={candidate.id}
                       roleId={activeRoleId}
+                      roleOptions={workflowRoleOptions}
                       readinessScore={roleGoalReadiness.readinessPercent}
+                      readinessRoleId={activeRoleId}
+                      latestStateByRoleId={latestStateByRoleId}
                       latestMatch={
                         latestMatchResult.data
                           ? {
