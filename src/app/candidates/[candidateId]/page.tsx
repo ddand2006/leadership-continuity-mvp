@@ -82,7 +82,7 @@ export default async function CandidateDetailPage({
   ] = await Promise.all([
     supabase
       .from("candidates")
-      .select("id, full_name, current_title, target_role_id, status")
+      .select("id, full_name, current_title, current_role_id, target_role_id, status")
       .eq("organization_id", profile.organization_id)
       .eq("id", candidateId)
       .single(),
@@ -763,6 +763,7 @@ export default async function CandidateDetailPage({
                           mentorNames,
                         };
                       })}
+                      currentRoleId={candidate.current_role_id}
                     />
                   ) : null}
 

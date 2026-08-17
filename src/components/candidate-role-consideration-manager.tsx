@@ -31,17 +31,22 @@ export function CandidateRoleConsiderationManager({
   candidateName,
   roles,
   considerations,
+  currentRoleId,
 }: {
   candidateId: string;
   candidateName: string;
   roles: RoleOption[];
   considerations: ConsiderationOption[];
+  currentRoleId: string | null;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [addRoleId, setAddRoleId] = useState("");
   const [addStatus, setAddStatus] = useState<"active" | "on_hold">("active");
   const [makePrimaryOnAdd, setMakePrimaryOnAdd] = useState(false);
+  const [selectedCurrentRoleId, setSelectedCurrentRoleId] = useState(
+    currentRoleId ?? "",
+  );
   const [statusByRoleId, setStatusByRoleId] = useState<Record<string, string>>(() =>
     Object.fromEntries(
       considerations.map((consideration) => [
@@ -101,6 +106,28 @@ export function CandidateRoleConsiderationManager({
       setAddStatus("active");
       setMakePrimaryOnAdd(false);
       setSuccess(payload.message ?? "Position assigned.");
+      router.refresh();
+    });
+  }
+
+  function handleSaveCurrentRole() {
+    setError(null);
+    setSuccess(null);
+
+    startTransition(async () => {
+      const response = await fetch(`/api/candidates/${candidateId}/current-role`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roleId: selectedCurrentRoleId || null }),
+      });
+      const payload = (await response.json()) as { error?: string; message?: string };
+
+      if (!response.ok) {
+        setError(payload.error ?? "Unable to update the current role.");
+        return;
+      }
+
+      setSuccess(payload.message ?? "Current organizational role updated.");
       router.refresh();
     });
   }
@@ -201,6 +228,41 @@ export function CandidateRoleConsiderationManager({
         attached to a role are carried into the candidate&apos;s role track
         automatically.
       </p>
+
+      <div className="mt-6 rounded-3xl border border-teal-200 bg-teal-50/70 p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
+          <label className="min-w-0 flex-1">
+            <span className="mb-2 block text-sm font-semibold text-slate-800">
+              Current role in the organization
+            </span>
+            <select
+              className="w-full rounded-2xl border border-teal-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500"
+              value={selectedCurrentRoleId}
+              onChange={(event) => setSelectedCurrentRoleId(event.target.value)}
+              disabled={isPending}
+            >
+              <option value="">No current role assigned</option>
+              {roles.map((role) => (
+                <option key={role.id} value={role.id}>
+                  {role.title}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            onClick={handleSaveCurrentRole}
+            disabled={isPending}
+            className="interactive-contrast rounded-full bg-teal-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+          >
+            {isPending ? "Saving..." : "Save Current Role"}
+          </button>
+        </div>
+        <p className="mt-3 text-sm leading-6 text-teal-950">
+          This is separate from succession positions below. It identifies the role
+          the person holds today and will be used as the basis for their 360 review.
+        </p>
+      </div>
 
       <div className="mt-6 grid gap-4 rounded-3xl border border-slate-200 bg-slate-50 p-5 lg:grid-cols-[1.2fr_0.8fr_auto]">
         <label className="block">
