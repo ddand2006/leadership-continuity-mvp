@@ -6,6 +6,9 @@ type Strength = {
   themeName: string;
   rank: number;
   domain: string;
+  strengthSummary: string | null;
+  watchouts: string | null;
+  developmentUse: string | null;
 };
 
 type InterviewCompetency = {
@@ -135,9 +138,27 @@ export function CandidateAssessmentDashboard({
                 />
               ) : null}
               {selectedStrength ? (
-                <p className="rounded-2xl border border-emerald-100 bg-white px-4 py-3 text-sm text-emerald-950">
-                  <span className="font-semibold">Selected:</span> #{selectedStrength.rank} {selectedStrength.themeName} · {selectedStrength.domain}
-                </p>
+                <section className="rounded-2xl border border-emerald-100 bg-white p-4 text-emerald-950">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-semibold">
+                      #{selectedStrength.rank} {selectedStrength.themeName}
+                    </p>
+                    <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[0.65rem] font-semibold tracking-[0.12em] text-emerald-900 uppercase">
+                      {selectedStrength.domain}
+                    </span>
+                  </div>
+                  <div className="mt-4 grid gap-3">
+                    <StrengthDetail
+                      label="Strength summary"
+                      content={selectedStrength.strengthSummary}
+                    />
+                    <StrengthDetail label="Watchouts" content={selectedStrength.watchouts} />
+                    <StrengthDetail
+                      label="Development use"
+                      content={selectedStrength.developmentUse}
+                    />
+                  </div>
+                </section>
               ) : null}
             </div>
           ) : (
@@ -148,6 +169,25 @@ export function CandidateAssessmentDashboard({
         </article>
       </div>
     </section>
+  );
+}
+
+function StrengthDetail({
+  label,
+  content,
+}: {
+  label: string;
+  content: string | null;
+}) {
+  return (
+    <article className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-3">
+      <p className="text-[0.65rem] font-semibold tracking-[0.12em] text-emerald-800 uppercase">
+        {label}
+      </p>
+      <p className="mt-1.5 text-xs leading-5 text-emerald-950">
+        {content ?? "No reference detail is available yet."}
+      </p>
+    </article>
   );
 }
 

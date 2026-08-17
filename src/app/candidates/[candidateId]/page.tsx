@@ -650,6 +650,13 @@ export default async function CandidateDetailPage({
     throw new Error(strengthsReferenceResult.error.message);
   }
 
+  const strengthReferenceByThemeName = new Map(
+    (strengthsReferenceResult.data ?? []).map((reference) => [
+      reference.theme_name,
+      reference,
+    ]),
+  );
+
   const developmentProjects = ((projectsResult.data ?? []) as DevelopmentProjectRecord[]).map(
     (project) => ({
       ...project,
@@ -824,11 +831,24 @@ export default async function CandidateDetailPage({
       latest360Score={latest360Score}
       latest360Title={latest360Cycle?.title ?? null}
       has360Review={Boolean(latest360Cycle)}
-      strengths={(strengthsResult.data ?? []).map((strength) => ({
-        themeName: strength.theme_name,
-        rank: strength.rank,
-        domain: strength.domain,
-      }))}
+      strengths={(strengthsResult.data ?? []).map((strength) => {
+        const reference = strengthReferenceByThemeName.get(strength.theme_name);
+
+        return {
+          themeName: strength.theme_name,
+          rank: strength.rank,
+          domain: reference?.domain ?? strength.domain,
+          strengthSummary: reference?.leadership_advantages
+            ? sanitizeAppText(reference.leadership_advantages)
+            : null,
+          watchouts: reference?.possible_blind_spots
+            ? sanitizeAppText(reference.possible_blind_spots)
+            : null,
+          developmentUse: reference?.development_uses
+            ? sanitizeAppText(reference.development_uses)
+            : null,
+        };
+      })}
     />
   );
   const candidateStrengthsFilesHref = activeRoleId
