@@ -49,6 +49,8 @@ export function CandidateRoleConsiderationManager({
     currentRoleId ?? "",
   );
   const [newCurrentRoleTitle, setNewCurrentRoleTitle] = useState("");
+  const [isCurrentRoleOpen, setIsCurrentRoleOpen] = useState(true);
+  const [arePotentialPositionsOpen, setArePotentialPositionsOpen] = useState(true);
   const [statusByRoleId, setStatusByRoleId] = useState<Record<string, string>>(() =>
     Object.fromEntries(
       considerations.map((consideration) => [
@@ -290,10 +292,29 @@ export function CandidateRoleConsiderationManager({
       </p>
 
       <div className="mt-6 rounded-3xl border border-teal-200 bg-teal-50/70 p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h3 className="text-lg font-semibold text-teal-950">
+              Current role in the organization
+            </h3>
+            <p className="mt-1 text-sm leading-6 text-teal-900">
+              The position this person holds today and the basis for their 360 review.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsCurrentRoleOpen((current) => !current)}
+            aria-expanded={isCurrentRoleOpen}
+            className="shrink-0 rounded-full border border-teal-300 bg-white px-4 py-2 text-sm font-semibold text-teal-900 transition hover:bg-teal-100"
+          >
+            {isCurrentRoleOpen ? "Collapse" : "Expand"}
+          </button>
+        </div>
+        {isCurrentRoleOpen ? <>
+        <div className="mt-5 flex flex-col gap-4 lg:flex-row lg:items-end">
           <label className="min-w-0 flex-1">
             <span className="mb-2 block text-sm font-semibold text-slate-800">
-              Current role in the organization
+              Select current role
             </span>
             <select
               className="w-full rounded-2xl border border-teal-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500"
@@ -356,9 +377,28 @@ export function CandidateRoleConsiderationManager({
             Start a 360 Review for {candidateName}
           </Link>
         ) : null}
+        </> : null}
       </div>
 
-      <div className="mt-6 grid gap-4 rounded-3xl border border-slate-200 bg-slate-50 p-5 lg:grid-cols-[1.2fr_0.8fr_auto]">
+      <section className="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-5">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h3 className="text-lg font-semibold text-slate-900">Potential positions</h3>
+            <p className="mt-1 text-sm leading-6 text-slate-600">
+              Succession roles this candidate could be developed to fill.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setArePotentialPositionsOpen((current) => !current)}
+            aria-expanded={arePotentialPositionsOpen}
+            className="shrink-0 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+          >
+            {arePotentialPositionsOpen ? "Collapse" : "Expand"}
+          </button>
+        </div>
+        {arePotentialPositionsOpen ? <>
+      <div className="mt-5 grid gap-4 lg:grid-cols-[1.2fr_0.8fr_auto]">
         <label className="block">
           <span className="mb-2 block text-sm font-semibold text-slate-700">
             Add potential position
@@ -520,6 +560,8 @@ export function CandidateRoleConsiderationManager({
           </article>
         )}
       </div>
+        </> : null}
+      </section>
 
       {error ? <p className="mt-4 text-sm text-rose-700">{error}</p> : null}
       {success ? <p className="mt-4 text-sm text-teal-700">{success}</p> : null}
