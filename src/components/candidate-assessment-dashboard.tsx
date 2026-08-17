@@ -17,28 +17,42 @@ type InterviewCompetency = {
   interviewScore: number | null;
 };
 
+type Review360Role = {
+  roleId: string;
+  roleLabel: string;
+  kind: "current" | "future";
+  reviewTitle: string | null;
+  overallScore: number | null;
+  isProtected: boolean;
+  competencyScores: Array<{
+    name: string;
+    score: number | null;
+  }>;
+};
+
 export function CandidateAssessmentDashboard({
   interviewCompetencies,
   latestInterviewPanelName,
-  latest360Score,
-  latest360Title,
-  has360Review,
+  review360Roles,
   strengths,
 }: {
   interviewCompetencies: InterviewCompetency[];
   latestInterviewPanelName: string | null;
-  latest360Score: number | null;
-  latest360Title: string | null;
-  has360Review: boolean;
+  review360Roles: Review360Role[];
   strengths: Strength[];
 }) {
   const [selectedStrengthName, setSelectedStrengthName] = useState(
     strengths[0]?.themeName ?? "",
   );
+  const [selectedReviewRoleId, setSelectedReviewRoleId] = useState(
+    review360Roles[0]?.roleId ?? "",
+  );
   const selectedStrength =
     strengths.find((strength) => strength.themeName === selectedStrengthName) ?? null;
   const topStrengths = strengths.slice(0, 5);
   const nextStrengths = strengths.slice(5, 15);
+  const selectedReviewRole =
+    review360Roles.find((role) => role.roleId === selectedReviewRoleId) ?? null;
 
   return (
     <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
@@ -95,23 +109,79 @@ export function CandidateAssessmentDashboard({
           <p className="text-sm font-semibold tracking-[0.14em] text-teal-800 uppercase">
             360 Feedback
           </p>
-          <p className="mt-3 font-display text-4xl text-slate-900">
-            {latest360Score !== null
-              ? latest360Score.toFixed(1)
-              : has360Review
-                ? "Protected"
-                : "—"}
-          </p>
-          <p className="mt-1 text-sm leading-6 text-slate-600">
-            {latest360Score !== null
-              ? "out of 5 · non-self feedback"
-              : has360Review
-                ? "awaiting the confidentiality threshold"
-                : "no review launched"}
-          </p>
-          <p className="mt-4 text-sm font-medium leading-6 text-slate-800">
-            {latest360Title ?? "No current-role 360 review"}
-          </p>
+          {review360Roles.length > 0 ? (
+            <>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {review360Roles.map((role) => {
+                  const isSelected = role.roleId === selectedReviewRoleId;
+
+                  return (
+                    <button
+                      key={role.roleId}
+                      type="button"
+                      onClick={() => setSelectedReviewRoleId(role.roleId)}
+                      className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${
+                        isSelected
+                          ? "border-teal-900 bg-teal-900 text-white"
+                          : "border-teal-200 bg-white text-teal-900 hover:bg-teal-100"
+                      }`}
+                    >
+                      {role.kind === "current" ? "Current" : "Future"}: {role.roleLabel}
+                    </button>
+                  );
+                })}
+              </div>
+              {selectedReviewRole ? (
+                <>
+                  <div className="mt-4 flex items-end justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold tracking-[0.12em] text-teal-800 uppercase">
+                        {selectedReviewRole.kind === "current" ? "Current role" : "Future role"}
+                      </p>
+                      <p className="mt-1 text-sm font-semibold text-slate-900">
+                        {selectedReviewRole.reviewTitle ?? "No 360 review launched"}
+                      </p>
+                    </div>
+                    <p className="font-display text-3xl text-slate-900">
+                      {selectedReviewRole.overallScore !== null
+                        ? selectedReviewRole.overallScore.toFixed(1)
+                        : selectedReviewRole.isProtected
+                          ? "Protected"
+                          : "—"}
+                    </p>
+                  </div>
+                  <p className="mt-1 text-xs leading-5 text-slate-600">
+                    {selectedReviewRole.overallScore !== null
+                      ? "overall non-self feedback · out of 5"
+                      : selectedReviewRole.isProtected
+                        ? "awaiting the confidentiality threshold"
+                        : "Start a 360 review for this role to see scores here."}
+                  </p>
+                  {selectedReviewRole.competencyScores.length > 0 ? (
+                    <div className="mt-4 max-h-52 overflow-y-auto rounded-2xl border border-teal-100 bg-white">
+                      {selectedReviewRole.competencyScores.map((competency) => (
+                        <div
+                          key={competency.name}
+                          className="flex items-center justify-between gap-3 border-b border-teal-50 px-3 py-2.5 text-xs last:border-0"
+                        >
+                          <span className="font-medium text-slate-800">{competency.name}</span>
+                          <span className="shrink-0 font-semibold text-teal-900">
+                            {selectedReviewRole.isProtected || competency.score === null
+                              ? "Protected"
+                              : competency.score.toFixed(1)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </>
+              ) : null}
+            </>
+          ) : (
+            <p className="mt-4 text-sm leading-7 text-slate-600">
+              Assign a current or potential role to view 360 feedback by role.
+            </p>
+          )}
           <p className="mt-4 text-xs leading-5 text-teal-900">
             Open the 360 Reviews tab for group-level results by competency.
           </p>

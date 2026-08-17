@@ -363,9 +363,9 @@ export default async function CandidateDetailPage({
   }
 
   const candidate360CyclesResult = isAdmin
-    ? await supabase
+      ? await supabase
         .from("review_360_cycles")
-        .select("id, title, role_title, status, due_date, created_at, confidentiality_threshold")
+        .select("id, role_id, title, role_title, status, due_date, created_at, confidentiality_threshold")
         .eq("organization_id", profile.organization_id)
         .eq("candidate_id", candidate.id)
         .order("created_at", { ascending: false })
@@ -422,6 +422,62 @@ export default async function CandidateDetailPage({
   if (latest360CompetenciesResult.error || latest360QuestionsResult.error) {
     throw new Error(
       latest360CompetenciesResult.error?.message ?? latest360QuestionsResult.error?.message,
+    );
+  }
+
+  const dashboard360RoleOptions = Array.from(
+    new Map(
+      [
+        ...(candidate.current_role_id
+          ? [
+              {
+                roleId: candidate.current_role_id,
+                roleLabel:
+                  roleMap.get(candidate.current_role_id)?.title ?? candidate.current_title ?? "Current role",
+                kind: "current" as const,
+              },
+            ]
+          : []),
+        ...considerations
+          .filter((consideration) => consideration.role_id !== candidate.current_role_id)
+          .map((consideration) => ({
+            roleId: consideration.role_id,
+            roleLabel: roleMap.get(consideration.role_id)?.title ?? "Potential role",
+            kind: "future" as const,
+          })),
+      ].map((role) => [role.roleId, role]),
+    ).values(),
+  );
+  const latest360CycleByRoleId = new Map<string, NonNullable<typeof candidate360CyclesResult.data>[number]>();
+  for (const cycle of candidate360CyclesResult.data ?? []) {
+    if (!latest360CycleByRoleId.has(cycle.role_id)) {
+      latest360CycleByRoleId.set(cycle.role_id, cycle);
+    }
+  }
+  const dashboard360CycleIds = dashboard360RoleOptions
+    .map((role) => latest360CycleByRoleId.get(role.roleId)?.id)
+    .filter((cycleId): cycleId is string => Boolean(cycleId));
+  const [dashboard360CompetenciesResult, dashboard360QuestionsResult] =
+    isAdmin && dashboard360CycleIds.length > 0
+      ? await Promise.all([
+          supabase
+            .from("review_360_snapshot_competencies")
+            .select("id, review_cycle_id, name, display_order")
+            .eq("organization_id", profile.organization_id)
+            .in("review_cycle_id", dashboard360CycleIds)
+            .order("display_order"),
+          supabase
+            .from("review_360_snapshot_questions")
+            .select("id, review_cycle_id, snapshot_competency_id")
+            .eq("organization_id", profile.organization_id)
+            .in("review_cycle_id", dashboard360CycleIds),
+        ])
+      : [{ data: [], error: null }, { data: [], error: null }];
+
+  if (dashboard360CompetenciesResult.error || dashboard360QuestionsResult.error) {
+    throw new Error(
+      dashboard360CompetenciesResult.error?.message ??
+        dashboard360QuestionsResult.error?.message,
     );
   }
 
@@ -734,30 +790,6 @@ export default async function CandidateDetailPage({
       respondent,
     ]),
   );
-  const completed360FeedbackRespondents = new Set(
-    (candidate360RespondentsResult.data ?? [])
-      .filter(
-        (respondent) =>
-          respondent.review_cycle_id === latest360Cycle?.id &&
-          respondent.status === "completed" &&
-          (respondent.confirmed_relationship ?? respondent.invited_relationship) !== "self",
-      )
-      .map((respondent) => respondent.id),
-  );
-  const latest360Ratings = (candidate360RatingsResult.data ?? []).filter(
-    (rating) =>
-      rating.review_cycle_id === latest360Cycle?.id &&
-      completed360FeedbackRespondents.has(rating.respondent_id) &&
-      !rating.not_observed &&
-      rating.rating !== null,
-  );
-  const latest360Score =
-    latest360Cycle &&
-    completed360FeedbackRespondents.size >= latest360Cycle.confidentiality_threshold &&
-    latest360Ratings.length > 0
-      ? latest360Ratings.reduce((total, rating) => total + (rating.rating ?? 0), 0) /
-        latest360Ratings.length
-      : null;
   const latest360QuestionsByCompetency = new Map<string, string[]>();
   for (const question of latest360QuestionsResult.data ?? []) {
     latest360QuestionsByCompetency.set(question.snapshot_competency_id, [
@@ -817,6 +849,73 @@ export default async function CandidateDetailPage({
       };
     },
   );
+  const dashboard360Reviews = dashboard360RoleOptions.map((role) => {
+    const cycle = latest360CycleByRoleId.get(role.roleId) ?? null;
+    const completedFeedbackRespondentIds = new Set(
+      (candidate360RespondentsResult.data ?? [])
+        .filter(
+          (respondent) =>
+            respondent.review_cycle_id === cycle?.id &&
+            respondent.status === "completed" &&
+            (respondent.confirmed_relationship ?? respondent.invited_relationship) !== "self",
+        )
+        .map((respondent) => respondent.id),
+    );
+    const isProtected =
+      Boolean(cycle) &&
+      completedFeedbackRespondentIds.size < (cycle?.confidentiality_threshold ?? 0);
+    const ratings = (candidate360RatingsResult.data ?? []).filter(
+      (rating) =>
+        rating.review_cycle_id === cycle?.id &&
+        completedFeedbackRespondentIds.has(rating.respondent_id) &&
+        !rating.not_observed &&
+        rating.rating !== null,
+    );
+    const competencies = (dashboard360CompetenciesResult.data ?? []).filter(
+      (competency) => competency.review_cycle_id === cycle?.id,
+    );
+    const questionsByCompetencyId = new Map<string, string[]>();
+    for (const question of dashboard360QuestionsResult.data ?? []) {
+      if (question.review_cycle_id !== cycle?.id) {
+        continue;
+      }
+
+      questionsByCompetencyId.set(question.snapshot_competency_id, [
+        ...(questionsByCompetencyId.get(question.snapshot_competency_id) ?? []),
+        question.id,
+      ]);
+    }
+
+    return {
+      ...role,
+      reviewTitle: cycle?.title ?? null,
+      overallScore:
+        cycle && !isProtected && ratings.length > 0
+          ? ratings.reduce((total, rating) => total + (rating.rating ?? 0), 0) /
+            ratings.length
+          : null,
+      isProtected,
+      competencyScores: competencies.map((competency) => {
+        const questionIds = new Set(
+          questionsByCompetencyId.get(competency.id) ?? [],
+        );
+        const competencyRatings = ratings.filter((rating) =>
+          questionIds.has(rating.snapshot_question_id),
+        );
+
+        return {
+          name: competency.name,
+          score:
+            !isProtected && competencyRatings.length > 0
+              ? competencyRatings.reduce(
+                  (total, rating) => total + (rating.rating ?? 0),
+                  0,
+                ) / competencyRatings.length
+              : null,
+        };
+      }),
+    };
+  });
   const assessmentDashboard = (
     <CandidateAssessmentDashboard
       interviewCompetencies={(competenciesResult.data ?? []).map((competency) => ({
@@ -828,9 +927,7 @@ export default async function CandidateDetailPage({
           )?.scoreNumeric ?? null,
       }))}
       latestInterviewPanelName={latestInterviewPanel?.panelName ?? null}
-      latest360Score={latest360Score}
-      latest360Title={latest360Cycle?.title ?? null}
-      has360Review={Boolean(latest360Cycle)}
+      review360Roles={dashboard360Reviews}
       strengths={(strengthsResult.data ?? []).map((strength) => {
         const reference = strengthReferenceByThemeName.get(strength.theme_name);
 
