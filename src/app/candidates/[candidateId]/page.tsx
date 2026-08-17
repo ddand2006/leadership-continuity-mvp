@@ -361,6 +361,19 @@ export default async function CandidateDetailPage({
     throw new Error(scoresResult.error.message);
   }
 
+  const candidate360CyclesResult = isAdmin
+    ? await supabase
+        .from("review_360_cycles")
+        .select("id, title, role_title, status, due_date, created_at")
+        .eq("organization_id", profile.organization_id)
+        .eq("candidate_id", candidate.id)
+        .order("created_at", { ascending: false })
+    : { data: [], error: null };
+
+  if (candidate360CyclesResult.error) {
+    throw new Error(candidate360CyclesResult.error.message);
+  }
+
   const [
     progressPanelsResult,
     progressMentorReportsResult,
@@ -749,7 +762,7 @@ export default async function CandidateDetailPage({
             }))}
             selectedCandidateId={candidate.id}
             selectedCandidateName={candidate.full_name}
-            currentSectionId={requestedSection ?? "role-context"}
+            currentSectionId={requestedSection ?? "candidate-profile"}
             canCreateCandidates={isAdmin}
           />
 
@@ -758,10 +771,11 @@ export default async function CandidateDetailPage({
               initialSectionId={requestedSection}
               sections={[
             {
-              id: "role-context",
-              label: "Overview",
+              id: "candidate-profile",
+              label: "Candidate Profile",
               summary:
-                "Review the roles this candidate is being considered for and the mentors currently assigned to the active role.",
+                "Keep the candidate's position, assessments, 360 reviews, and strengths evidence together in one profile.",
+              includeSectionIds: ["interview-scores", "360-reviews", "strengths-files"],
               content: (
                 <section className="grid gap-6">
                   {isAdmin ? (
@@ -980,6 +994,7 @@ export default async function CandidateDetailPage({
               label: "Interview Scores",
               summary:
                 "Enter interviewer feedback, save decimal scores, and adjust target scores for each competency.",
+              parentSectionId: "candidate-profile",
               content: (
                 <InterviewScoreEntryPanel
                   candidateId={candidate.id}
@@ -997,10 +1012,72 @@ export default async function CandidateDetailPage({
               ),
             },
             {
+              id: "360-reviews",
+              label: "360 Reviews",
+              summary:
+                "Create and manage confidential current-role feedback for this candidate.",
+              parentSectionId: "candidate-profile",
+              content: (
+                <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+                  <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">
+                        360 Reviews
+                      </p>
+                      <h2 className="mt-3 font-display text-3xl text-slate-900">
+                        Confidential feedback for the current role
+                      </h2>
+                      <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
+                        Launch a review when this candidate has a current organizational role. Results remain confidential and are distinct from succession readiness.
+                      </p>
+                    </div>
+                    {isAdmin ? (
+                      <Link
+                        href={`/360-review?candidateId=${candidate.id}`}
+                        className="interactive-contrast shrink-0 rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-900"
+                      >
+                        Start or manage 360 reviews
+                      </Link>
+                    ) : null}
+                  </div>
+
+                  <div className="mt-6 grid gap-3">
+                    {(candidate360CyclesResult.data ?? []).length > 0 ? (
+                      (candidate360CyclesResult.data ?? []).map((cycle) => (
+                        <article
+                          key={cycle.id}
+                          className="flex flex-col gap-3 rounded-2xl bg-slate-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
+                        >
+                          <div>
+                            <p className="font-semibold text-slate-900">{cycle.title}</p>
+                            <p className="mt-1 text-sm text-slate-600">
+                              {cycle.role_title} · {cycle.status.replaceAll("_", " ")}
+                              {cycle.due_date ? ` · Due ${cycle.due_date}` : ""}
+                            </p>
+                          </div>
+                          <Link
+                            href={`/360-review/${cycle.id}`}
+                            className="text-sm font-semibold text-teal-800 transition hover:text-teal-950"
+                          >
+                            Manage review
+                          </Link>
+                        </article>
+                      ))
+                    ) : (
+                      <p className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-4 text-sm leading-7 text-slate-600">
+                        No 360 reviews have been created for this candidate yet.
+                      </p>
+                    )}
+                  </div>
+                </section>
+              ),
+            },
+            {
               id: "strengths-files",
               label: "Strengths Files",
               summary:
                 "Upload Gallup documents, review archived source files, and confirm whether readable strengths text is on record.",
+              parentSectionId: "candidate-profile",
               content: (
                 <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
                   {canManageStrengths ? (

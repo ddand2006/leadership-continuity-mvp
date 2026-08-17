@@ -8,6 +8,8 @@ type CandidateDetailSection = {
   label: string;
   summary: string;
   content: ReactNode;
+  includeSectionIds?: string[];
+  parentSectionId?: string;
 };
 
 export function CandidateDetailSectionMenu({
@@ -27,11 +29,19 @@ export function CandidateDetailSectionMenu({
   );
 
   const urlSectionId = searchParams.get("section");
-  const selectedSectionId = sections.some((section) => section.id === urlSectionId)
-    ? urlSectionId
+  const resolvedUrlSectionId =
+    sections.find((section) => section.id === urlSectionId)?.parentSectionId ??
+    urlSectionId;
+  const selectedSectionId = sections.some((section) => section.id === resolvedUrlSectionId)
+    ? resolvedUrlSectionId
     : activeSectionId;
   const activeSection =
     sections.find((section) => section.id === selectedSectionId) ?? sections[0] ?? null;
+  const includedSections = activeSection?.includeSectionIds
+    ? activeSection.includeSectionIds
+        .map((sectionId) => sections.find((section) => section.id === sectionId))
+        .filter((section): section is CandidateDetailSection => Boolean(section))
+    : [];
 
   if (!activeSection) {
     return null;
@@ -40,7 +50,7 @@ export function CandidateDetailSectionMenu({
   return (
     <section className="grid gap-6">
       <nav className="flex flex-wrap gap-3 border-b border-slate-200 pb-5" aria-label="Candidate workspace sections">
-        {sections.map((section) => {
+        {sections.filter((section) => !section.parentSectionId).map((section) => {
           const isActive = section.id === activeSection.id;
 
           return (
@@ -69,6 +79,11 @@ export function CandidateDetailSectionMenu({
 
       <div className="grid gap-6">
         {activeSection.content}
+        {includedSections.map((section) => (
+          <section key={section.id} className="grid gap-6">
+            {section.content}
+          </section>
+        ))}
       </div>
     </section>
   );
