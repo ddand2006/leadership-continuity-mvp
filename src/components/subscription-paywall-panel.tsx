@@ -84,6 +84,20 @@ export function SubscriptionPaywallPanel({
             </article>
             <article className="rounded-[1.5rem] border border-slate-200/80 bg-white/90 p-4">
               <p className="text-xs font-semibold tracking-[0.16em] text-slate-500 uppercase">
+                Internal Seats
+              </p>
+              <p className="mt-3 text-2xl font-semibold text-slate-950">
+                {subscription.seatLimit}
+              </p>
+              <p className="mt-2 text-sm text-slate-600">
+                {subscription.includedSeats} included
+                {subscription.additionalSeatPacks > 0
+                  ? ` + ${subscription.additionalSeatPacks * 5} added`
+                  : ""}
+              </p>
+            </article>
+            <article className="rounded-[1.5rem] border border-slate-200/80 bg-white/90 p-4">
+              <p className="text-xs font-semibold tracking-[0.16em] text-slate-500 uppercase">
                 Trial Ends
               </p>
               <p className="mt-3 text-2xl font-semibold text-slate-950">
@@ -151,6 +165,10 @@ export function SubscriptionPaywallPanel({
           organization subscription record.
         </div>
       ) : null}
+
+      <p className="mt-6 text-sm leading-7 text-slate-600">
+        Foundation includes 10 internal users. Additional capacity is purchased in five-person packs. Secure external 360 respondents do not need a paid account or consume an internal seat.
+      </p>
 
       <div className="mt-8 flex flex-wrap gap-3">
         <a

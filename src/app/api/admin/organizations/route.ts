@@ -29,6 +29,7 @@ const baseOrganizationSchema = z.object({
   leadershipContinuityTier: z.string().trim().min(1).max(80),
   leadershipHelpEnabled: z.boolean(),
   leadershipHelpTier: z.string().trim().min(1).max(80),
+  additionalSeatPacks: z.number().int().min(0).max(200).default(0),
 });
 
 const createOrganizationSchema = baseOrganizationSchema;
@@ -64,6 +65,7 @@ function buildOrganizationPayload(payload: {
   leadershipContinuityTier: string;
   leadershipHelpEnabled: boolean;
   leadershipHelpTier: string;
+  additionalSeatPacks: number;
 }) {
   return {
     billing_contact_email: payload.billingContactEmail?.trim()
@@ -76,6 +78,8 @@ function buildOrganizationPayload(payload: {
     leadership_continuity_tier: payload.leadershipContinuityTier.trim(),
     leadership_help_enabled: payload.leadershipHelpEnabled,
     leadership_help_tier: payload.leadershipHelpTier.trim(),
+    included_seats: 10,
+    additional_seat_packs: payload.additionalSeatPacks,
     subscription_tier: payload.leadershipContinuityTier.trim(),
     trial_ends_at:
       payload.subscriptionStatus === "trialing"

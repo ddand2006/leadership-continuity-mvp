@@ -61,6 +61,8 @@ type AdministrationPanelProps = {
     leadership_continuity_tier: string;
     leadership_help_enabled: boolean;
     leadership_help_tier: string;
+    included_seats: number | null;
+    additional_seat_packs: number | null;
   }>;
   selectedOrganizationId: string;
   canEditOrganizationAccess: boolean;
@@ -207,6 +209,7 @@ export function AdministrationPanel({
           leadershipContinuityTier: selectedOrganization.leadership_continuity_tier,
           leadershipHelpEnabled: selectedOrganization.leadership_help_enabled,
           leadershipHelpTier: selectedOrganization.leadership_help_tier,
+          additionalSeatPacks: selectedOrganization.additional_seat_packs ?? 0,
         }
       : {
           organizationName: "",
@@ -217,6 +220,7 @@ export function AdministrationPanel({
           leadershipContinuityTier: "organization",
           leadershipHelpEnabled: false,
           leadershipHelpTier: "none",
+          additionalSeatPacks: 0,
         },
   );
   const [newOrganizationForm, setNewOrganizationForm] = useState({
@@ -228,6 +232,7 @@ export function AdministrationPanel({
     leadershipContinuityTier: "organization",
     leadershipHelpEnabled: false,
     leadershipHelpTier: "none",
+    additionalSeatPacks: 0,
   });
   const filtersSectionRef = useRef<HTMLElement | null>(null);
   const actionMenuRef = useDismissibleLayer<HTMLDivElement>(
@@ -625,6 +630,7 @@ export function AdministrationPanel({
           leadershipContinuityTier: "organization",
           leadershipHelpEnabled: false,
           leadershipHelpTier: "none",
+          additionalSeatPacks: 0,
         });
         if (result.organizationId) {
           window.location.assign(
@@ -670,6 +676,11 @@ export function AdministrationPanel({
                 {selectedOrganization.leadership_help_enabled
                   ? selectedOrganization.leadership_help_tier
                   : "Disabled"}
+              </div>
+              <div>
+                <span className="font-semibold text-slate-950">Internal seats:</span>{" "}
+                {(selectedOrganization.included_seats ?? 10) +
+                  (selectedOrganization.additional_seat_packs ?? 0) * 5}
               </div>
             </div>
           </div>
@@ -745,6 +756,34 @@ export function AdministrationPanel({
                   />
                 </label>
               </div>
+
+              <fieldset className="rounded-[1.25rem] border border-slate-200 bg-white/80 p-4">
+                <p className="text-sm font-semibold text-slate-800">Internal team seats</p>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Foundation includes 10 approved internal users. Each additional pack adds five seats. External 360 respondents never use a seat.
+                </p>
+                <label className="mt-4 block">
+                  <span className="mb-2 block text-sm font-semibold text-slate-700">
+                    Additional five-seat packs
+                  </span>
+                  <input
+                    value={organizationForm.additionalSeatPacks}
+                    min={0}
+                    onChange={(event) =>
+                      setOrganizationForm((current) => ({
+                        ...current,
+                        additionalSeatPacks: Math.max(0, Number(event.target.value) || 0),
+                      }))
+                    }
+                    disabled={!canEditOrganizationAccess}
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white disabled:cursor-not-allowed disabled:opacity-70"
+                    type="number"
+                  />
+                </label>
+                <p className="mt-3 text-sm font-semibold text-teal-800">
+                  Total available: 10 + ({organizationForm.additionalSeatPacks} × 5) = {10 + organizationForm.additionalSeatPacks * 5} internal seats
+                </p>
+              </fieldset>
 
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="block">
@@ -980,6 +1019,9 @@ export function AdministrationPanel({
                     />
                   </fieldset>
                 </div>
+                <p className="text-sm leading-6 text-slate-600">
+                  Each new company begins with the Foundation plan: 10 internal seats at $3,000 per year. Billing will be connected through Stripe before payment collection begins.
+                </p>
                 <button
                   type="button"
                   onClick={createOrganization}

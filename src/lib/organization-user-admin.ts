@@ -4,6 +4,10 @@ import { z } from "zod";
 import { ApiRouteError } from "@/lib/api-route";
 import { getAppUrl } from "@/lib/env";
 import {
+  assertOrganizationSeatAvailable,
+  isBillableInternalUserStatus,
+} from "@/lib/billing";
+import {
   buildFullName,
   getCandidateProgramStatus,
   getOrganizationUserLegacyRole,
@@ -379,6 +383,12 @@ export async function createManagedUser(options: {
   }
 
   const input = parsed.data;
+  if (isBillableInternalUserStatus(input.status)) {
+    await assertOrganizationSeatAvailable({
+      admin: options.admin,
+      organizationId: options.organizationId,
+    });
+  }
   await ensureOrganizationUserAbsent({
     admin: options.admin,
     organizationId: options.organizationId,
@@ -475,6 +485,10 @@ export async function inviteManagedUser(options: {
   }
 
   const input = parsed.data;
+  await assertOrganizationSeatAvailable({
+    admin: options.admin,
+    organizationId: options.organizationId,
+  });
   await ensureOrganizationUserAbsent({
     admin: options.admin,
     organizationId: options.organizationId,
@@ -574,6 +588,16 @@ export async function updateManagedUser(options: {
   });
   const input = parsed.data;
   const normalizedEmail = normalizeEmail(input.email);
+
+  if (
+    !isBillableInternalUserStatus(current.status) &&
+    isBillableInternalUserStatus(input.status)
+  ) {
+    await assertOrganizationSeatAvailable({
+      admin: options.admin,
+      organizationId: options.organizationId,
+    });
+  }
 
   if (normalizedEmail !== current.email) {
     await ensureOrganizationUserAbsent({

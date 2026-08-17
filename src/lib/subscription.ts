@@ -1,5 +1,5 @@
 const SUBSCRIPTION_COLUMNS =
-  "subscription_status, subscription_tier, trial_ends_at, billing_contact_email, leadership_continuity_enabled, leadership_continuity_tier, leadership_help_enabled, leadership_help_tier";
+  "subscription_status, subscription_tier, trial_ends_at, billing_contact_email, leadership_continuity_enabled, leadership_continuity_tier, leadership_help_enabled, leadership_help_tier, included_seats, additional_seat_packs";
 const BILLING_SUPPORT_EMAIL = "billing@leadershipcontinuitysystem.com";
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -30,6 +30,8 @@ type OrganizationSubscriptionLookup = {
   leadership_continuity_tier: string | null;
   leadership_help_enabled: boolean | null;
   leadership_help_tier: string | null;
+  included_seats: number | null;
+  additional_seat_packs: number | null;
   subscription_status: string | null;
   subscription_tier: string | null;
   trial_ends_at: string | null;
@@ -66,6 +68,9 @@ export type OrganizationSubscriptionState = {
   status: OrganizationSubscriptionStatus;
   tier: string;
   trialEndsAt: string | null;
+  includedSeats: number;
+  additionalSeatPacks: number;
+  seatLimit: number;
 };
 
 function normalizeSubscriptionStatus(value: string | null | undefined) {
@@ -95,7 +100,9 @@ export function isMissingOrganizationBillingColumnError(error: unknown) {
     combinedMessage.includes("leadership_continuity_enabled") ||
     combinedMessage.includes("leadership_continuity_tier") ||
     combinedMessage.includes("leadership_help_enabled") ||
-    combinedMessage.includes("leadership_help_tier")
+    combinedMessage.includes("leadership_help_tier") ||
+    combinedMessage.includes("included_seats") ||
+    combinedMessage.includes("additional_seat_packs")
   );
 }
 
@@ -147,6 +154,9 @@ export function resolveOrganizationSubscriptionLookup(
       status: "active",
       tier: "organization",
       trialEndsAt: null,
+      includedSeats: 10,
+      additionalSeatPacks: 0,
+      seatLimit: 10,
     };
   }
 
@@ -173,6 +183,9 @@ export function resolveOrganizationSubscriptionLookup(
         status: "active",
         tier: "organization",
         trialEndsAt: null,
+        includedSeats: 10,
+        additionalSeatPacks: 0,
+        seatLimit: 10,
       };
     }
 
@@ -223,6 +236,11 @@ export function resolveOrganizationSubscriptionLookup(
     status,
     tier: result.data.subscription_tier?.trim() || "organization",
     trialEndsAt,
+    includedSeats: Math.max(0, result.data.included_seats ?? 10),
+    additionalSeatPacks: Math.max(0, result.data.additional_seat_packs ?? 0),
+    seatLimit:
+      Math.max(0, result.data.included_seats ?? 10) +
+      Math.max(0, result.data.additional_seat_packs ?? 0) * 5,
   };
 }
 
