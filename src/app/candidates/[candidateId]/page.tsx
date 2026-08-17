@@ -364,7 +364,7 @@ export default async function CandidateDetailPage({
   const candidate360CyclesResult = isAdmin
     ? await supabase
         .from("review_360_cycles")
-        .select("id, title, role_title, status, due_date, created_at")
+        .select("id, title, role_title, status, due_date, created_at, confidentiality_threshold")
         .eq("organization_id", profile.organization_id)
         .eq("candidate_id", candidate.id)
         .order("created_at", { ascending: false })
@@ -372,6 +372,32 @@ export default async function CandidateDetailPage({
 
   if (candidate360CyclesResult.error) {
     throw new Error(candidate360CyclesResult.error.message);
+  }
+
+  const candidate360CycleIds = (candidate360CyclesResult.data ?? []).map(
+    (cycle) => cycle.id,
+  );
+  const [candidate360RespondentsResult, candidate360RatingsResult] =
+    isAdmin && candidate360CycleIds.length > 0
+      ? await Promise.all([
+          supabase
+            .from("review_360_respondents")
+            .select("id, review_cycle_id, invited_relationship, confirmed_relationship, status")
+            .eq("organization_id", profile.organization_id)
+            .in("review_cycle_id", candidate360CycleIds),
+          supabase
+            .from("review_360_question_ratings")
+            .select("review_cycle_id, respondent_id, rating, not_observed")
+            .eq("organization_id", profile.organization_id)
+            .in("review_cycle_id", candidate360CycleIds),
+        ])
+      : [{ data: [], error: null }, { data: [], error: null }];
+
+  if (candidate360RespondentsResult.error || candidate360RatingsResult.error) {
+    throw new Error(
+      candidate360RespondentsResult.error?.message ??
+        candidate360RatingsResult.error?.message,
+    );
   }
 
   const [
@@ -668,6 +694,97 @@ export default async function CandidateDetailPage({
   const topStrengthNames = (strengthsResult.data ?? [])
     .slice(0, 5)
     .map((strength) => strength.theme_name);
+  const latestInterviewPanel = existingPanels[0] ?? null;
+  const latest360Cycle = (candidate360CyclesResult.data ?? [])[0] ?? null;
+  const respondentById = new Map(
+    (candidate360RespondentsResult.data ?? []).map((respondent) => [
+      respondent.id,
+      respondent,
+    ]),
+  );
+  const completed360FeedbackRespondents = new Set(
+    (candidate360RespondentsResult.data ?? [])
+      .filter(
+        (respondent) =>
+          respondent.review_cycle_id === latest360Cycle?.id &&
+          respondent.status === "completed" &&
+          (respondent.confirmed_relationship ?? respondent.invited_relationship) !== "self",
+      )
+      .map((respondent) => respondent.id),
+  );
+  const latest360Ratings = (candidate360RatingsResult.data ?? []).filter(
+    (rating) =>
+      rating.review_cycle_id === latest360Cycle?.id &&
+      completed360FeedbackRespondents.has(rating.respondent_id) &&
+      !rating.not_observed &&
+      rating.rating !== null,
+  );
+  const latest360Score =
+    latest360Cycle &&
+    completed360FeedbackRespondents.size >= latest360Cycle.confidentiality_threshold &&
+    latest360Ratings.length > 0
+      ? latest360Ratings.reduce((total, rating) => total + (rating.rating ?? 0), 0) /
+        latest360Ratings.length
+      : null;
+  const assessmentDashboard = (
+    <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+      <div>
+        <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">
+          Assessment Dashboard
+        </p>
+        <h2 className="mt-3 font-display text-3xl text-slate-900">
+          Candidate evidence at a glance
+        </h2>
+        <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
+          Review the latest interview, confidential 360 feedback, and Gallup strengths side by side. Use the tabs below to add or manage the underlying information.
+        </p>
+      </div>
+      <div className="mt-6 grid gap-4 lg:grid-cols-3">
+        <article className="rounded-3xl border border-sky-100 bg-sky-50/70 p-5">
+          <p className="text-sm font-semibold tracking-[0.14em] text-sky-800 uppercase">Interview</p>
+          <p className="mt-3 font-display text-4xl text-slate-900">
+            {latestInterviewPanel?.averageScore !== null && latestInterviewPanel
+              ? latestInterviewPanel.averageScore.toFixed(1)
+              : "—"}
+          </p>
+          <p className="mt-1 text-sm text-slate-600">out of 5 · latest saved panel</p>
+          <p className="mt-3 text-sm font-medium text-slate-800">
+            {latestInterviewPanel?.panelName ?? "No scored interview round yet"}
+          </p>
+        </article>
+        <article className="rounded-3xl border border-teal-100 bg-teal-50/70 p-5">
+          <p className="text-sm font-semibold tracking-[0.14em] text-teal-800 uppercase">360 Feedback</p>
+          <p className="mt-3 font-display text-4xl text-slate-900">
+            {latest360Score !== null
+              ? latest360Score.toFixed(1)
+              : latest360Cycle
+                ? "Protected"
+                : "—"}
+          </p>
+          <p className="mt-1 text-sm text-slate-600">
+            {latest360Score !== null
+              ? "out of 5 · non-self feedback"
+              : latest360Cycle
+                ? "awaiting the confidentiality threshold"
+                : "no review launched"}
+          </p>
+          <p className="mt-3 text-sm font-medium text-slate-800">
+            {latest360Cycle?.title ?? "No current-role 360 review"}
+          </p>
+        </article>
+        <article className="rounded-3xl border border-emerald-100 bg-emerald-50/70 p-5">
+          <p className="text-sm font-semibold tracking-[0.14em] text-emerald-800 uppercase">Strengths</p>
+          <p className="mt-3 font-display text-4xl text-slate-900">{importedStrengthCount || "—"}</p>
+          <p className="mt-1 text-sm text-slate-600">
+            {importedStrengthCount ? "strengths imported" : "no Gallup strengths imported"}
+          </p>
+          <p className="mt-3 text-sm font-medium leading-6 text-slate-800">
+            {topStrengthNames.length > 0 ? topStrengthNames.join(", ") : "Add a Gallup strengths document"}
+          </p>
+        </article>
+      </div>
+    </section>
+  );
   const candidateStrengthsFilesHref = activeRoleId
     ? `/candidates/${candidate.id}?roleId=${activeRoleId}&section=strengths-files`
     : `/candidates/${candidate.id}?section=strengths-files`;
@@ -775,7 +892,8 @@ export default async function CandidateDetailPage({
               label: "Candidate Profile",
               summary:
                 "Keep the candidate's position, assessments, 360 reviews, and strengths evidence together in one profile.",
-              includeSectionIds: ["interview-scores", "360-reviews", "strengths-files"],
+              dashboardContent: assessmentDashboard,
+              detailSectionIds: ["interview-scores", "360-reviews", "strengths-files"],
               content: (
                 <section className="grid gap-6">
                   {isAdmin ? (

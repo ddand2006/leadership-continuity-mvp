@@ -8,7 +8,8 @@ type CandidateDetailSection = {
   label: string;
   summary: string;
   content: ReactNode;
-  includeSectionIds?: string[];
+  dashboardContent?: ReactNode;
+  detailSectionIds?: string[];
   parentSectionId?: string;
 };
 
@@ -27,6 +28,7 @@ export function CandidateDetailSectionMenu({
       ? (initialSectionId ?? "")
       : (sections[0]?.id ?? ""),
   );
+  const [activeDetailSectionId, setActiveDetailSectionId] = useState<string>("");
 
   const urlSectionId = searchParams.get("section");
   const resolvedUrlSectionId =
@@ -37,11 +39,20 @@ export function CandidateDetailSectionMenu({
     : activeSectionId;
   const activeSection =
     sections.find((section) => section.id === selectedSectionId) ?? sections[0] ?? null;
-  const includedSections = activeSection?.includeSectionIds
-    ? activeSection.includeSectionIds
+  const detailSections = activeSection?.detailSectionIds
+    ? activeSection.detailSectionIds
         .map((sectionId) => sections.find((section) => section.id === sectionId))
         .filter((section): section is CandidateDetailSection => Boolean(section))
     : [];
+  const selectedDetailSectionId = detailSections.some(
+    (section) => section.id === urlSectionId,
+  )
+    ? urlSectionId
+    : detailSections.some((section) => section.id === activeDetailSectionId)
+      ? activeDetailSectionId
+      : (detailSections[0]?.id ?? "");
+  const activeDetailSection =
+    detailSections.find((section) => section.id === selectedDetailSectionId) ?? null;
 
   if (!activeSection) {
     return null;
@@ -79,11 +90,42 @@ export function CandidateDetailSectionMenu({
 
       <div className="grid gap-6">
         {activeSection.content}
-        {includedSections.map((section) => (
-          <section key={section.id} className="grid gap-6">
-            {section.content}
+        {activeSection.dashboardContent ? activeSection.dashboardContent : null}
+        {detailSections.length > 0 ? (
+          <section className="grid gap-5">
+            <nav
+              className="flex flex-wrap gap-2 border-b border-slate-200 pb-4"
+              aria-label="Candidate profile detail sections"
+            >
+              {detailSections.map((section) => {
+                const isActive = section.id === activeDetailSection?.id;
+
+                return (
+                  <button
+                    key={section.id}
+                    type="button"
+                    onClick={() => {
+                      setActiveDetailSectionId(section.id);
+                      const nextParams = new URLSearchParams(searchParams.toString());
+                      nextParams.set("section", section.id);
+                      router.replace(`${pathname}?${nextParams.toString()}`, {
+                        scroll: false,
+                      });
+                    }}
+                    className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                      isActive
+                        ? "border-teal-900 bg-teal-900 text-white"
+                        : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+                    }`}
+                  >
+                    {section.label}
+                  </button>
+                );
+              })}
+            </nav>
+            {activeDetailSection ? activeDetailSection.content : null}
           </section>
-        ))}
+        ) : null}
       </div>
     </section>
   );
