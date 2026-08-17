@@ -497,6 +497,9 @@ export function LeadershipDevelopmentRecordManager({
   const [recordsByAssignmentKey, setRecordsByAssignmentKey] = useState<
     Record<string, LeadershipDevelopmentRecordRecord[]>
   >({});
+  const [archivedRecordsByAssignmentKey, setArchivedRecordsByAssignmentKey] = useState<
+    Record<string, LeadershipDevelopmentRecordRecord[]>
+  >({});
   const [competencyOptionsByAssignmentKey, setCompetencyOptionsByAssignmentKey] =
     useState<Record<string, LeadershipDevelopmentCompetencyOption[]>>({});
   const [sourceProjectsByAssignmentKey, setSourceProjectsByAssignmentKey] = useState<
@@ -523,6 +526,9 @@ export function LeadershipDevelopmentRecordManager({
   );
   const currentRecords = selectedAssignment
     ? recordsByAssignmentKey[getAssignmentKey(selectedAssignment)] ?? []
+    : [];
+  const currentArchivedRecords = selectedAssignment
+    ? archivedRecordsByAssignmentKey[getAssignmentKey(selectedAssignment)] ?? []
     : [];
   const currentSourceProjects = selectedAssignment
     ? sourceProjectsByAssignmentKey[getAssignmentKey(selectedAssignment)] ?? []
@@ -725,6 +731,7 @@ export function LeadershipDevelopmentRecordManager({
         const payload = (await response.json()) as {
           error?: string;
           records?: LeadershipDevelopmentRecordRecord[];
+          archivedRecords?: LeadershipDevelopmentRecordRecord[];
           projects?: MentoringSourceProject[];
           competencyAssessments?: LeadershipDevelopmentCompetencyOption[];
         };
@@ -761,11 +768,20 @@ export function LeadershipDevelopmentRecordManager({
           ),
         );
         const sourceProjects = payload.projects ?? [];
+        const archivedRecords = dedupeLeadershipDevelopmentRecords(
+          (payload.archivedRecords ?? []).map((record) =>
+            normalizeLeadershipDevelopmentRecord(record),
+          ),
+        );
         const competencyOptions = payload.competencyAssessments ?? [];
 
         setRecordsByAssignmentKey((current) => ({
           ...current,
           [assignmentKey]: records,
+        }));
+        setArchivedRecordsByAssignmentKey((current) => ({
+          ...current,
+          [assignmentKey]: archivedRecords,
         }));
         setSourceProjectsByAssignmentKey((current) => ({
           ...current,
@@ -1310,6 +1326,100 @@ export function LeadershipDevelopmentRecordManager({
     }
   }
 
+  async function handleArchiveRecord() {
+    if (!selectedAssignment || !selectedRecord) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Archive “${selectedRecord.experienceTitle}”? It will be removed from the active Progress Report but can be restored at any time.`,
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    setError(null);
+    setSuccess(null);
+    const assignmentKey = getAssignmentKey(selectedAssignment);
+
+    try {
+      const response = await fetch("/api/mentoring/leadership-development-record", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          candidateId: selectedAssignment.candidateId,
+          roleId: selectedAssignment.roleId,
+          mentorId: selectedAssignment.mentorProfileId,
+          recordId: selectedRecord.id,
+          action: "archive",
+        }),
+      });
+      const result = (await response.json()) as { error?: string; message?: string };
+      if (!response.ok) {
+        setError(result.error ?? "Unable to archive this development record.");
+        return;
+      }
+
+      setRecordsByAssignmentKey((current) => ({
+        ...current,
+        [assignmentKey]: (current[assignmentKey] ?? []).filter(
+          (record) => record.id !== selectedRecord.id,
+        ),
+      }));
+      setArchivedRecordsByAssignmentKey((current) => ({
+        ...current,
+        [assignmentKey]: [selectedRecord, ...(current[assignmentKey] ?? [])],
+      }));
+      handleCreateNewRecord();
+      setSuccess(result.message ?? "Development record archived.");
+    } catch {
+      setError("Unable to archive this development record.");
+    }
+  }
+
+  async function handleRestoreRecord(record: LeadershipDevelopmentRecordRecord) {
+    if (!selectedAssignment) {
+      return;
+    }
+
+    setError(null);
+    setSuccess(null);
+    const assignmentKey = getAssignmentKey(selectedAssignment);
+
+    try {
+      const response = await fetch("/api/mentoring/leadership-development-record", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          candidateId: selectedAssignment.candidateId,
+          roleId: selectedAssignment.roleId,
+          mentorId: selectedAssignment.mentorProfileId,
+          recordId: record.id,
+          action: "restore",
+        }),
+      });
+      const result = (await response.json()) as { error?: string; message?: string };
+      if (!response.ok) {
+        setError(result.error ?? "Unable to restore this development record.");
+        return;
+      }
+
+      setArchivedRecordsByAssignmentKey((current) => ({
+        ...current,
+        [assignmentKey]: (current[assignmentKey] ?? []).filter(
+          (item) => item.id !== record.id,
+        ),
+      }));
+      setRecordsByAssignmentKey((current) => ({
+        ...current,
+        [assignmentKey]: [record, ...(current[assignmentKey] ?? [])],
+      }));
+      setSuccess(result.message ?? "Development record restored.");
+    } catch {
+      setError("Unable to restore this development record.");
+    }
+  }
+
   if (assignments.length === 0) {
     return (
       <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
@@ -1488,6 +1598,40 @@ export function LeadershipDevelopmentRecordManager({
                 </p>
               </label>
             </div>
+
+            {currentArchivedRecords.length > 0 ? (
+              <article className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">
+                      Archived records ({currentArchivedRecords.length})
+                    </p>
+                    <p className="mt-1 text-sm text-slate-600">
+                      Archived records are hidden from the active Progress Report and can be restored here.
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-3 grid gap-2">
+                  {currentArchivedRecords.map((record) => (
+                    <div
+                      key={record.id}
+                      className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <span className="text-sm font-medium text-slate-800">
+                        {createRecordLabel(record)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleRestoreRecord(record)}
+                        className="rounded-full border border-teal-200 bg-white px-4 py-2 text-sm font-semibold text-teal-900 transition hover:bg-teal-50"
+                      >
+                        Restore record
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </article>
+            ) : null}
 
             {shouldShowTransferredProjectEditor && formState ? (
               <article className="rounded-2xl border border-teal-200 bg-teal-50/60 px-5 py-5">
@@ -2308,9 +2452,19 @@ export function LeadershipDevelopmentRecordManager({
                 {isPending ? "Saving..." : "Mark Completed"}
               </button>
               {selectedRecord ? (
-                <p className="text-sm text-slate-500">
-                  Last saved {new Date(selectedRecord.updatedAt).toLocaleString()}
-                </p>
+                <>
+                  <button
+                    type="button"
+                    onClick={handleArchiveRecord}
+                    disabled={isPending}
+                    className="rounded-full border border-rose-200 bg-white px-5 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:text-rose-300"
+                  >
+                    Archive record
+                  </button>
+                  <p className="text-sm text-slate-500">
+                    Last saved {new Date(selectedRecord.updatedAt).toLocaleString()}
+                  </p>
+                </>
               ) : null}
             </div>
 

@@ -114,7 +114,8 @@ export async function POST(
         .from("development_records")
         .select("role_id, status, experience_title, project_summary, date_assigned, updated_at, mentor_review_date")
         .eq("organization_id", profile.organization_id)
-        .eq("candidate_id", candidateId),
+        .eq("candidate_id", candidateId)
+        .is("archived_at", null),
       admin
         .from("candidate_role_matches")
         .select("role_id, match_status, created_at")

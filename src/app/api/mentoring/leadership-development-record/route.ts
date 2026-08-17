@@ -51,6 +51,14 @@ const removeProjectSchema = z.object({
   projectAssignmentId: z.string().uuid(),
 });
 
+const archiveRecordSchema = z.object({
+  candidateId: z.string().uuid(),
+  roleId: z.string().uuid(),
+  mentorId: z.string().uuid(),
+  recordId: z.string().uuid(),
+  action: z.enum(["archive", "restore"]),
+});
+
 function assertScore(value: string, fieldLabel: string) {
   const parsed = parseLeadershipDevelopmentScore(value);
 
@@ -386,7 +394,7 @@ export async function GET(request: Request) {
     const recordsResult = await admin
       .from("development_records")
       .select(
-        "id, source_project_assignment_id, candidate_id, role_id, mentor_id, target_role, date_assigned, status, growth_areas, assignment_reason, experience_title, mentee_task, project_summary, project_purpose, working_goal, why_it_fits, mentor_focus, first_step, key_partners, leadership_actions_required, anticipated_challenges, success_measures, mentor_preparation, mentee_preparation, reflection_questions, success_signals, readiness_signal, mentor_improvement_observed, mentor_development_needed, next_recommended_experience, mentor_review_date, updated_at, average_feedback_score",
+        "id, source_project_assignment_id, candidate_id, role_id, mentor_id, target_role, date_assigned, status, growth_areas, assignment_reason, experience_title, mentee_task, project_summary, project_purpose, working_goal, why_it_fits, mentor_focus, first_step, key_partners, leadership_actions_required, anticipated_challenges, success_measures, mentor_preparation, mentee_preparation, reflection_questions, success_signals, readiness_signal, mentor_improvement_observed, mentor_development_needed, next_recommended_experience, mentor_review_date, updated_at, average_feedback_score, archived_at",
       )
       .eq("organization_id", profile.organization_id)
       .eq("candidate_id", query.candidateId)
@@ -563,8 +571,25 @@ export async function GET(request: Request) {
       })
       .filter((project): project is NonNullable<typeof project> => project !== null);
 
+    const activeDatabaseRecords = (recordsResult.data ?? []).filter(
+      (record) => !record.archived_at,
+    );
+    const archivedDatabaseRecords = (recordsResult.data ?? []).filter(
+      (record) => Boolean(record.archived_at),
+    );
+
+    const normalizeRecord = (record: (typeof recordsResult.data)[number]) =>
+      normalizeRecordFromDatabase({
+        ...record,
+        candidate_name: candidateResult.data?.full_name ?? "",
+        primary_mentor: mentorResult.data?.full_name ?? "",
+        competencies: competenciesByRecordId.get(record.id) ?? [],
+        leaders: leadersByRecordId.get(record.id) ?? [],
+        feedback: feedbackByRecordId.get(record.id) ?? [],
+      }, canonicalRoleTitle);
+
     const competencyNamesUsedByRecords = new Set(
-      (recordsResult.data ?? []).flatMap((record) =>
+      activeDatabaseRecords.flatMap((record) =>
         (competenciesByRecordId.get(record.id) ?? []).map(
           (competency) => competency.competency_name,
         ),
@@ -579,16 +604,8 @@ export async function GET(request: Request) {
     }));
 
     return NextResponse.json({
-      records: (recordsResult.data ?? []).map((record) =>
-        normalizeRecordFromDatabase({
-          ...record,
-          candidate_name: candidateResult.data?.full_name ?? "",
-          primary_mentor: mentorResult.data?.full_name ?? "",
-          competencies: competenciesByRecordId.get(record.id) ?? [],
-          leaders: leadersByRecordId.get(record.id) ?? [],
-          feedback: feedbackByRecordId.get(record.id) ?? [],
-        }, canonicalRoleTitle),
-      ),
+      records: activeDatabaseRecords.map(normalizeRecord),
+      archivedRecords: archivedDatabaseRecords.map(normalizeRecord),
       projects: sourceProjectsWithFallbackCompetencies,
       competencyAssessments,
     });
@@ -1073,6 +1090,72 @@ export async function POST(request: Request) {
       error,
       "Unable to save the leadership development record.",
     );
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const { account, admin, profile } = await requireApiWorkspaceProfile();
+    const payload = archiveRecordSchema.parse(await request.json());
+
+    ensureUserCanAccessRecord({
+      account,
+      profile,
+      candidateId: payload.candidateId,
+      mentorId: payload.mentorId,
+    });
+    await ensureAssignmentExists({
+      admin,
+      organizationId: profile.organization_id,
+      candidateId: payload.candidateId,
+      roleId: payload.roleId,
+      mentorId: payload.mentorId,
+    });
+
+    const updateResult = await admin
+      .from("development_records")
+      .update(
+        payload.action === "archive"
+          ? {
+              archived_at: new Date().toISOString(),
+              archived_by_profile_id: profile.id,
+            }
+          : {
+              archived_at: null,
+              archived_by_profile_id: null,
+            },
+      )
+      .eq("organization_id", profile.organization_id)
+      .eq("id", payload.recordId)
+      .eq("candidate_id", payload.candidateId)
+      .eq("role_id", payload.roleId)
+      .eq("mentor_id", payload.mentorId)
+      .select("id")
+      .maybeSingle();
+
+    if (updateResult.error) {
+      if (isMissingLeadershipDevelopmentRecordTableError(updateResult.error)) {
+        throw new ApiRouteError(
+          "Leadership development record storage is not available yet. Run the latest Supabase migration first.",
+          503,
+        );
+      }
+
+      throw new ApiRouteError(updateResult.error.message, 500);
+    }
+
+    if (!updateResult.data) {
+      throw new ApiRouteError("This leadership development record was not found.", 404);
+    }
+
+    return NextResponse.json({
+      message:
+        payload.action === "archive"
+          ? "Development record archived. You can restore it at any time."
+          : "Development record restored to the active progress report.",
+    });
+  } catch (error) {
+    return createApiErrorResponse(error, "Unable to update this leadership development record.");
   }
 }
 
