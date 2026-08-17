@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 
 const ROLE_CONSIDERATION_STATUSES = [
@@ -262,6 +263,14 @@ export function CandidateRoleConsiderationManager({
           This is separate from succession positions below. It identifies the role
           the person holds today and will be used as the basis for their 360 review.
         </p>
+        {currentRoleId ? (
+          <Link
+            href={`/360-review?candidateId=${candidateId}`}
+            className="mt-4 inline-flex rounded-full border border-teal-300 bg-white px-4 py-2 text-sm font-semibold text-teal-900 transition hover:bg-teal-100"
+          >
+            Start a 360 Review for {candidateName}
+          </Link>
+        ) : null}
       </div>
 
       <div className="mt-6 grid gap-4 rounded-3xl border border-slate-200 bg-slate-50 p-5 lg:grid-cols-[1.2fr_0.8fr_auto]">

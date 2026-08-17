@@ -17,7 +17,7 @@ export default async function Page({ params }: { params: Promise<{ reviewId: str
   if (!isAdminAppRole(profile.role)) redirect("/dashboard");
 
   const [reviewResult, competencyResult, questionResult, respondentResult, ratingResult] = await Promise.all([
-    supabase.from("review_360_cycles").select("id,title,role_title,employee_organization_user_id,confidentiality_threshold,status,due_date").eq("id", reviewId).eq("organization_id", profile.organization_id).maybeSingle(),
+    supabase.from("review_360_cycles").select("id,title,role_title,employee_organization_user_id,candidate_id,confidentiality_threshold,status,due_date").eq("id", reviewId).eq("organization_id", profile.organization_id).maybeSingle(),
     supabase.from("review_360_snapshot_competencies").select("id,name,definition,display_order").eq("review_cycle_id", reviewId).eq("organization_id", profile.organization_id).order("display_order"),
     supabase.from("review_360_snapshot_questions").select("id,snapshot_competency_id,prompt,display_order").eq("review_cycle_id", reviewId).eq("organization_id", profile.organization_id).order("display_order"),
     supabase.from("review_360_respondents").select("id,invited_relationship,confirmed_relationship,status").eq("review_cycle_id", reviewId).eq("organization_id", profile.organization_id),
@@ -27,8 +27,10 @@ export default async function Page({ params }: { params: Promise<{ reviewId: str
   if (error) throw new Error(error.message);
   if (!reviewResult.data) notFound();
 
-  const employee = await supabase.from("organization_users").select("first_name,last_name").eq("id", reviewResult.data.employee_organization_user_id).maybeSingle();
-  if (employee.error) throw new Error(employee.error.message);
+  const subject = reviewResult.data.candidate_id
+    ? await supabase.from("candidates").select("full_name").eq("id", reviewResult.data.candidate_id).maybeSingle()
+    : await supabase.from("organization_users").select("first_name,last_name").eq("id", reviewResult.data.employee_organization_user_id).maybeSingle();
+  if (subject.error) throw new Error(subject.error.message);
 
   const review = reviewResult.data;
   const threshold = review.confidentiality_threshold;
@@ -40,7 +42,9 @@ export default async function Page({ params }: { params: Promise<{ reviewId: str
   questions.forEach((question) => questionsByCompetency.set(question.snapshot_competency_id, [...(questionsByCompetency.get(question.snapshot_competency_id) ?? []), question]));
   const completed = respondents.filter((respondent) => respondent.status === "completed").length;
   const nonSelfRespondents = new Set(respondents.filter((respondent) => respondent.status === "completed" && respondentRelationship(respondent) !== "self").map((respondent) => respondent.id));
-  const employeeName = employee.data ? `${employee.data.first_name} ${employee.data.last_name}` : "Employee";
+  const employeeName = reviewResult.data.candidate_id
+    ? subject.data && "full_name" in subject.data ? subject.data.full_name : "Candidate"
+    : subject.data && "first_name" in subject.data ? `${subject.data.first_name} ${subject.data.last_name}` : "Employee";
 
   function scoresForQuestions(questionIds: string[], relationship?: string) {
     return ratings.filter((rating) => questionIds.includes(rating.snapshot_question_id) && (!relationship || respondentRelationship(respondentById.get(rating.respondent_id)!) === relationship)).map((rating) => rating.rating as number);

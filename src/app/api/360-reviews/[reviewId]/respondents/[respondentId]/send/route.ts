@@ -19,15 +19,19 @@ export async function POST(_: Request, context: Context) {
 
     const admin = createSupabaseAdminClient();
     const [cycle, respondent] = await Promise.all([
-      admin.from("review_360_cycles").select("title,role_title,due_date,employee_organization_user_id").eq("id", reviewId).eq("organization_id", profile.organization_id).single(),
+      admin.from("review_360_cycles").select("title,role_title,due_date,employee_organization_user_id,candidate_id").eq("id", reviewId).eq("organization_id", profile.organization_id).single(),
       admin.from("review_360_respondents").select("id,first_name,last_name,email,status,invited_relationship").eq("id", respondentId).eq("review_cycle_id", reviewId).eq("organization_id", profile.organization_id).single(),
     ]);
     if (cycle.error || respondent.error) throw cycle.error ?? respondent.error;
     if (respondent.data.status === "completed") return NextResponse.json({ error: "Completed responses cannot be resent." }, { status: 409 });
 
-    const employee = await admin.from("organization_users").select("first_name,last_name").eq("id", cycle.data.employee_organization_user_id).single();
-    if (employee.error) throw employee.error;
-    const employeeName = `${employee.data.first_name} ${employee.data.last_name}`;
+    const subject = cycle.data.candidate_id
+      ? await admin.from("candidates").select("full_name").eq("id", cycle.data.candidate_id).maybeSingle()
+      : await admin.from("organization_users").select("first_name,last_name").eq("id", cycle.data.employee_organization_user_id).maybeSingle();
+    if (subject.error) throw subject.error;
+    const employeeName = cycle.data.candidate_id
+      ? subject.data && "full_name" in subject.data ? subject.data.full_name : "this candidate"
+      : subject.data && "first_name" in subject.data ? `${subject.data.first_name} ${subject.data.last_name}` : "this employee";
     const token = createReview360Token();
     const link = `${getAppUrl().replace(/\/$/, "")}/360-review/survey/${token}`;
     const dueDate = cycle.data.due_date ? new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" }).format(new Date(`${cycle.data.due_date}T00:00:00Z`)) : "the review due date";

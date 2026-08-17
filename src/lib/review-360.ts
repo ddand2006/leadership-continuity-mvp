@@ -5,10 +5,14 @@ export const review360Relationships = ["self", "supervisor", "peer", "direct_rep
 export type Review360Relationship = (typeof review360Relationships)[number];
 
 export const createReview360Schema = z.object({
-  employeeRoleAssignmentId: z.string().uuid(),
+  employeeRoleAssignmentId: z.string().uuid().optional(),
+  candidateId: z.string().uuid().optional(),
   title: z.string().trim().min(3).max(160),
   dueDate: z.string().date().optional(),
-});
+}).refine(
+  (value) => Boolean(value.employeeRoleAssignmentId) !== Boolean(value.candidateId),
+  { message: "Choose one employee or candidate for this 360 review." },
+);
 
 export const addReview360RespondentSchema = z.object({
   firstName: z.string().trim().min(1).max(80), lastName: z.string().trim().min(1).max(80),
