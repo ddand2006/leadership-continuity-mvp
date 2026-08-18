@@ -175,7 +175,6 @@ export async function AppNav({ pathname }: { pathname: string }) {
         ...((hasContinuityAccess && isAdmin) || isSystemAdmin
           ? [{ href: "/administration", label: "Administration" }]
           : []),
-        ...(isSystemAdmin ? [{ href: "/platform-operations", label: "Platform Ops" }] : []),
         ...(isPaywallEnabled() && !hideBillingControls
           ? [{ href: "/subscribe", label: "Access" }]
           : []),
@@ -234,6 +233,7 @@ export async function AppNav({ pathname }: { pathname: string }) {
                 email={user.email ?? null}
                 accountLandingHref={accountLandingHref}
                 accountLandingLabel={accountLandingLabel}
+                platformOperationsHref={isSystemAdmin ? "/platform-operations" : undefined}
               />
             ) : (
               <div className="flex items-center gap-3">

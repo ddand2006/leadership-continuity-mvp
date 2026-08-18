@@ -10,6 +10,7 @@ type AccountMenuProps = {
   email: string | null;
   accountLandingHref: string;
   accountLandingLabel: string;
+  platformOperationsHref?: string;
 };
 
 export function AccountMenu({
@@ -18,6 +19,7 @@ export function AccountMenu({
   email,
   accountLandingHref,
   accountLandingLabel,
+  platformOperationsHref,
 }: AccountMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useDismissibleLayer<HTMLDivElement>(isOpen, () => setIsOpen(false));
@@ -58,6 +60,15 @@ export function AccountMenu({
             >
               {accountLandingLabel}
             </Link>
+            {platformOperationsHref ? (
+              <Link
+                href={platformOperationsHref}
+                onClick={() => setIsOpen(false)}
+                className="rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
+              >
+                Platform Operations
+              </Link>
+            ) : null}
             <Link
               href="/auth/logout"
               onClick={() => setIsOpen(false)}
