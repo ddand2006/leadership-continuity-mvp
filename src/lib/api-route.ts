@@ -13,6 +13,8 @@ import { syncOrganizationUserAccessOnLogin } from "@/lib/organization-user-admin
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { ADMIN_ROLES } from "@/lib/mentor-access";
+import { requireActiveOrganizationApiAccess } from "@/lib/organization-access";
+import { ApiRouteError } from "@/lib/api-error";
 
 function isRecoverableAuthError(error: unknown) {
   if (!(error instanceof Error)) {
@@ -26,14 +28,7 @@ function isRecoverableAuthError(error: unknown) {
   );
 }
 
-export class ApiRouteError extends Error {
-  status: number;
-
-  constructor(message: string, status: number) {
-    super(message);
-    this.status = status;
-  }
-}
+export { ApiRouteError } from "@/lib/api-error";
 
 export function createApiErrorResponse(
   error: unknown,
@@ -103,6 +98,8 @@ export async function requireApiWorkspaceProfile(options?: {
   if (account?.status === "archived") {
     throw new ApiRouteError("Your account is archived.", 403);
   }
+
+  await requireActiveOrganizationApiAccess(profileResult.data.organization_id);
 
   const subscription = await loadOrganizationSubscription(
     admin as unknown as OrganizationSubscriptionClient,

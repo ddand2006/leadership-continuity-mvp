@@ -175,6 +175,7 @@ export async function AppNav({ pathname }: { pathname: string }) {
         ...((hasContinuityAccess && isAdmin) || isSystemAdmin
           ? [{ href: "/administration", label: "Administration" }]
           : []),
+        ...(isSystemAdmin ? [{ href: "/platform-operations", label: "Platform Ops" }] : []),
         ...(isPaywallEnabled() && !hideBillingControls
           ? [{ href: "/subscribe", label: "Access" }]
           : []),

@@ -1,6 +1,7 @@
 import { Review360ResponseForm } from "@/components/review-360-response-form";
 import { hashReview360Token } from "@/lib/review-360";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getOrganizationAccessStatus } from "@/lib/organization-access";
 
 export default async function Page({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
@@ -9,11 +10,12 @@ export default async function Page({ params }: { params: Promise<{ token: string
   if (respondent.error) throw new Error(respondent.error.message);
   if (!respondent.data) return <main className="app-page p-12">This survey link is not available.</main>;
   const [cycle, competencies, questions] = await Promise.all([
-    admin.from("review_360_cycles").select("role_title, employee_organization_user_id, candidate_id").eq("id", respondent.data.review_cycle_id).single(),
+    admin.from("review_360_cycles").select("organization_id, role_title, employee_organization_user_id, candidate_id").eq("id", respondent.data.review_cycle_id).single(),
     admin.from("review_360_snapshot_competencies").select("id,name,definition").eq("review_cycle_id", respondent.data.review_cycle_id).order("display_order"),
     admin.from("review_360_snapshot_questions").select("id,snapshot_competency_id,prompt,display_order").eq("review_cycle_id", respondent.data.review_cycle_id).order("display_order"),
   ]);
   if (cycle.error || competencies.error || questions.error) throw new Error(cycle.error?.message ?? competencies.error?.message ?? questions.error?.message);
+  if (await getOrganizationAccessStatus(cycle.data.organization_id) === "payment_hold") return <main className="app-page p-12">This survey is temporarily unavailable. Please contact the organization that invited you.</main>;
   const subject = cycle.data.candidate_id
     ? await admin.from("candidates").select("full_name").eq("id", cycle.data.candidate_id).maybeSingle()
     : await admin.from("organization_users").select("first_name,last_name").eq("id", cycle.data.employee_organization_user_id).maybeSingle();

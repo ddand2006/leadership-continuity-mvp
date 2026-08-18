@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getOrganizationAccessStatus } from "@/lib/organization-access";
 import {
   extractRoleSurveyNormalizedCompetencies,
   isMissingRoleSurveyTablesError,
@@ -46,6 +47,10 @@ async function loadRecipientByToken(token: string) {
       admin,
       error: NextResponse.json({ error: "Survey link not found." }, { status: 404 }),
     };
+  }
+
+  if (await getOrganizationAccessStatus(recipientResult.data.organization_id) === "payment_hold") {
+    return { admin, error: NextResponse.json({ error: "This survey is temporarily unavailable." }, { status: 423 }) };
   }
 
   const surveyResult = await admin

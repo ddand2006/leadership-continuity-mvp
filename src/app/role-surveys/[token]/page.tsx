@@ -2,6 +2,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { RoleSurveyResponseForm } from "@/components/role-survey-response-form";
 import { isMissingRoleSurveyTablesError } from "@/lib/role-competency-surveys";
 import { canonicalizeRoleTitle } from "@/lib/role-title";
+import { getOrganizationAccessStatus } from "@/lib/organization-access";
 
 type RoleSurveyPageProps = {
   params: Promise<{
@@ -64,7 +65,7 @@ export default async function RoleSurveyPage({ params }: RoleSurveyPageProps) {
 
   const surveyResult = await admin
     .from("role_surveys")
-    .select("id, role_id, title, intro_message, thank_you_message, status")
+    .select("id, organization_id, role_id, title, intro_message, thank_you_message, status")
     .eq("id", recipientResult.data.survey_id)
     .maybeSingle();
 
@@ -82,6 +83,9 @@ export default async function RoleSurveyPage({ params }: RoleSurveyPageProps) {
         </div>
       </main>
     );
+  }
+  if (await getOrganizationAccessStatus(surveyResult.data.organization_id) === "payment_hold") {
+    return <main className="app-page"><div className="mx-auto max-w-[980px] px-6 py-12"><section className="rounded-[1.75rem] border border-slate-200 bg-white p-8"><h1 className="font-display text-4xl">This survey is temporarily unavailable</h1><p className="mt-4 text-slate-600">Please contact the organization that sent your invitation.</p></section></div></main>;
   }
 
   const roleResult = await admin

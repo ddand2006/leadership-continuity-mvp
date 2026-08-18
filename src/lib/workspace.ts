@@ -15,6 +15,7 @@ import {
 } from "./subscription";
 import { createSupabaseAdminClient } from "./supabase/admin";
 import { createSupabaseServerClient } from "./supabase/server";
+import { requireActiveOrganizationAccess } from "./organization-access";
 
 export type WorkspaceProfile = {
   id: string;
@@ -58,6 +59,10 @@ export const getWorkspaceContext = cache(async () => {
         "Your account has been archived and can no longer access the system.",
       )}`,
     );
+  }
+
+  if (profileResult.data) {
+    await requireActiveOrganizationAccess(profileResult.data.organization_id);
   }
 
   return {

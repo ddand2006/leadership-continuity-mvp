@@ -78,13 +78,21 @@ export default function AuthConfirmPage() {
       resolved = true;
       await syncSessionToServer(session);
 
+      if (flowMode === "signup") {
+        const requestResponse = await fetch("/api/account-requests", { method: "POST" });
+        if (!requestResponse.ok) {
+          const payload = (await requestResponse.json()) as { error?: string };
+          throw new Error(payload.error ?? "Unable to submit your account request.");
+        }
+      }
+
       if (flowMode === "invite" || flowMode === "recovery") {
         setState("needs-password");
         return;
       }
 
       setState("redirecting");
-      window.location.assign(nextPath);
+      window.location.assign(flowMode === "signup" ? "/account-request-received" : nextPath);
     }
 
     async function hydrateSessionFromLink() {
