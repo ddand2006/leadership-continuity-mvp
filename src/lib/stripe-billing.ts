@@ -1,12 +1,19 @@
 import Stripe from "stripe";
 import { getAppUrl } from "@/lib/env";
 
+const configuredPriceIds = (process.env.STRIPE_PRICE_IDS ?? "")
+  .split(",")
+  .map((priceId) => priceId.trim())
+  .filter(Boolean);
+
+// STRIPE_PRICE_IDS is the compact production setting. The individual values
+// remain supported so existing deployments continue working during migration.
 export const FOUNDATION_STRIPE_PRICE_ID =
-  process.env.STRIPE_FOUNDATION_ANNUAL_PRICE_ID;
+  configuredPriceIds[0] ?? process.env.STRIPE_FOUNDATION_ANNUAL_PRICE_ID;
 export const FIRST_SEAT_PACK_STRIPE_PRICE_ID =
-  process.env.STRIPE_FIRST_SEAT_PACK_ANNUAL_PRICE_ID;
+  configuredPriceIds[1] ?? process.env.STRIPE_FIRST_SEAT_PACK_ANNUAL_PRICE_ID;
 export const VOLUME_SEAT_PACK_STRIPE_PRICE_ID =
-  process.env.STRIPE_VOLUME_SEAT_PACK_ANNUAL_PRICE_ID;
+  configuredPriceIds[2] ?? process.env.STRIPE_VOLUME_SEAT_PACK_ANNUAL_PRICE_ID;
 
 export function hasStripeBillingConfiguration() {
   return Boolean(
