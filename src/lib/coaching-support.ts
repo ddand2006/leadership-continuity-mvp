@@ -190,6 +190,7 @@ export async function generateLeadershipCoachingGuidance(options: {
   const openai = createOpenAIClient();
   const response = await openai.responses.parse({
     model: openAIEnv.OPENAI_FAST_MODEL,
+    reasoning: { effort: "none" },
     input: [
       {
         role: "system",

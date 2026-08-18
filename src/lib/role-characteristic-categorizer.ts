@@ -121,6 +121,7 @@ export async function categorizeRoleCharacteristic(input: string) {
     const openAIEnv = getOpenAIEnv();
     const response = await openai.responses.parse({
       model: openAIEnv.OPENAI_FAST_MODEL,
+      reasoning: { effort: "none" },
       input: [
         {
           role: "system",

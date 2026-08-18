@@ -44,10 +44,15 @@ export function getSupabaseAdminEnv() {
 
 export function getOpenAIEnv() {
   const defaultModel = process.env.OPENAI_MODEL ?? "gpt-5.5";
+  // Keep high-stakes, long-form work on the organization-configured model, while
+  // routing extraction, normalization, and scoring to a lower-latency model.
+  // OPENAI_FAST_MODEL remains configurable for organizations that need a
+  // different approved model.
+  const defaultFastModel = process.env.OPENAI_FAST_MODEL ?? "gpt-5.4-mini";
 
   return {
     OPENAI_MODEL: defaultModel,
-    OPENAI_FAST_MODEL: process.env.OPENAI_FAST_MODEL ?? defaultModel,
+    OPENAI_FAST_MODEL: defaultFastModel,
     OPENAI_API_KEY: nonEmptyString.parse(process.env.OPENAI_API_KEY),
   };
 }

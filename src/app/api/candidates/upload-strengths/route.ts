@@ -71,6 +71,7 @@ export async function POST(request: Request) {
     if (!candidateResult.data) {
       throw new ApiRouteError("Selected candidate could not be found.", 404);
     }
+    const candidate = candidateResult.data;
 
     const strengthsLibraryResult = await admin
       .from("strengths_library")
@@ -231,11 +232,11 @@ export async function POST(request: Request) {
           (considerationsResult.data ?? []).map((item) => item.role_id) ?? [];
         const candidateRoleIds = new Set(considerationRoleIds);
 
-        if (candidateResult.data.target_role_id) {
-          candidateRoleIds.add(candidateResult.data.target_role_id);
+        if (candidate.target_role_id) {
+          candidateRoleIds.add(candidate.target_role_id);
         }
 
-        for (const roleId of candidateRoleIds) {
+        await Promise.all(Array.from(candidateRoleIds).map(async (roleId) => {
           const [roleResult, competenciesResult] = await Promise.all([
             admin
               .from("roles")
@@ -262,7 +263,7 @@ export async function POST(request: Request) {
           }
 
           if (!roleResult.data || (competenciesResult.data ?? []).length === 0) {
-            continue;
+            return;
           }
 
           const roleTitle = canonicalizeRoleTitle(roleResult.data.title);
@@ -271,7 +272,7 @@ export async function POST(request: Request) {
             organizationId: profile.organization_id,
             candidateId,
             roleId,
-            candidateName: candidateResult.data.full_name,
+            candidateName: candidate.full_name,
             roleTitle,
             roleDescription: roleResult.data.description,
             competencies: (competenciesResult.data ?? []).map((competency) => ({
@@ -289,7 +290,7 @@ export async function POST(request: Request) {
             })),
             force: true,
           });
-        }
+        }));
       } catch (strengthsFitError) {
         console.error("Failed to calculate strengths-based role fit", {
           candidateId,

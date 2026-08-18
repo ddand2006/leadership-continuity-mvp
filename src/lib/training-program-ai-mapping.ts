@@ -24,6 +24,7 @@ export async function generateTrainingProgramMappings(options: {
   const env = getOpenAIEnv();
   const response = await openai.responses.parse({
     model: env.OPENAI_FAST_MODEL,
+    reasoning: { effort: "none" },
     input: [
       {
         role: "system",

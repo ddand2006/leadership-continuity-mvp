@@ -174,6 +174,17 @@ export async function analyzeStrengthsDocuments({
   const combinedText = documents.map((document) => document.text).join("\n\n");
   const heuristicRankings = extractStrengthsFromText(combinedText, themes);
 
+  // Gallup reports often contain an explicit ranked list. When the complete
+  // library is already present, use that deterministic result immediately
+  // instead of waiting for an AI call to rediscover the same order.
+  if (heuristicRankings.length === themes.length) {
+    return {
+      candidateName,
+      importSummary: null,
+      rankings: heuristicRankings,
+    };
+  }
+
   if (!hasOpenAIEnv()) {
     if (heuristicRankings.length < 5) {
       throw new ApiRouteError(
@@ -193,6 +204,7 @@ export async function analyzeStrengthsDocuments({
   const openai = createOpenAIClient();
   const response = await openai.responses.parse({
     model: openAIEnv.OPENAI_FAST_MODEL,
+    reasoning: { effort: "none" },
     input: [
       {
         role: "system",
