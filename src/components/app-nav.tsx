@@ -10,6 +10,8 @@ import {
   isMentorAppUser,
 } from "@/lib/mentor-access";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getActivePlatformSupportOrganization } from "@/lib/platform-support";
 import {
   hasProductAccess,
   isPaywallEnabled,
@@ -90,6 +92,7 @@ export async function AppNav({ pathname }: { pathname: string }) {
   let hasLeadershipHelpPreviewAccess = false;
   let hideBillingControls = false;
   let organizationName: string | null = null;
+  let supportOrganizationName: string | null = null;
 
   if (user) {
     const supabase = await createSupabaseServerClient();
@@ -124,15 +127,23 @@ export async function AppNav({ pathname }: { pathname: string }) {
     isCandidateOnly = Boolean(user && !isAdmin && !isMentor && isCandidate);
 
     if (profileResult.data) {
+      const supportOrganization = await getActivePlatformSupportOrganization(
+        profileResult.data,
+      );
+      const organizationId =
+        supportOrganization?.id ?? profileResult.data.organization_id;
+      const workspaceClient = supportOrganization
+        ? createSupabaseAdminClient()
+        : supabase;
       const [subscription, organizationResult] = await Promise.all([
         loadOrganizationSubscription(
-          supabase as unknown as OrganizationSubscriptionClient,
-          profileResult.data.organization_id,
+          workspaceClient as unknown as OrganizationSubscriptionClient,
+          organizationId,
         ),
-        supabase
+        workspaceClient
           .from("organizations")
           .select("name, hide_billing_controls")
-          .eq("id", profileResult.data.organization_id)
+          .eq("id", organizationId)
           .maybeSingle(),
       ]);
 
@@ -141,6 +152,7 @@ export async function AppNav({ pathname }: { pathname: string }) {
       }
 
       organizationName = organizationResult.data?.name?.trim() || null;
+      supportOrganizationName = supportOrganization?.name ?? null;
       hideBillingControls = Boolean(organizationResult.data?.hide_billing_controls);
       hasContinuityAccess = hasProductAccess(
         subscription,
@@ -152,7 +164,7 @@ export async function AppNav({ pathname }: { pathname: string }) {
       );
       hasLeadershipHelpPreviewAccess = canAccessLeadershipHelpPreview({
         email: user.email,
-        organizationId: profileResult.data.organization_id,
+        organizationId,
         role: profileResult.data.role,
       });
     }
@@ -221,7 +233,9 @@ export async function AppNav({ pathname }: { pathname: string }) {
                   Leadership Continuity
                 </p>
                 <p className="text-sm text-slate-600">
-                  {organizationName ?? "Organization succession planning MVP"}
+                  {supportOrganizationName
+                    ? `${organizationName} · Support workspace`
+                    : organizationName ?? "Organization succession planning MVP"}
                 </p>
               </div>
             </Link>
@@ -234,6 +248,7 @@ export async function AppNav({ pathname }: { pathname: string }) {
                 accountLandingHref={accountLandingHref}
                 accountLandingLabel={accountLandingLabel}
                 platformOperationsHref={isSystemAdmin ? "/platform-operations" : undefined}
+                supportOrganizationName={supportOrganizationName}
               />
             ) : (
               <div className="flex items-center gap-3">

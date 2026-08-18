@@ -15,6 +15,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { ADMIN_ROLES } from "@/lib/mentor-access";
 import { requireActiveOrganizationApiAccess } from "@/lib/organization-access";
 import { ApiRouteError } from "@/lib/api-error";
+import { getActivePlatformSupportOrganization } from "@/lib/platform-support";
 
 function isRecoverableAuthError(error: unknown) {
   if (!(error instanceof Error)) {
@@ -99,13 +100,22 @@ export async function requireApiWorkspaceProfile(options?: {
     throw new ApiRouteError("Your account is archived.", 403);
   }
 
-  await requireActiveOrganizationApiAccess(profileResult.data.organization_id, {
-    bypassForPlatformAdmin: profileResult.data.role === "system_admin",
+  const supportOrganization = await getActivePlatformSupportOrganization(
+    profileResult.data,
+  );
+  const profile = {
+    ...profileResult.data,
+    organization_id:
+      supportOrganization?.id ?? profileResult.data.organization_id,
+  };
+
+  await requireActiveOrganizationApiAccess(profile.organization_id, {
+    bypassForPlatformAdmin: profile.role === "system_admin",
   });
 
   const subscription = await loadOrganizationSubscription(
     admin as unknown as OrganizationSubscriptionClient,
-    profileResult.data.organization_id,
+    profile.organization_id,
   );
 
   const product = options?.product ?? "leadership_continuity";
@@ -121,14 +131,14 @@ export async function requireApiWorkspaceProfile(options?: {
     product === "leadership_help" &&
     !canAccessLeadershipHelpPreview({
       email: user.email,
-      organizationId: profileResult.data.organization_id,
-      role: profileResult.data.role,
+      organizationId: profile.organization_id,
+      role: profile.role,
     })
   ) {
     throw new ApiRouteError(getLeadershipHelpPreviewMessage(), 403);
   }
 
-  if (options?.requireAdmin && !ADMIN_ROLES.has(profileResult.data.role)) {
+  if (options?.requireAdmin && !ADMIN_ROLES.has(profile.role)) {
     throw new ApiRouteError("Only admins can use this feature.", 403);
   }
 
@@ -137,6 +147,7 @@ export async function requireApiWorkspaceProfile(options?: {
     account,
     subscription,
     user,
-    profile: profileResult.data,
+    profile,
+    supportOrganization,
   };
 }

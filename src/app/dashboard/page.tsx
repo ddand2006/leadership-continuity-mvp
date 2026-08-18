@@ -28,6 +28,7 @@ import {
 } from "@/lib/organization-awards";
 import { isMissingOrganizationIndustryColumnError } from "@/lib/organization-industry";
 import { canonicalizeRoleTitle } from "@/lib/role-title";
+import { getActivePlatformSupportOrganization } from "@/lib/platform-support";
 import {
   buildCompetencyAssessments,
   computeRoleGoalReadiness,
@@ -1828,7 +1829,11 @@ async function getDashboardSnapshot(
     };
   }
 
-  const organizationId = profileResult.data.organization_id;
+  const supportOrganization = await getActivePlatformSupportOrganization(
+    profileResult.data,
+  );
+  const organizationId =
+    supportOrganization?.id ?? profileResult.data.organization_id;
   const organizationResultPromise = (async () => {
     const organizationResult = await admin
       .from("organizations")
@@ -1873,6 +1878,7 @@ async function getDashboardSnapshot(
 
   const profile: DashboardProfile = {
     ...profileResult.data,
+    organization_id: organizationId,
     organization_name: organizationResult.data?.name ?? "Unknown organization",
     organization_industry: organizationResult.data?.industry ?? null,
   };

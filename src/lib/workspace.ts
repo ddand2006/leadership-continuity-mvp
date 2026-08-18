@@ -16,6 +16,7 @@ import {
 import { createSupabaseAdminClient } from "./supabase/admin";
 import { createSupabaseServerClient } from "./supabase/server";
 import { requireActiveOrganizationAccess } from "./organization-access";
+import { getActivePlatformSupportOrganization } from "./platform-support";
 
 export type WorkspaceProfile = {
   id: string;
@@ -61,17 +62,32 @@ export const getWorkspaceContext = cache(async () => {
     );
   }
 
-  if (profileResult.data) {
-    await requireActiveOrganizationAccess(profileResult.data.organization_id, {
-      bypassForPlatformAdmin: profileResult.data.role === "system_admin",
+  const supportOrganization = profileResult.data
+    ? await getActivePlatformSupportOrganization(profileResult.data)
+    : null;
+  const profile = profileResult.data
+    ? {
+        ...profileResult.data,
+        organization_id:
+          supportOrganization?.id ?? profileResult.data.organization_id,
+      }
+    : null;
+
+  if (profile) {
+    await requireActiveOrganizationAccess(profile.organization_id, {
+      bypassForPlatformAdmin: profile.role === "system_admin",
     });
   }
 
   return {
     user,
-    supabase,
+    // Platform support mode is only available to the sole system administrator.
+    // It uses the service client after the server-side, HTTP-only cookie has been
+    // validated above, so normal workspace pages operate on the selected org.
+    supabase: supportOrganization ? admin : supabase,
     account,
-    profile: profileResult.data as WorkspaceProfile | null,
+    profile: profile as WorkspaceProfile | null,
+    supportOrganization,
   };
 });
 

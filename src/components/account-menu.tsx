@@ -11,6 +11,7 @@ type AccountMenuProps = {
   accountLandingHref: string;
   accountLandingLabel: string;
   platformOperationsHref?: string;
+  supportOrganizationName?: string | null;
 };
 
 export function AccountMenu({
@@ -20,9 +21,26 @@ export function AccountMenu({
   accountLandingHref,
   accountLandingLabel,
   platformOperationsHref,
+  supportOrganizationName,
 }: AccountMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isExitingSupport, setIsExitingSupport] = useState(false);
   const menuRef = useDismissibleLayer<HTMLDivElement>(isOpen, () => setIsOpen(false));
+
+  async function exitSupportWorkspace() {
+    setIsExitingSupport(true);
+    try {
+      const response = await fetch("/api/platform-operations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "end-support-session" }),
+      });
+      const body = (await response.json()) as { workspaceUrl?: string };
+      window.location.assign(body.workspaceUrl ?? "/platform-operations");
+    } finally {
+      setIsExitingSupport(false);
+    }
+  }
 
   return (
     <div ref={menuRef} className="relative">
@@ -68,6 +86,18 @@ export function AccountMenu({
               >
                 Platform Operations
               </Link>
+            ) : null}
+            {supportOrganizationName ? (
+              <button
+                type="button"
+                onClick={exitSupportWorkspace}
+                disabled={isExitingSupport}
+                className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-left text-sm font-semibold text-amber-950 transition hover:bg-amber-100 disabled:opacity-60"
+              >
+                {isExitingSupport
+                  ? "Leaving support workspace…"
+                  : `Exit ${supportOrganizationName} workspace`}
+              </button>
             ) : null}
             <Link
               href="/auth/logout"

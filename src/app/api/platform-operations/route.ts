@@ -3,6 +3,7 @@ import { z } from "zod";
 import { ApiRouteError, createApiErrorResponse, requireApiWorkspaceProfile } from "@/lib/api-route";
 import { hasResendEnv } from "@/lib/env";
 import { sendResendEmail } from "@/lib/resend";
+import { PLATFORM_SUPPORT_ORGANIZATION_COOKIE } from "@/lib/platform-support";
 
 const actionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("settings"), salesNotificationEmail: z.string().trim().email().or(z.literal("")), remindersEnabled: z.boolean() }),
@@ -10,6 +11,7 @@ const actionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("approve-request"), requestId: z.string().uuid() }),
   z.object({ action: z.literal("access-status"), organizationId: z.string().uuid(), accessStatus: z.enum(["active", "payment_hold"]), note: z.string().max(1000).optional() }),
   z.object({ action: z.literal("support-session"), organizationId: z.string().uuid(), reason: z.string().trim().max(500).optional() }),
+  z.object({ action: z.literal("end-support-session") }),
   z.object({ action: z.literal("send-due-reminders") }),
 ]);
 
@@ -66,10 +68,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: payload.accessStatus === "payment_hold" ? "Organization access is now on payment hold. Data is preserved." : "Organization access has been restored." });
     }
     if (payload.action === "support-session") {
+      const organization = await context.admin.from("organizations").select("id, name").eq("id", payload.organizationId).maybeSingle();
+      if (organization.error) throw organization.error;
+      if (!organization.data) throw new ApiRouteError("Organization not found.", 404);
       const result = await context.admin.from("platform_support_sessions").insert({ system_admin_profile_id: context.profile.id, organization_id: payload.organizationId, reason: payload.reason || null }).select("id").single();
       if (result.error) throw result.error;
       await context.admin.from("platform_audit_events").insert({ actor_profile_id: context.profile.id, organization_id: payload.organizationId, event_type: "support_workspace_opened", details: { reason: payload.reason || null } });
-      return NextResponse.json({ message: "Support workspace opened.", sessionId: result.data.id });
+      const response = NextResponse.json({ message: `Opening ${organization.data.name} workspace.`, sessionId: result.data.id, workspaceUrl: "/dashboard" });
+      response.cookies.set(PLATFORM_SUPPORT_ORGANIZATION_COOKIE, organization.data.id, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 60 * 60 * 8 });
+      return response;
+    }
+    if (payload.action === "end-support-session") {
+      const now = new Date().toISOString();
+      const sessions = await context.admin.from("platform_support_sessions").update({ ended_at: now }).eq("system_admin_profile_id", context.profile.id).is("ended_at", null);
+      if (sessions.error) throw sessions.error;
+      await context.admin.from("platform_audit_events").insert({ actor_profile_id: context.profile.id, event_type: "support_workspace_closed" });
+      const response = NextResponse.json({ message: "Returned to your platform workspace.", workspaceUrl: "/platform-operations" });
+      response.cookies.set(PLATFORM_SUPPORT_ORGANIZATION_COOKIE, "", { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 0 });
+      return response;
     }
     const settings = await context.admin.from("platform_settings").select("sales_notification_email, reminders_enabled").eq("id", true).single();
     if (settings.error) throw settings.error;
