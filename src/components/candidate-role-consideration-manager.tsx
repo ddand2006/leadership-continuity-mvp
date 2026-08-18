@@ -49,10 +49,10 @@ export function CandidateRoleConsiderationManager({
     currentRoleId ?? "",
   );
   const [newCurrentRoleTitle, setNewCurrentRoleTitle] = useState("");
-  const [isCurrentRoleOpen, setIsCurrentRoleOpen] = useState(true);
+  const [isCurrentRoleOpen, setIsCurrentRoleOpen] = useState(false);
   const [isAddingCurrentRolePlaceholder, setIsAddingCurrentRolePlaceholder] =
     useState(false);
-  const [arePotentialPositionsOpen, setArePotentialPositionsOpen] = useState(true);
+  const [arePotentialPositionsOpen, setArePotentialPositionsOpen] = useState(false);
   const [statusByRoleId, setStatusByRoleId] = useState<Record<string, string>>(() =>
     Object.fromEntries(
       considerations.map((consideration) => [
