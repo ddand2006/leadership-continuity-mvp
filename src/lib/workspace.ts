@@ -62,7 +62,9 @@ export const getWorkspaceContext = cache(async () => {
   }
 
   if (profileResult.data) {
-    await requireActiveOrganizationAccess(profileResult.data.organization_id);
+    await requireActiveOrganizationAccess(profileResult.data.organization_id, {
+      bypassForPlatformAdmin: profileResult.data.role === "system_admin",
+    });
   }
 
   return {

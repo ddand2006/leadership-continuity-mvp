@@ -15,7 +15,8 @@ export async function getOrganizationAccessStatus(organizationId: string) {
   return (result.data?.manual_access_status ?? "active") as OrganizationAccessStatus;
 }
 
-export async function requireActiveOrganizationAccess(organizationId: string) {
+export async function requireActiveOrganizationAccess(organizationId: string, options?: { bypassForPlatformAdmin?: boolean }) {
+  if (options?.bypassForPlatformAdmin) return;
   const status = await getOrganizationAccessStatus(organizationId);
   if (status === "payment_hold") {
     redirect(
@@ -24,7 +25,8 @@ export async function requireActiveOrganizationAccess(organizationId: string) {
   }
 }
 
-export async function requireActiveOrganizationApiAccess(organizationId: string) {
+export async function requireActiveOrganizationApiAccess(organizationId: string, options?: { bypassForPlatformAdmin?: boolean }) {
+  if (options?.bypassForPlatformAdmin) return;
   const status = await getOrganizationAccessStatus(organizationId);
   if (status === "payment_hold") {
     throw new ApiRouteError(

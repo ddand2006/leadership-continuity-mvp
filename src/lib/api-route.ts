@@ -99,7 +99,9 @@ export async function requireApiWorkspaceProfile(options?: {
     throw new ApiRouteError("Your account is archived.", 403);
   }
 
-  await requireActiveOrganizationApiAccess(profileResult.data.organization_id);
+  await requireActiveOrganizationApiAccess(profileResult.data.organization_id, {
+    bypassForPlatformAdmin: profileResult.data.role === "system_admin",
+  });
 
   const subscription = await loadOrganizationSubscription(
     admin as unknown as OrganizationSubscriptionClient,
