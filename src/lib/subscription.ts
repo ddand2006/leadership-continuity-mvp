@@ -1,6 +1,6 @@
 const SUBSCRIPTION_COLUMNS =
   "subscription_status, subscription_tier, trial_ends_at, billing_contact_email, leadership_continuity_enabled, leadership_continuity_tier, leadership_help_enabled, leadership_help_tier, included_seats, additional_seat_packs";
-const BILLING_SUPPORT_EMAIL = "billing@leadershipcontinuitysystem.com";
+const BILLING_SUPPORT_EMAIL = "admin@leadercontinuity.com";
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export const SUBSCRIPTION_PRODUCTS = [
