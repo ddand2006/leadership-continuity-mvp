@@ -15,6 +15,7 @@ export function CandidateWorkflowStateManager({
   latestStateByRoleId,
   latestMatch,
   latestDecision,
+  decisionHistory,
 }: {
   candidateId: string;
   roleId: string;
@@ -30,6 +31,12 @@ export function CandidateWorkflowStateManager({
   >;
   latestMatch: { status: MatchStatus; createdAt: string } | null;
   latestDecision: { decision: HiringDecision; createdAt: string } | null;
+  decisionHistory: Array<{
+    roleId: string;
+    decision: HiringDecision;
+    notes: string | null;
+    createdAt: string;
+  }>;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -42,6 +49,10 @@ export function CandidateWorkflowStateManager({
     match: null,
     decision: null,
   };
+  const selectedRole = roleOptions.find((role) => role.id === selectedRoleId);
+  const selectedDecisionHistory = decisionHistory.filter(
+    (entry) => entry.roleId === selectedRoleId,
+  );
 
   function save(kind: "match" | "decision") {
     setMessage(null);
@@ -57,7 +68,11 @@ export function CandidateWorkflowStateManager({
         const payload = await response.json() as { message?: string; error?: string };
         if (!response.ok) throw new Error(payload.error ?? "Unable to save.");
         setNotes("");
-        setMessage(payload.message ?? "Saved.");
+        setMessage(
+          kind === "decision"
+            ? "Decision recorded. You can now record the next mentoring recommendation."
+            : (payload.message ?? "Saved."),
+        );
         router.refresh();
       } catch (error) {
         setMessage(error instanceof Error ? error.message : "Unable to save.");
@@ -113,6 +128,55 @@ export function CandidateWorkflowStateManager({
         {selectedState.decision ? ` · Last decision: ${selectedState.decision.decision.replaceAll("_", " ")}` : ""}
       </p>
       {message ? <p role="status" className="mt-3 text-sm font-semibold text-teal-800">{message}</p> : null}
+      <section className="mt-6 border-t border-slate-200 pt-5" aria-label="Leadership decision history">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <div>
+            <p className="text-sm font-semibold tracking-[0.12em] text-slate-500 uppercase">Decision history</p>
+            <h3 className="mt-1 text-lg font-semibold text-slate-900">
+              {selectedRole?.title ?? "Selected role"}
+            </h3>
+          </div>
+          <span className="text-sm text-slate-500">
+            {selectedDecisionHistory.length} recorded
+          </span>
+        </div>
+        {selectedDecisionHistory.length > 0 ? (
+          <ol className="mt-4 grid gap-3">
+            {selectedDecisionHistory.map((entry) => (
+              <li
+                key={`${entry.roleId}-${entry.createdAt}-${entry.decision}`}
+                className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+              >
+                <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                  <p className="font-semibold text-slate-900">
+                    {entry.decision.replaceAll("_", " ")}
+                  </p>
+                  <time className="text-sm text-slate-500" dateTime={entry.createdAt}>
+                    {new Intl.DateTimeFormat("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                    }).format(new Date(entry.createdAt))}
+                  </time>
+                </div>
+                {entry.notes ? (
+                  <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                    {entry.notes}
+                  </p>
+                ) : (
+                  <p className="mt-2 text-sm text-slate-500">No notes recorded.</p>
+                )}
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p className="mt-3 text-sm leading-6 text-slate-500">
+            No decisions have been recorded for this role yet. Each saved decision will stay here as part of the mentoring record.
+          </p>
+        )}
+      </section>
     </section>
   );
 }

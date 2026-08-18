@@ -513,7 +513,7 @@ export default async function CandidateDetailPage({
       .eq("candidate_id", candidate.id),
     supabase
       .from("hiring_decisions")
-      .select("role_id, decision, created_at")
+      .select("role_id, decision, decision_notes, created_at")
       .eq("organization_id", profile.organization_id)
       .eq("candidate_id", candidate.id),
   ]);
@@ -618,6 +618,15 @@ export default async function CandidateDetailPage({
       ];
     }),
   );
+  const decisionHistory = (progressDecisionsResult.data ?? [])
+    .filter((decision) => allowedRoleIds.has(decision.role_id))
+    .sort((left, right) => right.created_at.localeCompare(left.created_at))
+    .map((decision) => ({
+      roleId: decision.role_id,
+      decision: decision.decision as "hire" | "continue_mentoring" | "decline",
+      notes: decision.decision_notes,
+      createdAt: decision.created_at,
+    }));
 
   let developmentRecords = developmentRecordsResult.data ?? [];
 
@@ -1524,6 +1533,7 @@ export default async function CandidateDetailPage({
                           }
                         : null
                     }
+                    decisionHistory={decisionHistory}
                   />
                 </section>
               ) : (
