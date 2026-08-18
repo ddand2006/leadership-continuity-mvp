@@ -1053,6 +1053,7 @@ export default async function CandidateDetailPage({
             {
               id: "candidate-profile",
               label: "Candidate Profile",
+              navOrder: 0,
               summary:
                 "Keep the candidate's position, assessments, 360 reviews, and strengths evidence together in one profile.",
               dashboardContent: assessmentDashboard,
@@ -1209,6 +1210,7 @@ export default async function CandidateDetailPage({
             {
               id: "progress-report",
               label: "Progress Report",
+              navOrder: 2,
               summary:
                 "Review year-to-date, program-to-date, and annual evidence of growth for this candidate.",
               content: (
@@ -1483,6 +1485,7 @@ export default async function CandidateDetailPage({
             {
               id: "talent-review",
               label: "Talent Review",
+              navOrder: 3,
               summary:
                 "Bring mentors, HR, and leadership together to record a role-based readiness recommendation and decision.",
               content: isAdmin && activeRoleId ? (
@@ -1532,6 +1535,7 @@ export default async function CandidateDetailPage({
             {
               id: "role-fit",
               label: "Role Fit",
+              navOrder: 1,
               summary:
                 "Focus on the candidate’s role-fit competencies, top 5 strengths, and next 10 strengths one insight at a time.",
               content: (
@@ -1622,6 +1626,7 @@ export default async function CandidateDetailPage({
             {
               id: "mentor-report",
               label: "Mentor Report",
+              navOrder: 4,
               summary:
                 "Review the latest mentor-facing narrative, including strongest matches and development priorities.",
               content: (

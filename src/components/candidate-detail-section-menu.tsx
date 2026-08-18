@@ -11,6 +11,7 @@ type CandidateDetailSection = {
   dashboardContent?: ReactNode;
   detailSectionIds?: string[];
   parentSectionId?: string;
+  navOrder?: number;
 };
 
 export function CandidateDetailSectionMenu({
@@ -61,7 +62,14 @@ export function CandidateDetailSectionMenu({
   return (
     <section className="grid gap-6">
       <nav className="flex flex-wrap gap-3 border-b border-slate-200 pb-5" aria-label="Candidate workspace sections">
-        {sections.filter((section) => !section.parentSectionId).map((section) => {
+        {sections
+          .filter((section) => !section.parentSectionId)
+          .map((section, index) => ({ section, index }))
+          .sort((left, right) =>
+            (left.section.navOrder ?? left.index) -
+            (right.section.navOrder ?? right.index),
+          )
+          .map(({ section }) => {
           const isActive = section.id === activeSection.id;
 
           return (
