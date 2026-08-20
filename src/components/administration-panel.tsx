@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MentorAssignmentManager } from "@/components/mentor-assignment-manager";
 import { useDismissibleLayer } from "@/hooks/use-dismissible-layer";
@@ -135,6 +136,8 @@ function defaultFormState(user?: AdministrationUser) {
     isMentor: user?.is_mentor ?? false,
     adminRole: user?.admin_role ?? "none",
     status: user?.status ?? "active",
+    currentRoleId: null as string | null,
+    futureRoleIds: [] as string[],
     temporaryPassword: "",
   };
 }
@@ -465,6 +468,8 @@ export function AdministrationPanel({
       isMentor: formState.isMentor,
       adminRole: formState.adminRole,
       status: formState.status,
+      currentRoleId: formState.currentRoleId,
+      futureRoleIds: formState.futureRoleIds,
     };
 
     if (composerMode === "create") {
@@ -502,6 +507,8 @@ export function AdministrationPanel({
             isCandidate: formState.isCandidate,
             isMentor: formState.isMentor,
             adminRole: formState.adminRole,
+            currentRoleId: formState.currentRoleId,
+            futureRoleIds: formState.futureRoleIds,
           }),
         },
         (result) => {
@@ -1458,6 +1465,75 @@ export function AdministrationPanel({
                     </label>
                   </div>
                 </fieldset>
+
+                {formState.isCandidate &&
+                (composerMode === "create" || composerMode === "invite") ? (
+                  <section className="rounded-[1.5rem] border border-sky-200 bg-sky-50/60 p-5">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <h4 className="text-sm font-semibold text-slate-900">
+                          Candidate roles
+                        </h4>
+                        <p className="mt-1 text-sm leading-6 text-slate-600">
+                          Select roles already maintained in the Roles workspace.
+                        </p>
+                      </div>
+                      <Link
+                        href="/roles"
+                        className="rounded-full border border-sky-300 bg-white px-3 py-2 text-xs font-semibold text-sky-900 transition hover:border-sky-400 hover:bg-sky-100"
+                      >
+                        Manage roles
+                      </Link>
+                    </div>
+                    <label className="mt-4 block">
+                      <span className="mb-2 block text-sm font-semibold text-slate-700">
+                        Current role in the organization
+                      </span>
+                      <select
+                        value={formState.currentRoleId ?? ""}
+                        onChange={(event) =>
+                          updateField("currentRoleId", event.target.value || null)
+                        }
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500"
+                      >
+                        <option value="">Not set</option>
+                        {mentorAssignmentOptions.roles.map((role) => (
+                          <option key={role.id} value={role.id}>
+                            {role.title}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <fieldset className="mt-4">
+                      <legend className="text-sm font-semibold text-slate-700">
+                        Future roles to consider
+                      </legend>
+                      <p className="mt-1 text-xs leading-5 text-slate-500">
+                        The first role selected becomes the primary succession role.
+                      </p>
+                      <div className="mt-3 grid max-h-44 gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
+                        {mentorAssignmentOptions.roles.map((role) => (
+                          <label key={role.id} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
+                            <input
+                              type="checkbox"
+                              checked={formState.futureRoleIds.includes(role.id)}
+                              onChange={(event) =>
+                                updateField(
+                                  "futureRoleIds",
+                                  event.target.checked
+                                    ? [...formState.futureRoleIds, role.id]
+                                    : formState.futureRoleIds.filter((roleId) => roleId !== role.id),
+                                )
+                              }
+                              className="h-4 w-4 rounded border-slate-300 text-teal-700 focus:ring-teal-500"
+                            />
+                            {role.title}
+                          </label>
+                        ))}
+                      </div>
+                    </fieldset>
+                  </section>
+                ) : null}
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <label className="block">

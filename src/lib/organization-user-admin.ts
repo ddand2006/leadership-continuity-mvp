@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { ApiRouteError } from "@/lib/api-route";
 import { getAppUrl } from "@/lib/env";
+import { canonicalizeRoleTitle } from "@/lib/role-title";
 import {
   assertOrganizationSeatAvailable,
   isBillableInternalUserStatus,
@@ -347,6 +348,92 @@ async function syncCandidateRecord(options: {
   return null;
 }
 
+async function assignCandidateRoles(options: {
+  admin: SupabaseClient;
+  organizationId: string;
+  candidateId: string | null;
+  currentRoleId?: string | null;
+  futureRoleIds?: string[];
+}) {
+  if (!options.candidateId) {
+    return;
+  }
+
+  const futureRoleIds = Array.from(new Set(options.futureRoleIds ?? []));
+  const requestedRoleIds = Array.from(
+    new Set(
+      [options.currentRoleId, ...futureRoleIds].filter(
+        (roleId): roleId is string => Boolean(roleId),
+      ),
+    ),
+  );
+
+  const rolesResult = requestedRoleIds.length
+    ? await options.admin
+        .from("roles")
+        .select("id, title")
+        .eq("organization_id", options.organizationId)
+        .in("id", requestedRoleIds)
+    : { data: [], error: null };
+
+  if (rolesResult.error) {
+    throw new ApiRouteError(rolesResult.error.message, 500);
+  }
+
+  const rolesById = new Map((rolesResult.data ?? []).map((role) => [role.id, role]));
+  if (rolesById.size !== requestedRoleIds.length) {
+    throw new ApiRouteError("Choose roles that belong to this organization.", 400);
+  }
+
+  const currentRole = options.currentRoleId
+    ? rolesById.get(options.currentRoleId) ?? null
+    : null;
+  const currentRoleUpdate = await options.admin
+    .from("candidates")
+    .update({
+      current_role_id: currentRole?.id ?? null,
+      current_title: currentRole ? canonicalizeRoleTitle(currentRole.title) : null,
+      target_role_id: futureRoleIds[0] ?? null,
+    })
+    .eq("organization_id", options.organizationId)
+    .eq("id", options.candidateId);
+
+  if (currentRoleUpdate.error) {
+    throw new ApiRouteError(currentRoleUpdate.error.message, 400);
+  }
+
+  if (futureRoleIds.length === 0) {
+    return;
+  }
+
+  const clearPrimaryResult = await options.admin
+    .from("candidate_role_considerations")
+    .update({ is_primary: false })
+    .eq("organization_id", options.organizationId)
+    .eq("candidate_id", options.candidateId);
+
+  if (clearPrimaryResult.error) {
+    throw new ApiRouteError(clearPrimaryResult.error.message, 400);
+  }
+
+  const considerationsResult = await options.admin
+    .from("candidate_role_considerations")
+    .upsert(
+      futureRoleIds.map((roleId, index) => ({
+        organization_id: options.organizationId,
+        candidate_id: options.candidateId,
+        role_id: roleId,
+        status: "active",
+        is_primary: index === 0,
+      })),
+      { onConflict: "candidate_id,role_id" },
+    );
+
+  if (considerationsResult.error) {
+    throw new ApiRouteError(considerationsResult.error.message, 400);
+  }
+}
+
 export async function loadOrganizationUser(options: {
   admin: SupabaseClient;
   organizationId: string;
@@ -435,6 +522,13 @@ export async function createManagedUser(options: {
     lastName: input.lastName,
     isCandidate: input.isCandidate,
     status: input.status,
+  });
+  await assignCandidateRoles({
+    admin: options.admin,
+    organizationId: options.organizationId,
+    candidateId,
+    currentRoleId: input.currentRoleId,
+    futureRoleIds: input.futureRoleIds,
   });
   const timestamps = getStatusTimestamps(null, input.status);
 
@@ -535,6 +629,13 @@ export async function inviteManagedUser(options: {
     lastName: input.lastName,
     isCandidate: input.isCandidate,
     status: "invited",
+  });
+  await assignCandidateRoles({
+    admin: options.admin,
+    organizationId: options.organizationId,
+    candidateId,
+    currentRoleId: input.currentRoleId,
+    futureRoleIds: input.futureRoleIds,
   });
 
   const insertResult = await options.admin

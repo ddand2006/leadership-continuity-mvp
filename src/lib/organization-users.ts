@@ -49,6 +49,8 @@ export const organizationUserInputBaseSchema = z.object({
   isMentor: z.boolean(),
   adminRole: z.enum(ORGANIZATION_USER_ADMIN_ROLES),
   status: z.enum(ORGANIZATION_USER_STATUSES),
+  currentRoleId: z.string().uuid().nullable().optional(),
+  futureRoleIds: z.array(z.string().uuid()).max(20).optional(),
 });
 
 export const organizationUserInputSchema = organizationUserInputBaseSchema
