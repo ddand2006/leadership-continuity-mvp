@@ -107,23 +107,22 @@ export function CandidateInsightExplorer({
 
   return (
     <section className="grid gap-6">
+      <section className="theme-panel-strong rounded-[1.75rem] p-8">
+        <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">
+          Role Fit Guide
+        </p>
+        <h2 className="mt-3 font-display text-3xl text-slate-900">
+          Use one insight at a time
+        </h2>
+        <p className="mt-4 max-w-4xl text-sm leading-7 text-slate-600">
+          <strong>Candidate:</strong> choose a competency or strength to understand what is going well and where to grow. {" "}
+          <strong>Mentor:</strong> use the same view to guide one focused conversation and agree on a practical next step together.
+        </p>
+      </section>
+
       <div className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
-        <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-          <div>
-            <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
-              Role Fit Analysis
-            </p>
-            <h2 className="mt-3 font-display text-3xl text-slate-900">
-              Focus on one competency or strength at a time
-            </h2>
-            <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600">
-              Use the buttons below to isolate one role-fit area or one top strength.
-              This keeps the page focused so you can review each insight without
-              competing information on screen. Candidate scores on this page blend
-              interview scoring with strengths-fit scoring for the same competency.
-            </p>
-          </div>
-          <div className="rounded-3xl border border-[rgba(82,140,94,0.2)] bg-[rgba(239,251,241,0.96)] p-6 text-[#183822] shadow-[0_20px_60px_rgba(36,64,216,0.1)]">
+        <div className="flex justify-end">
+          <div className="w-full max-w-md rounded-3xl border border-[rgba(82,140,94,0.2)] bg-[rgba(239,251,241,0.96)] p-6 text-[#183822] shadow-[0_20px_60px_rgba(36,64,216,0.1)]">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <p className="text-sm font-semibold tracking-[0.16em] text-[#24512f] uppercase">
                 Role-Goal Readiness
@@ -136,11 +135,6 @@ export function CandidateInsightExplorer({
             <p className="mt-3 text-sm leading-7 text-[#24512f]">
               {roleGoalReadiness.metGoalCount} of {roleGoalReadiness.totalCount}{" "}
               competencies are at or above the role goal.
-            </p>
-            <p className="mt-3 text-sm leading-7 text-[#24512f]">
-              Each competency at or above the role goal counts as 100%. Scores
-              below goal count as the percent of the role goal achieved, then the
-              percentages are averaged across the chart.
             </p>
             <p className="mt-3 text-sm leading-7 text-[#24512f]">
               {award.shortDescription}
