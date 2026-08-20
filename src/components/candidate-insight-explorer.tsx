@@ -121,31 +121,7 @@ export function CandidateInsightExplorer({
       </section>
 
       <div className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
-        <div className="flex justify-end">
-          <div className="w-full max-w-md rounded-3xl border border-[rgba(82,140,94,0.2)] bg-[rgba(239,251,241,0.96)] p-6 text-[#183822] shadow-[0_20px_60px_rgba(36,64,216,0.1)]">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <p className="text-sm font-semibold tracking-[0.16em] text-[#24512f] uppercase">
-                Role-Goal Readiness
-              </p>
-              <CandidateAwardBadge award={award} size="sm" />
-            </div>
-            <p className="mt-3 text-4xl font-semibold text-[#14361d]">
-              {roleGoalReadiness.readinessPercent.toFixed(1)}%
-            </p>
-            <p className="mt-3 text-sm leading-7 text-[#24512f]">
-              {roleGoalReadiness.metGoalCount} of {roleGoalReadiness.totalCount}{" "}
-              competencies are at or above the role goal.
-            </p>
-            <p className="mt-3 text-sm leading-7 text-[#24512f]">
-              {award.shortDescription}
-            </p>
-            <p className="mt-3 text-sm leading-7 text-[#24512f]">
-              {award.nextStep}
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-6 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
           <div>
             <p className="text-xs font-semibold tracking-[0.16em] text-slate-500 uppercase">
               Competency buttons
@@ -196,7 +172,28 @@ export function CandidateInsightExplorer({
           </div>
 
           <div>
-            <p className="text-xs font-semibold tracking-[0.16em] text-slate-500 uppercase">
+            <div className="rounded-3xl border border-[rgba(82,140,94,0.2)] bg-[rgba(239,251,241,0.96)] p-6 text-[#183822] shadow-[0_20px_60px_rgba(36,64,216,0.1)]">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <p className="text-sm font-semibold tracking-[0.16em] text-[#24512f] uppercase">
+                  Role-Goal Readiness
+                </p>
+                <CandidateAwardBadge award={award} size="sm" />
+              </div>
+              <p className="mt-3 text-4xl font-semibold text-[#14361d]">
+                {roleGoalReadiness.readinessPercent.toFixed(1)}%
+              </p>
+              <p className="mt-3 text-sm leading-7 text-[#24512f]">
+                {roleGoalReadiness.metGoalCount} of {roleGoalReadiness.totalCount}{" "}
+                competencies are at or above the role goal.
+              </p>
+              <p className="mt-3 text-sm leading-7 text-[#24512f]">
+                {award.shortDescription}
+              </p>
+              <p className="mt-3 text-sm leading-7 text-[#24512f]">
+                {award.nextStep}
+              </p>
+            </div>
+            <p className="mt-6 text-xs font-semibold tracking-[0.16em] text-slate-500 uppercase">
               Strength buttons
             </p>
             <div className="mt-3 space-y-5">
