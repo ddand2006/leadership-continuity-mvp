@@ -14,17 +14,11 @@ type RoleConsideration = {
 export function CandidateRoleConsiderationSummary({
   candidateId,
   considerations,
-  initialExpandedRoleId,
 }: {
   candidateId: string;
   considerations: RoleConsideration[];
-  initialExpandedRoleId: string | null;
 }) {
-  const [expandedRoleId, setExpandedRoleId] = useState(
-    initialExpandedRoleId && considerations.some((item) => item.roleId === initialExpandedRoleId)
-      ? initialExpandedRoleId
-      : null,
-  );
+  const [expandedRoleId, setExpandedRoleId] = useState<string | null>(null);
 
   if (considerations.length === 0) {
     return (
@@ -40,15 +34,22 @@ export function CandidateRoleConsiderationSummary({
         const isExpanded = expandedRoleId === consideration.roleId;
 
         return (
-          <div key={consideration.roleId} className="min-w-0">
+          <div
+            key={consideration.roleId}
+            className="min-w-0"
+            onMouseEnter={() => setExpandedRoleId(consideration.roleId)}
+            onMouseLeave={() => setExpandedRoleId(null)}
+          >
             <button
               type="button"
               aria-expanded={isExpanded}
-              onClick={() =>
-                setExpandedRoleId((current) =>
-                  current === consideration.roleId ? null : consideration.roleId,
-                )
-              }
+              onClick={() => {
+                if (window.matchMedia("(hover: none)").matches) {
+                  setExpandedRoleId((current) =>
+                    current === consideration.roleId ? null : consideration.roleId,
+                  );
+                }
+              }}
               className={`rounded-full border px-4 py-2.5 text-sm font-semibold transition ${
                 isExpanded
                   ? "interactive-contrast border-teal-900 bg-teal-900 text-white shadow-[0_14px_30px_rgba(15,118,110,0.16)]"

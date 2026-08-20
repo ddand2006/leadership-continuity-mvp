@@ -1076,7 +1076,6 @@ export default async function CandidateDetailPage({
                     </p>
                     <CandidateRoleConsiderationSummary
                       candidateId={candidate.id}
-                      initialExpandedRoleId={activeRoleId}
                       considerations={considerations
                         .filter((item) => allowedRoleIds.has(item.role_id))
                         .map((consideration) => ({
