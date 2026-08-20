@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { CandidateProgressReport } from "@/components/candidate-progress-report";
 import { CandidateWorkflowStateManager } from "@/components/candidate-workflow-state-manager";
 import { CandidateDetailSectionMenu } from "@/components/candidate-detail-section-menu";
+import { CandidateRoleConsiderationSummary } from "@/components/candidate-role-consideration-summary";
 import { CandidateSelectorSidebar } from "@/components/candidate-selector-sidebar";
 import { getCandidateDisplayName } from "@/lib/candidate-display-name";
 import { CandidateInsightExplorer } from "@/components/candidate-insight-explorer";
@@ -1073,65 +1074,33 @@ export default async function CandidateDetailPage({
                     <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
                       Roles Under Consideration
                     </p>
-                    <div className="mt-6 grid gap-4 lg:grid-cols-3">
-                      {considerations.length > 0 ? (
-                        considerations
-                          .filter((item) => allowedRoleIds.has(item.role_id))
-                          .map((consideration) => {
-                            const role = roleMap.get(consideration.role_id);
-                            const assignedMentors = Array.from(
-                              new Set(
-                                displayableMentorAssignments
-                                  .filter(
-                                    (assignment) =>
-                                      assignment.role_id === consideration.role_id,
-                                  )
-                                  .map(
-                                    (assignment) =>
-                                      mentorMap.get(assignment.mentor_profile_id)?.full_name,
-                                  )
-                                  .filter(Boolean),
-                              ),
-                            );
-
-                            return (
-                              <Link
-                                key={consideration.role_id}
-                                href={`/candidates/${candidate.id}?roleId=${consideration.role_id}`}
-                                className={`rounded-3xl border p-5 text-sm transition hover:-translate-y-0.5 hover:shadow-[0_24px_70px_rgba(15,23,42,0.08)] ${
-                                  activeRoleId === consideration.role_id
-                                    ? "border-teal-300 bg-teal-50"
-                                    : "border-slate-200 bg-slate-50"
-                                }`}
-                              >
-                                <div className="flex flex-wrap items-center gap-3">
-                                  <p className="font-semibold text-slate-900">
-                                    {role?.title ?? "Unknown role"}
-                                  </p>
-                                  {consideration.is_primary ? (
-                                    <span className="rounded-full bg-teal-100 px-3 py-1 text-[11px] font-semibold tracking-[0.12em] text-teal-900 uppercase">
-                                      Primary
-                                    </span>
-                                  ) : null}
-                                </div>
-                                <p className="mt-2 text-slate-600">
-                                  Status: {getConsiderationStatusLabel(consideration.status)}
-                                </p>
-                                <p className="mt-2 text-slate-600">
-                                  Mentors:{" "}
-                                  {assignedMentors.length > 0
-                                    ? assignedMentors.join(", ")
-                                    : "Not assigned"}
-                                </p>
-                              </Link>
-                            );
-                          })
-                      ) : (
-                        <article className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-5 text-sm leading-7 text-slate-600 lg:col-span-3">
-                          No role considerations are attached to this candidate yet.
-                        </article>
-                      )}
-                    </div>
+                    <CandidateRoleConsiderationSummary
+                      candidateId={candidate.id}
+                      initialExpandedRoleId={activeRoleId}
+                      considerations={considerations
+                        .filter((item) => allowedRoleIds.has(item.role_id))
+                        .map((consideration) => ({
+                          roleId: consideration.role_id,
+                          roleTitle:
+                            roleMap.get(consideration.role_id)?.title ?? "Unknown role",
+                          statusLabel: getConsiderationStatusLabel(consideration.status),
+                          isPrimary: consideration.is_primary,
+                          mentorNames: Array.from(
+                            new Set(
+                              displayableMentorAssignments
+                                .filter(
+                                  (assignment) =>
+                                    assignment.role_id === consideration.role_id,
+                                )
+                                .map(
+                                  (assignment) =>
+                                    mentorMap.get(assignment.mentor_profile_id)?.full_name,
+                                )
+                                .filter((name): name is string => Boolean(name)),
+                            ),
+                          ),
+                        }))}
+                    />
                   </section>
                 </section>
               ),
