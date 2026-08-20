@@ -161,6 +161,7 @@ export function CandidateProgressReport({
   ).sort((left, right) => right - left);
   const [period, setPeriod] = useState<ReportPeriod>("year-to-date");
   const [selectedYear, setSelectedYear] = useState(years[0] ?? currentYear);
+  const [isRecentActivityExpanded, setIsRecentActivityExpanded] = useState(false);
   const [isDownloading, startDownload] = useTransition();
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const activeRoleTitles = roles
@@ -369,12 +370,34 @@ export function CandidateProgressReport({
       </section>
 
       <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
-        <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">Recent Activity</p>
-        <div className="mt-6 grid gap-3">
-          {latestEvents.length > 0 ? latestEvents.map((event, index) => (
-            <article key={`${event.occurredAt}-${event.label}-${index}`} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700"><p className="font-semibold text-slate-900">{event.label}</p><p className="mt-1 leading-6">{event.detail}</p><p className="mt-2 text-xs font-semibold tracking-[0.1em] text-slate-500 uppercase">{formatDate(event.occurredAt)}</p></article>
-          )) : <p className="text-sm leading-7 text-slate-600">No progress activity has been recorded for this reporting period.</p>}
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
+              Recent Activity
+            </p>
+            <p className="mt-2 text-sm text-slate-600">
+              {latestEvents.length > 0
+                ? `${latestEvents.length} recent ${latestEvents.length === 1 ? "update" : "updates"} for this reporting period.`
+                : "No progress activity has been recorded for this reporting period."}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsRecentActivityExpanded((isExpanded) => !isExpanded)}
+            aria-expanded={isRecentActivityExpanded}
+            className="rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            {isRecentActivityExpanded ? "Collapse" : "Expand"}
+          </button>
         </div>
+
+        {isRecentActivityExpanded && latestEvents.length > 0 ? (
+          <div className="mt-6 grid gap-3">
+            {latestEvents.map((event, index) => (
+              <article key={`${event.occurredAt}-${event.label}-${index}`} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700"><p className="font-semibold text-slate-900">{event.label}</p><p className="mt-1 leading-6">{event.detail}</p><p className="mt-2 text-xs font-semibold tracking-[0.1em] text-slate-500 uppercase">{formatDate(event.occurredAt)}</p></article>
+            ))}
+          </div>
+        ) : null}
       </section>
     </section>
   );
