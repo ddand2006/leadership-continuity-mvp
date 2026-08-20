@@ -1491,9 +1491,15 @@ export function AdministrationPanel({
                       </span>
                       <select
                         value={formState.currentRoleId ?? ""}
-                        onChange={(event) =>
-                          updateField("currentRoleId", event.target.value || null)
-                        }
+                        onChange={(event) => {
+                          if (event.target.value === "__add_new_role__") {
+                            closeComposer();
+                            router.push("/roles?mode=create");
+                            return;
+                          }
+
+                          updateField("currentRoleId", event.target.value || null);
+                        }}
                         className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500"
                       >
                         <option value="">Not set</option>
@@ -1502,6 +1508,7 @@ export function AdministrationPanel({
                             {role.title}
                           </option>
                         ))}
+                        <option value="__add_new_role__">+ Add new role…</option>
                       </select>
                     </label>
                     <fieldset className="mt-4">
