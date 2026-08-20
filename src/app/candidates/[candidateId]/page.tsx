@@ -1223,35 +1223,64 @@ export default async function CandidateDetailPage({
               summary:
                 "Review year-to-date, program-to-date, and annual evidence of growth for this candidate.",
               content: (
-                <CandidateProgressReport
-                  candidateId={candidate.id}
-                  candidateName={candidate.full_name}
-                  roles={considerations
-                    .filter((consideration) => allowedRoleIds.has(consideration.role_id))
-                    .map((consideration) => ({
-                      roleId: consideration.role_id,
-                      roleTitle:
-                        roleMap.get(consideration.role_id)?.title ?? "Unknown role",
-                      status:
-                        consideration.status === "on_hold" ? "on_hold" : "active",
-                      isPrimary: consideration.is_primary,
+                <section className="grid gap-6">
+                  <CandidateProgressReport
+                    candidateId={candidate.id}
+                    candidateName={candidate.full_name}
+                    roles={considerations
+                      .filter((consideration) => allowedRoleIds.has(consideration.role_id))
+                      .map((consideration) => ({
+                        roleId: consideration.role_id,
+                        roleTitle:
+                          roleMap.get(consideration.role_id)?.title ?? "Unknown role",
+                        status:
+                          consideration.status === "on_hold" ? "on_hold" : "active",
+                        isPrimary: consideration.is_primary,
+                      }))}
+                    interviews={progressInterviews}
+                    developmentRecords={progressDevelopmentRecords.map((record) => ({
+                      roleId: record.role_id,
+                      roleTitle: roleMap.get(record.role_id)?.title ?? "Unknown role",
+                      title: record.experience_title,
+                      summary: record.project_summary,
+                      status: record.status,
+                      occurredAt: record.updated_at ?? record.date_assigned,
+                      mentorReviewed: Boolean(record.mentor_review_date),
                     }))}
-                  interviews={progressInterviews}
-                  developmentRecords={progressDevelopmentRecords.map((record) => ({
-                    roleId: record.role_id,
-                    roleTitle: roleMap.get(record.role_id)?.title ?? "Unknown role",
-                    title: record.experience_title,
-                    summary: record.project_summary,
-                    status: record.status,
-                    occurredAt: record.updated_at ?? record.date_assigned,
-                    mentorReviewed: Boolean(record.mentor_review_date),
-                  }))}
-                  mentorReportDates={(progressMentorReportsResult.data ?? []).map(
-                    (report) => report.created_at,
-                  )}
-                  events={progressEvents}
-                  decisionEvents={progressDecisionEvents}
-                />
+                    mentorReportDates={(progressMentorReportsResult.data ?? []).map(
+                      (report) => report.created_at,
+                    )}
+                    events={progressEvents}
+                    decisionEvents={progressDecisionEvents}
+                  />
+                  {isAdmin && activeRoleId ? (
+                    <CandidateWorkflowStateManager
+                      candidateId={candidate.id}
+                      roleId={activeRoleId}
+                      roleOptions={workflowRoleOptions}
+                      readinessScore={roleGoalReadiness.readinessPercent}
+                      readinessRoleId={activeRoleId}
+                      latestStateByRoleId={latestStateByRoleId}
+                      latestMatch={
+                        latestMatchResult.data
+                          ? {
+                              status: latestMatchResult.data.match_status as "match" | "not_yet" | "not_recommended",
+                              createdAt: latestMatchResult.data.created_at,
+                            }
+                          : null
+                      }
+                      latestDecision={
+                        latestDecisionResult.data
+                          ? {
+                              decision: latestDecisionResult.data.decision as "hire" | "continue_mentoring" | "decline",
+                              createdAt: latestDecisionResult.data.created_at,
+                            }
+                          : null
+                      }
+                      decisionHistory={decisionHistory}
+                    />
+                  ) : null}
+                </section>
               ),
             },
             {
@@ -1488,57 +1517,6 @@ export default async function CandidateDetailPage({
                       )}
                     </div>
                   </section>
-                </section>
-              ),
-            },
-            {
-              id: "talent-review",
-              label: "Talent Review",
-              navOrder: 3,
-              summary:
-                "Bring mentors, HR, and leadership together to record a role-based readiness recommendation and decision.",
-              content: isAdmin && activeRoleId ? (
-                <section className="grid gap-6">
-                  <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
-                    <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">
-                      Talent Review
-                    </p>
-                    <h2 className="mt-3 font-display text-3xl text-slate-900">
-                      Record the group&apos;s readiness recommendation
-                    </h2>
-                    <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
-                      Use this space after reviewing role-fit evidence, interviews, 360 feedback, and development progress. It preserves the dated recommendation for the selected potential role.
-                    </p>
-                  </section>
-                  <CandidateWorkflowStateManager
-                    candidateId={candidate.id}
-                    roleId={activeRoleId}
-                    roleOptions={workflowRoleOptions}
-                    readinessScore={roleGoalReadiness.readinessPercent}
-                    readinessRoleId={activeRoleId}
-                    latestStateByRoleId={latestStateByRoleId}
-                    latestMatch={
-                      latestMatchResult.data
-                        ? {
-                            status: latestMatchResult.data.match_status as "match" | "not_yet" | "not_recommended",
-                            createdAt: latestMatchResult.data.created_at,
-                          }
-                        : null
-                    }
-                    latestDecision={
-                      latestDecisionResult.data
-                        ? {
-                            decision: latestDecisionResult.data.decision as "hire" | "continue_mentoring" | "decline",
-                            createdAt: latestDecisionResult.data.created_at,
-                          }
-                        : null
-                    }
-                    decisionHistory={decisionHistory}
-                  />
-                </section>
-              ) : (
-                <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 text-sm leading-7 text-slate-600 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
-                  Talent Review is available to organization administrators after a potential role has been selected.
                 </section>
               ),
             },

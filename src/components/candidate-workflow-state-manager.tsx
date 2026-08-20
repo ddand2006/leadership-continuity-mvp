@@ -83,7 +83,7 @@ export function CandidateWorkflowStateManager({
   return (
     <section className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
       <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">Workflow state</p>
-      <h2 className="mt-2 font-display text-3xl text-slate-900">Record leadership decisions</h2>
+      <h2 className="mt-2 font-display text-3xl text-slate-900">Record Leadership Review</h2>
       <p className="mt-3 text-sm leading-7 text-slate-600">Save a dated role-fit snapshot or an interim/final decision. Development assignments continue to be managed through the mentoring workflow.</p>
       <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_1fr_1fr_auto]">
         <label className="grid gap-2 text-sm font-semibold text-slate-700">Potential role
