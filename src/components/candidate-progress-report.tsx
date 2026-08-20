@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 
 type RoleProgress = {
   roleId: string;
@@ -139,6 +139,7 @@ export function CandidateProgressReport({
   mentorReportDates,
   events,
   decisionEvents,
+  workflowContent,
 }: {
   candidateId: string;
   candidateName: string;
@@ -148,6 +149,7 @@ export function CandidateProgressReport({
   mentorReportDates: string[];
   events: ProgressEvent[];
   decisionEvents: ProgressEvent[];
+  workflowContent?: ReactNode;
 }) {
   const currentYear = new Date().getFullYear();
   const datedValues = [
@@ -368,6 +370,8 @@ export function CandidateProgressReport({
           {periodDevelopmentRecords.length === 0 ? <p className="text-sm leading-7 text-slate-600">No development projects or records were saved for this reporting period.</p> : null}
         </div>
       </section>
+
+      {workflowContent}
 
       <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
         <div className="flex flex-wrap items-center justify-between gap-4">

@@ -1137,34 +1137,36 @@ export default async function CandidateDetailPage({
                     )}
                     events={progressEvents}
                     decisionEvents={progressDecisionEvents}
+                    workflowContent={
+                      isAdmin && activeRoleId ? (
+                        <CandidateWorkflowStateManager
+                          candidateId={candidate.id}
+                          roleId={activeRoleId}
+                          roleOptions={workflowRoleOptions}
+                          readinessScore={roleGoalReadiness.readinessPercent}
+                          readinessRoleId={activeRoleId}
+                          latestStateByRoleId={latestStateByRoleId}
+                          latestMatch={
+                            latestMatchResult.data
+                              ? {
+                                  status: latestMatchResult.data.match_status as "match" | "not_yet" | "not_recommended",
+                                  createdAt: latestMatchResult.data.created_at,
+                                }
+                              : null
+                          }
+                          latestDecision={
+                            latestDecisionResult.data
+                              ? {
+                                  decision: latestDecisionResult.data.decision as "hire" | "continue_mentoring" | "decline",
+                                  createdAt: latestDecisionResult.data.created_at,
+                                }
+                              : null
+                          }
+                          decisionHistory={decisionHistory}
+                        />
+                      ) : null
+                    }
                   />
-                  {isAdmin && activeRoleId ? (
-                    <CandidateWorkflowStateManager
-                      candidateId={candidate.id}
-                      roleId={activeRoleId}
-                      roleOptions={workflowRoleOptions}
-                      readinessScore={roleGoalReadiness.readinessPercent}
-                      readinessRoleId={activeRoleId}
-                      latestStateByRoleId={latestStateByRoleId}
-                      latestMatch={
-                        latestMatchResult.data
-                          ? {
-                              status: latestMatchResult.data.match_status as "match" | "not_yet" | "not_recommended",
-                              createdAt: latestMatchResult.data.created_at,
-                            }
-                          : null
-                      }
-                      latestDecision={
-                        latestDecisionResult.data
-                          ? {
-                              decision: latestDecisionResult.data.decision as "hire" | "continue_mentoring" | "decline",
-                              createdAt: latestDecisionResult.data.created_at,
-                            }
-                          : null
-                      }
-                      decisionHistory={decisionHistory}
-                    />
-                  ) : null}
                 </section>
               ),
             },
