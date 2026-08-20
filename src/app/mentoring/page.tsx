@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { MentorFlowPanel } from "@/components/mentor-flow-panel";
 import { MentoringCrossDepartmentalProjectWorksheetManager } from "@/components/mentoring-cross-departmental-project-worksheet-manager";
 import { MentoringDepartmentalProjectWorksheetManager } from "@/components/mentoring-departmental-project-worksheet-manager";
 import { MentoringPreparationWorksheetManager } from "@/components/mentoring-preparation-worksheet-manager";
@@ -174,8 +173,10 @@ export default async function MentoringPage({
   ]);
   const selectedSectionId =
     requestedSection && allowedSectionIds.has(requestedSection)
-      ? requestedSection
-      : isMentorOnly
+      ? requestedSection === "overview" && canManageMentorAssignments
+        ? "mentor-assignments"
+        : requestedSection
+      : canManageMentorAssignments
         ? "mentor-assignments"
         : "overview";
 
@@ -864,18 +865,6 @@ export default async function MentoringPage({
       latestDevelopmentRecordByAssignment.get(getAssignmentKey(assignment)) ?? null,
   }));
 
-  const mentoringWorkspaceDetailItems = [
-    `${new Set(orderedVisibleAssignments.map((assignment) => assignment.candidate_id)).size} candidates in active mentoring`,
-    `${orderedVisibleAssignments.length} active mentor assignments`,
-    `${
-      orderedVisibleAssignments.filter((assignment) =>
-        candidateRolePairsWithReports.has(
-          `${assignment.candidate_id}:${assignment.role_id}`,
-        ),
-      ).length
-    } role tracks with reports`,
-    "Leadership development records, preparation worksheets, departmental projects, and cross-departmental projects are all live in this workspace",
-  ];
   const selectedAssignmentKey = resolvePreferredAssignmentKey({
     mentorMap,
     requestedAssignmentKey,
@@ -1205,57 +1194,12 @@ export default async function MentoringPage({
           />
           <div className="min-w-0">
             <section className="grid gap-6">
-              <section className="theme-panel-strong rounded-[2rem] p-8">
-                <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">Mentoring workspace</p>
-                <h1 className="mt-3 font-display text-5xl leading-tight text-slate-900">{isAdmin ? "Manage mentoring by candidate and role" : isMentorOnly ? "Guide your mentees through their development" : "View your mentoring by role"}</h1>
-                <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">{isAdmin ? "Use the selected candidate-role track to prepare, assign stretch work, record development evidence, and review readiness with the mentor." : isMentorOnly ? "Choose a mentee below to begin with shared expectations, then document development work and review progress in one role-based track." : "Your mentoring workspace is limited to role tracks assigned to your candidate account."}</p>
-                <ul className="mt-5 grid gap-2 text-sm leading-6 text-slate-600">
-                  {mentoringWorkspaceDetailItems.slice(0, 3).map((item) => <li key={item} className="flex gap-2"><span className="mt-2 h-1.5 w-1.5 rounded-full bg-teal-700" />{item}</li>)}
-                </ul>
-              </section>
               <nav className="flex flex-wrap gap-3 border-b border-slate-200 pb-5" aria-label="Mentoring workspace sections">
                 {["mentor-assignments", "leadership-development-record", "readiness-review", "resources"].flatMap((sectionId) => mentoringSections.filter((section) => section.id === sectionId)).map((section) => {
                   const isActive = section.id === selectedSectionId;
                   return <Link key={section.id} href={getMentoringSectionHref(section.id)} prefetch={true} className={`rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition ${isActive ? "interactive-contrast border-teal-900 bg-teal-900 text-white shadow-[0_18px_40px_rgba(15,118,110,0.18)]" : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"}`}>{section.label}</Link>;
                 })}
               </nav>
-              {selectedSectionId === "overview" ? (
-                <MentorFlowPanel
-            assignments={visibleAssignmentsWithWorksheet.map((assignment) => ({
-              candidateId: assignment.candidateId,
-              roleId: assignment.roleId,
-              mentorProfileId: assignment.mentorProfileId,
-              candidateName: assignment.candidateName,
-              currentTitle: assignment.currentTitle,
-              roleTitle: assignment.roleTitle,
-              mentorName: assignment.mentorName,
-              mentorPositionTitle: assignment.mentorPositionTitle,
-              hasPreparationWorksheet: assignment.worksheet !== null,
-              hasDepartmentalWorksheet:
-                visibleAssignmentsWithDepartmentalWorksheet.some(
-                  (item) =>
-                    item.candidateId === assignment.candidateId &&
-                    item.roleId === assignment.roleId &&
-                    item.mentorProfileId === assignment.mentorProfileId &&
-                    item.worksheet !== null,
-                ),
-              hasCrossDepartmentalWorksheet:
-                visibleAssignmentsWithCrossDepartmentalWorksheet.some(
-                  (item) =>
-                    item.candidateId === assignment.candidateId &&
-                    item.roleId === assignment.roleId &&
-                    item.mentorProfileId === assignment.mentorProfileId &&
-                    item.worksheet !== null,
-                ),
-              hasReport: candidateRolePairsWithReports.has(
-                `${assignment.candidateId}:${assignment.roleId}`,
-              ),
-            }))}
-            selectedAssignmentKey={selectedAssignmentKey}
-            canManageAssignments={canManageMentorAssignments}
-            canChooseMentor={isAdmin}
-                />
-              ) : null}
               {selectedMentoringSection.content}
             </section>
           </div>
