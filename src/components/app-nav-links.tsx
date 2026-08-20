@@ -93,6 +93,7 @@ export function AppNavLinks({
           <Link
             key={item.href}
             href={item.href}
+            prefetch={true}
             aria-current={isActive ? "page" : undefined}
             className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
               isActive
@@ -146,6 +147,7 @@ export function AppNavLinks({
                     <Link
                       key={item.href}
                       href={item.href}
+                      prefetch={true}
                       role="menuitem"
                       aria-current={isActive ? "page" : undefined}
                       onClick={() => setIsResourcesOpen(false)}
@@ -172,6 +174,7 @@ export function AppNavLinks({
           <Link
             key={item.href}
             href={item.href}
+            prefetch={true}
             aria-current={isActive ? "page" : undefined}
             className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
               isActive
