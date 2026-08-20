@@ -1173,46 +1173,6 @@ export default async function CandidateDetailPage({
                       )}
                     </div>
                   </section>
-
-                  <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
-                    <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
-                      Active Mentors for This Role
-                    </p>
-                    <div className="mt-6 grid gap-3">
-                      {activeRoleId &&
-                      displayableMentorAssignments.filter(
-                        (assignment) => assignment.role_id === activeRoleId,
-                      ).length > 0 ? (
-                        displayableMentorAssignments
-                          .filter((assignment) => assignment.role_id === activeRoleId)
-                          .map((assignment) => {
-                            const mentor = mentorMap.get(assignment.mentor_profile_id);
-
-                            return (
-                              <article
-                                key={`${assignment.role_id}-${assignment.mentor_profile_id}`}
-                                className="rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-700"
-                              >
-                                <p className="font-semibold text-slate-900">
-                                  {mentor?.full_name}
-                                </p>
-                                <p className="mt-1 text-slate-600">
-                                  {mentor?.position_title ?? "Position not entered"}
-                                </p>
-                                <p className="mt-1 text-slate-600">
-                                  Start date: {assignment.start_date || "Not set"}
-                                </p>
-                              </article>
-                            );
-                          })
-                      ) : (
-                        <p className="text-sm leading-7 text-slate-600">
-                          No mentors are assigned to this candidate for the selected
-                          role yet.
-                        </p>
-                      )}
-                    </div>
-                  </section>
                 </section>
               ),
             },
