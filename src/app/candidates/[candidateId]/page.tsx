@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CandidateRoleConsiderationManager } from "@/components/candidate-role-consideration-manager";
 import { CandidateProgressReport } from "@/components/candidate-progress-report";
 import { CandidateWorkflowStateManager } from "@/components/candidate-workflow-state-manager";
 import { CandidateDetailSectionMenu } from "@/components/candidate-detail-section-menu";
@@ -1070,46 +1069,6 @@ export default async function CandidateDetailPage({
               detailSectionIds: ["interview-scores", "360-reviews", "strengths-files"],
               content: (
                 <section className="grid gap-6">
-                  {isAdmin ? (
-                    <CandidateRoleConsiderationManager
-                      candidateId={candidate.id}
-                      candidateName={candidate.full_name}
-                      roles={(rolesResult.data ?? []).map((role) => ({
-                        id: role.id,
-                        title: canonicalizeRoleTitle(role.title),
-                      }))}
-                      considerations={considerations.map((consideration) => {
-                        const role = roleMap.get(consideration.role_id);
-                        const mentorNames = Array.from(
-                          new Set(
-                            displayableMentorAssignments
-                              .filter(
-                                (assignment) =>
-                                  assignment.role_id === consideration.role_id,
-                              )
-                              .map(
-                                (assignment) =>
-                                  mentorMap.get(assignment.mentor_profile_id)?.full_name,
-                              )
-                              .filter(Boolean),
-                          ),
-                        ) as string[];
-
-                        return {
-                          roleId: consideration.role_id,
-                          roleTitle: role?.title ?? "Unknown role",
-                          status:
-                            consideration.status === "on_hold"
-                              ? ("on_hold" as const)
-                              : ("active" as const),
-                          isPrimary: consideration.is_primary,
-                          mentorNames,
-                        };
-                      })}
-                      currentRoleId={candidate.current_role_id}
-                    />
-                  ) : null}
-
                   <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
                     <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
                       Roles Under Consideration
