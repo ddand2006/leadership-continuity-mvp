@@ -31,11 +31,13 @@ type Review360Role = {
 };
 
 export function CandidateAssessmentDashboard({
+  candidateName,
   interviewCompetencies,
   latestInterviewPanelName,
   review360Roles,
   strengths,
 }: {
+  candidateName: string;
   interviewCompetencies: InterviewCompetency[];
   latestInterviewPanelName: string | null;
   review360Roles: Review360Role[];
@@ -61,7 +63,7 @@ export function CandidateAssessmentDashboard({
           Assessment Dashboard
         </p>
         <h2 className="mt-3 font-display text-3xl text-slate-900">
-          Candidate evidence at a glance
+          {candidateName}&apos;s evidence at a glance
         </h2>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
           Compare the interview competency categories, confidential 360 feedback, and Gallup strengths. Use the tabs below to add or manage the underlying information.

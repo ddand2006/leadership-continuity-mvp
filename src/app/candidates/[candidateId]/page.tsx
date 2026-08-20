@@ -927,6 +927,7 @@ export default async function CandidateDetailPage({
   });
   const assessmentDashboard = (
     <CandidateAssessmentDashboard
+      candidateName={candidate.full_name}
       interviewCompetencies={(competenciesResult.data ?? []).map((competency) => ({
         name: competency.name,
         targetScore: competency.target_score,
