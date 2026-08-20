@@ -45,6 +45,7 @@ export function PersonalDevelopmentWorkspaceMenu({
               <Link
                 key={section.id}
                 href={section.href}
+                prefetch={true}
                 aria-current={isActive ? "page" : undefined}
                 className={`rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition ${
                   isActive

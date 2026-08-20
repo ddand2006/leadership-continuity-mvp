@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useState, type ReactNode } from "react";
 
 type CandidateDetailSection = {
@@ -22,7 +22,6 @@ export function CandidateDetailSectionMenu({
   initialSectionId?: string;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [activeSectionId, setActiveSectionId] = useState<string>(
     sections.some((section) => section.id === initialSectionId)
@@ -59,6 +58,12 @@ export function CandidateDetailSectionMenu({
     return null;
   }
 
+  function updateSectionInUrl(sectionId: string) {
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.set("section", sectionId);
+    window.history.replaceState(null, "", `${pathname}?${nextParams.toString()}`);
+  }
+
   return (
     <section className="grid gap-6">
       <nav className="flex flex-wrap gap-3 border-b border-slate-200 pb-5" aria-label="Candidate workspace sections">
@@ -78,11 +83,7 @@ export function CandidateDetailSectionMenu({
               type="button"
               onClick={() => {
                 setActiveSectionId(section.id);
-                const nextParams = new URLSearchParams(searchParams.toString());
-                nextParams.set("section", section.id);
-                router.replace(`${pathname}?${nextParams.toString()}`, {
-                  scroll: false,
-                });
+                updateSectionInUrl(section.id);
               }}
               className={`rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition ${
                 isActive
@@ -114,11 +115,7 @@ export function CandidateDetailSectionMenu({
                     type="button"
                     onClick={() => {
                       setActiveDetailSectionId(section.id);
-                      const nextParams = new URLSearchParams(searchParams.toString());
-                      nextParams.set("section", section.id);
-                      router.replace(`${pathname}?${nextParams.toString()}`, {
-                        scroll: false,
-                      });
+                      updateSectionInUrl(section.id);
                     }}
                     className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
                       isActive

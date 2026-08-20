@@ -148,6 +148,7 @@ export default async function AdministrationPage({
                 <Link
                   key={tab.id}
                   href={href}
+                  prefetch={true}
                   className={`rounded-full border px-5 py-3 text-sm font-semibold transition ${
                     isActive
                       ? "interactive-contrast border-teal-900 bg-teal-900 text-white shadow-[0_18px_40px_rgba(15,118,110,0.18)]"
