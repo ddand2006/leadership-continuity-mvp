@@ -110,14 +110,40 @@ body {
 }
 
 .emerald-soft-surface {
-  background-color: rgba(250, 255, 245, 0.8) !important;
+  background-color: #ffffff !important;
   background-image: none !important;
-  border-color: rgba(74, 222, 128, 0.46) !important;
-  color: #14532d;
+  border-color: rgba(174, 207, 224, 0.86) !important;
+  color: #0b2f6b;
 }
 
 .emerald-soft-surface-muted {
-  color: #347b4c;
+  color: #4b728f;
+}
+
+/* Older strength, coaching, mentor, and resource panels used green as a page surface.
+   Keep green for success signals; use the shared white-card pattern for workspace content. */
+.app-page [class*="bg-[rgba(239,251,241"],
+.app-page [class*="bg-[linear-gradient(135deg,rgba(239,251,241"] {
+  background-color: #ffffff !important;
+  background-image: none !important;
+  border-color: rgba(174, 207, 224, 0.86) !important;
+  color: #0b2f6b !important;
+}
+
+.app-page [class*="text-[#183822]"],
+.app-page [class*="text-[#14361d]"] {
+  color: #0b2f6b !important;
+}
+
+.app-page [class*="text-[#24512f]"] {
+  color: #4b728f !important;
+}
+
+.app-page [class*="border-[#57c95f]"],
+.app-page [class*="border-[#9fd2ad]"],
+.app-page [class*="border-[#b3d9b9]"],
+.app-page [class*="border-[rgba(82,140,94"] {
+  border-color: rgba(174, 207, 224, 0.86) !important;
 }
 
 * {

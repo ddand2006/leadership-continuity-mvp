@@ -277,17 +277,17 @@ export function CandidateInsightExplorer({
         </div>
 
         {activeStrength ? (
-          <section className="mt-6 rounded-[1.75rem] border border-[rgba(82,140,94,0.2)] bg-[rgba(239,251,241,0.96)] p-6 text-[#183822] shadow-[0_20px_60px_rgba(36,64,216,0.1)]">
+          <section className="mt-6 rounded-[1.75rem] border border-slate-200 bg-white p-6 text-slate-900 shadow-[0_20px_60px_rgba(36,64,216,0.1)]">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm font-semibold tracking-[0.16em] text-[#24512f] uppercase">
+                <p className="text-sm font-semibold tracking-[0.16em] text-slate-900 uppercase">
                   Selected Strength
                 </p>
-                <h3 className="mt-3 font-display text-4xl text-[#14361d]">
+                <h3 className="mt-3 font-display text-4xl text-slate-900">
                   #{activeStrength.rank} {sanitizeAppText(activeStrength.theme_name)}
                 </h3>
               </div>
-              <span className="rounded-full bg-white/45 px-3 py-1 text-xs font-semibold tracking-[0.14em] text-[#24512f] uppercase">
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold tracking-[0.14em] text-slate-700 uppercase">
                 {activeStrengthReference?.domain ?? activeStrength.domain}
               </span>
             </div>
@@ -295,32 +295,32 @@ export function CandidateInsightExplorer({
             {activeStrengthReference ? (
               <div className="mt-6 grid gap-5 lg:grid-cols-3">
                 <article className="emerald-soft-surface rounded-3xl border p-5">
-                  <p className="text-xs font-semibold tracking-[0.14em] text-[#24512f] uppercase">
+                  <p className="text-xs font-semibold tracking-[0.14em] text-slate-700 uppercase">
                     Strength Summary
                   </p>
-                  <p className="mt-3 text-base leading-8 text-[#14361d]">
+                  <p className="mt-3 text-base leading-8 text-slate-700">
                     {sanitizeAppText(activeStrengthReference.leadership_advantages)}
                   </p>
                 </article>
                 <article className="emerald-soft-surface rounded-3xl border p-5">
-                  <p className="text-xs font-semibold tracking-[0.14em] text-[#24512f] uppercase">
+                  <p className="text-xs font-semibold tracking-[0.14em] text-slate-700 uppercase">
                     Watchouts
                   </p>
-                  <p className="mt-3 text-base leading-8 text-[#14361d]">
+                  <p className="mt-3 text-base leading-8 text-slate-700">
                     {sanitizeAppText(activeStrengthReference.possible_blind_spots)}
                   </p>
                 </article>
                 <article className="emerald-soft-surface rounded-3xl border p-5">
-                  <p className="text-xs font-semibold tracking-[0.14em] text-[#24512f] uppercase">
+                  <p className="text-xs font-semibold tracking-[0.14em] text-slate-700 uppercase">
                     Development Use
                   </p>
-                  <p className="mt-3 text-base leading-8 text-[#14361d]">
+                  <p className="mt-3 text-base leading-8 text-slate-700">
                     {sanitizeAppText(activeStrengthReference.development_uses)}
                   </p>
                 </article>
               </div>
             ) : (
-              <article className="emerald-soft-surface mt-6 rounded-3xl border p-5 text-sm leading-7 text-[#24512f]">
+              <article className="emerald-soft-surface mt-6 rounded-3xl border p-5 text-sm leading-7 text-slate-600">
                 No reference summary is loaded yet for{" "}
                 {sanitizeAppText(activeStrength.theme_name)}.
               </article>

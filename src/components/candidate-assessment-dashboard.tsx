@@ -189,8 +189,8 @@ export function CandidateAssessmentDashboard({
           </p>
         </article>
 
-        <article className="rounded-3xl border border-emerald-100 bg-emerald-50/70 p-5">
-          <p className="text-sm font-semibold tracking-[0.14em] text-emerald-800 uppercase">
+        <article className="rounded-3xl border border-slate-200 bg-white p-5">
+          <p className="text-sm font-semibold tracking-[0.14em] text-slate-900 uppercase">
             Strengths
           </p>
           {strengths.length > 0 ? (
@@ -210,12 +210,12 @@ export function CandidateAssessmentDashboard({
                 />
               ) : null}
               {selectedStrength ? (
-                <section className="rounded-2xl border border-emerald-100 bg-white p-4 text-emerald-950">
+                <section className="rounded-2xl border border-slate-200 bg-white p-4 text-slate-900">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-sm font-semibold">
                       #{selectedStrength.rank} {selectedStrength.themeName}
                     </p>
-                    <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[0.65rem] font-semibold tracking-[0.12em] text-emerald-900 uppercase">
+                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[0.65rem] font-semibold tracking-[0.12em] text-slate-700 uppercase">
                       {selectedStrength.domain}
                     </span>
                   </div>
@@ -252,11 +252,11 @@ function StrengthDetail({
   content: string | null;
 }) {
   return (
-    <article className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-3">
-      <p className="text-[0.65rem] font-semibold tracking-[0.12em] text-emerald-800 uppercase">
+    <article className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+      <p className="text-[0.65rem] font-semibold tracking-[0.12em] text-slate-700 uppercase">
         {label}
       </p>
-      <p className="mt-1.5 text-xs leading-5 text-emerald-950">
+      <p className="mt-1.5 text-xs leading-5 text-slate-700">
         {content ?? "No reference detail is available yet."}
       </p>
     </article>
@@ -276,7 +276,7 @@ function StrengthGroup({
 }) {
   return (
     <div>
-      <p className="text-xs font-semibold tracking-[0.14em] text-emerald-800 uppercase">
+      <p className="text-xs font-semibold tracking-[0.14em] text-slate-700 uppercase">
         {label}
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
@@ -291,7 +291,7 @@ function StrengthGroup({
               className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${
                 isSelected
                   ? "border-teal-900 bg-teal-900 text-white"
-                  : "border-emerald-200 bg-white text-emerald-900 hover:bg-emerald-100"
+                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
               }`}
             >
               #{strength.rank} {strength.themeName}
