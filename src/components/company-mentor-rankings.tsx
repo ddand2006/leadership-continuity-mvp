@@ -38,7 +38,7 @@ export function CompanyMentorRankings({
             Levels recognize active development work and timely reports and reviews. They do not depend on whether a candidate is promoted.
           </p>
         </div>
-        <span className="rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700">
+        <span className="brand-lime-accent rounded-full border px-4 py-2 text-sm font-semibold">
           {mentors.length} {mentors.length === 1 ? "mentor" : "mentors"}
         </span>
       </div>
