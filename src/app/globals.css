@@ -215,6 +215,22 @@ a {
   box-shadow: 0 12px 24px rgba(29, 78, 216, 0.28);
 }
 
+/* Navigation and workspace tabs share one clear selected state. */
+nav :is(a, button)[class*="bg-white/85"],
+.app-page :is(a, button)[class*="bg-white/85"][class*="border-"] {
+  background-color: #ffffff !important;
+}
+
+.app-page :is(a, button)[class*="bg-teal-900"][class*="text-white"],
+nav :is(a, button)[class*="bg-teal-900"][class*="text-white"] {
+  box-shadow: 0 16px 30px rgba(10, 47, 107, 0.42) !important;
+}
+
+.app-page :is(a, button)[class*="bg-teal-900"][class*="text-white"]:hover,
+nav :is(a, button)[class*="bg-teal-900"][class*="text-white"]:hover {
+  box-shadow: 0 18px 34px rgba(6, 31, 78, 0.5) !important;
+}
+
 /* Readable lime accents are intentionally small: badges, progress points, and emphasis only. */
 .brand-lime-accent {
   border-color: #b6cd00;
