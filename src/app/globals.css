@@ -1,11 +1,11 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
+  --background: #edf5fa;
   --foreground: #14385c;
-  --page-surface: rgba(255, 255, 255, 0.9);
-  --page-surface-strong: rgba(255, 255, 255, 0.96);
-  --page-border: rgba(190, 211, 228, 0.92);
+  --page-surface: rgba(238, 247, 252, 0.92);
+  --page-surface-strong: rgba(247, 251, 254, 0.97);
+  --page-border: rgba(139, 194, 219, 0.92);
   --page-shadow: 0 30px 90px rgba(20, 56, 92, 0.1);
   --page-shadow-soft: 0 20px 60px rgba(20, 56, 92, 0.07);
 }
@@ -17,11 +17,11 @@
   --font-display: var(--font-display);
 
   /* Leadership Continuity brand palette */
-  --color-slate-50: #f8fafc;
-  --color-slate-100: #edf3f8;
-  --color-slate-200: #d6e3ee;
-  --color-slate-300: #bdd2e2;
-  --color-slate-400: #8eafc5;
+  --color-slate-50: #edf5fa;
+  --color-slate-100: #ddebf4;
+  --color-slate-200: #c5ddea;
+  --color-slate-300: #a9cbde;
+  --color-slate-400: #7faec7;
   --color-slate-500: #6689a6;
   --color-slate-600: #4b728f;
   --color-slate-700: #365b78;
@@ -30,31 +30,40 @@
   --color-slate-950: #0d2b49;
 
   /* Sky Blue Freshness: blue is the primary action color. */
-  --color-teal-50: #eef6fa;
-  --color-teal-100: #dcecf4;
-  --color-teal-200: #c3dfeb;
-  --color-teal-300: #9bc9dc;
-  --color-teal-400: #70adc7;
-  --color-teal-500: #4b84aa;
-  --color-teal-600: #357a9f;
+  --color-teal-50: #e8f5fb;
+  --color-teal-100: #cfeaf6;
+  --color-teal-200: #addcf0;
+  --color-teal-300: #82c8e4;
+  --color-teal-400: #5aaed1;
+  --color-teal-500: #4688b2;
+  --color-teal-600: #337da8;
   --color-teal-700: #2d6e95;
-  --color-teal-800: #255e84;
-  --color-teal-900: #1e4d72;
+  --color-teal-800: #245f87;
+  --color-teal-900: #2d6e95;
   --color-teal-950: #143a5c;
 
+  --color-sky-50: #e8f5fb;
+  --color-sky-100: #cfeaf6;
+  --color-sky-200: #addcf0;
+  --color-sky-300: #82c8e4;
+  --color-sky-500: #4688b2;
+  --color-sky-700: #2d6e95;
+  --color-sky-800: #245f87;
+  --color-sky-900: #143a5c;
+
   /* Green supports completed and healthy states; lime is an accent only. */
-  --color-emerald-50: #f5f8ec;
-  --color-emerald-100: #e5edcf;
-  --color-emerald-200: #cfe0a5;
-  --color-emerald-500: #6b9434;
-  --color-emerald-700: #4e6f25;
-  --color-emerald-800: #3e5c1e;
+  --color-emerald-50: #eff8e7;
+  --color-emerald-100: #dcf0c7;
+  --color-emerald-200: #bfdf96;
+  --color-emerald-500: #6e9a37;
+  --color-emerald-700: #507626;
+  --color-emerald-800: #3d5e1d;
   --color-emerald-900: #2c4515;
 
-  --color-lime-50: #f7fae8;
-  --color-lime-100: #edf4bd;
-  --color-lime-200: #deeb7d;
-  --color-lime-500: #b2c900;
+  --color-lime-50: #f9fce8;
+  --color-lime-100: #eff7b8;
+  --color-lime-200: #e0ed70;
+  --color-lime-500: #b6cd00;
   --color-lime-700: #718200;
   --color-lime-900: #344000;
 
@@ -74,12 +83,12 @@
 }
 
 html {
-  background: radial-gradient(circle at top, #ffffff 0%, #f3f7fa 55%, #e8f0f7 100%);
+  background: radial-gradient(circle at top, #ffffff 0%, #eaf5fb 55%, #d8eaf5 100%);
 }
 
 body {
   position: relative;
-  background: radial-gradient(circle at top, #ffffff 0%, #f3f7fa 55%, #e8f0f7 100%);
+  background: radial-gradient(circle at top, #ffffff 0%, #eaf5fb 55%, #d8eaf5 100%);
   color: var(--foreground);
   font-family: var(--font-body), sans-serif;
 }
