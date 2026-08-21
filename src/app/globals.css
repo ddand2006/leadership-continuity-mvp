@@ -2,7 +2,7 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #14385c;
+  --foreground: #0b2f6b;
   --page-surface: #ffffff;
   --page-surface-strong: #ffffff;
   --page-border: rgba(159, 198, 218, 0.82);
@@ -24,10 +24,10 @@
   --color-slate-400: #86a9bc;
   --color-slate-500: #6689a6;
   --color-slate-600: #4b728f;
-  --color-slate-700: #365b78;
-  --color-slate-800: #244c6d;
-  --color-slate-900: #14385c;
-  --color-slate-950: #0d2b49;
+  --color-slate-700: #274d82;
+  --color-slate-800: #173d75;
+  --color-slate-900: #0b2f6b;
+  --color-slate-950: #061f4e;
 
   /* Sky Blue Freshness: blue is the primary action color. */
   --color-teal-50: #e8f5fb;
@@ -35,30 +35,30 @@
   --color-teal-200: #addcf0;
   --color-teal-300: #82c8e4;
   --color-teal-400: #5aaed1;
-  --color-teal-500: #2789b9;
-  --color-teal-600: #187ba9;
-  --color-teal-700: #126b96;
-  --color-teal-800: #0e5c83;
-  --color-teal-900: #126b96;
-  --color-teal-950: #143a5c;
+  --color-teal-500: #3b82f6;
+  --color-teal-600: #2563eb;
+  --color-teal-700: #1d4ed8;
+  --color-teal-800: #1e40af;
+  --color-teal-900: #1d4ed8;
+  --color-teal-950: #172554;
 
   --color-sky-50: #e8f5fb;
   --color-sky-100: #cfeaf6;
   --color-sky-200: #addcf0;
   --color-sky-300: #82c8e4;
-  --color-sky-500: #2789b9;
-  --color-sky-700: #126b96;
-  --color-sky-800: #0e5c83;
-  --color-sky-900: #143a5c;
+  --color-sky-500: #3b82f6;
+  --color-sky-700: #1d4ed8;
+  --color-sky-800: #1e40af;
+  --color-sky-900: #172554;
 
   /* Green supports completed and healthy states; lime is an accent only. */
   --color-emerald-50: #e6f6d8;
   --color-emerald-100: #d4efb8;
   --color-emerald-200: #b8df82;
-  --color-emerald-500: #6a9b2e;
-  --color-emerald-700: #4b761e;
-  --color-emerald-800: #385c15;
-  --color-emerald-900: #2c4515;
+  --color-emerald-500: #16803d;
+  --color-emerald-700: #15803d;
+  --color-emerald-800: #166534;
+  --color-emerald-900: #14532d;
 
   --color-lime-50: #f9fce8;
   --color-lime-100: #eff7b8;
@@ -94,30 +94,30 @@ body {
 }
 
 .emerald-soft-panel {
-  background-color: rgba(226, 246, 207, 0.97) !important;
+  background-color: rgba(220, 252, 231, 0.97) !important;
   background-image: none !important;
-  border-color: rgba(102, 158, 42, 0.46) !important;
-  color: #284812;
+  border-color: rgba(74, 222, 128, 0.78) !important;
+  color: #14532d;
   box-shadow: 0 20px 60px rgba(20, 56, 92, 0.08);
 }
 
 .emerald-soft-panel-title {
-  color: #284812;
+  color: #14532d;
 }
 
 .emerald-soft-panel-muted {
-  color: #456d20;
+  color: #25733e;
 }
 
 .emerald-soft-surface {
   background-color: rgba(250, 255, 245, 0.8) !important;
   background-image: none !important;
-  border-color: rgba(102, 158, 42, 0.3) !important;
-  color: #284812;
+  border-color: rgba(74, 222, 128, 0.46) !important;
+  color: #14532d;
 }
 
 .emerald-soft-surface-muted {
-  color: #527432;
+  color: #347b4c;
 }
 
 * {
@@ -177,16 +177,16 @@ a {
 
 /* Primary controls use the signature sky blue rather than default near-black. */
 .interactive-contrast[class*="bg-slate"] {
-  background-color: #126b96 !important;
-  box-shadow: 0 12px 24px rgba(18, 107, 150, 0.28);
+  background-color: #1d4ed8 !important;
+  box-shadow: 0 12px 24px rgba(29, 78, 216, 0.28);
 }
 
 .interactive-contrast[class*="bg-slate"]:hover {
-  background-color: #0e5c83 !important;
+  background-color: #1e40af !important;
 }
 
 .interactive-contrast[class*="bg-teal"] {
-  box-shadow: 0 12px 24px rgba(18, 107, 150, 0.28);
+  box-shadow: 0 12px 24px rgba(29, 78, 216, 0.28);
 }
 
 /* Readable lime accents are intentionally small: badges, progress points, and emphasis only. */
