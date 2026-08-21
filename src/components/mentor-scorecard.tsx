@@ -81,34 +81,6 @@ export function MentorScorecard({
         </p>
       </section>
 
-      <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
-        <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
-          Mentor levels
-        </p>
-        <h3 className="mt-3 font-display text-3xl text-slate-900">
-          {isAdmin ? "All active mentors" : "Your recognition level"}
-        </h3>
-        <div className="mt-6 grid gap-3">
-          {entries.map((entry) => {
-            const asset = getLegacyCertificationAsset(entry.tier);
-            return (
-              <article key={entry.mentorId} className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
-                <div>
-                  <p className="font-semibold text-slate-900">{entry.mentorName}</p>
-                  <p className="mt-1 text-sm text-slate-600">{entry.positionTitle ?? "Position not entered"}</p>
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  <span className="text-sm font-semibold text-slate-700">{entry.score} / 100</span>
-                  <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-800">
-                    {asset ? <Image src={asset.src} alt={asset.alt} width={22} height={22} className="rounded-full" /> : null}
-                    {asset ? asset.shortLabel : getLevelLabel(entry)}
-                  </span>
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      </section>
     </section>
   );
 }

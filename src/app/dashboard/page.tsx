@@ -2,11 +2,16 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SubscriptionPaywallPanel } from "@/components/subscription-paywall-panel";
 import {
+  CompanyMentorRankings,
+  type CompanyMentorRanking,
+} from "@/components/company-mentor-rankings";
+import {
   DashboardSetupJourney,
   type DashboardSetupJourneySummary,
 } from "@/components/dashboard-setup-journey";
 import { requireUser } from "@/lib/auth";
 import { computeCandidateAward } from "@/lib/candidate-awards";
+import { computeMentorScorecard } from "@/lib/mentor-scorecard";
 import { getCandidateDisplayName } from "@/lib/candidate-display-name";
 import Image from "next/image";
 import { canAccessLeadershipHelpPreview } from "@/lib/leadership-help-preview";
@@ -27,6 +32,7 @@ import {
   type OrganizationAward,
 } from "@/lib/organization-awards";
 import { isMissingOrganizationIndustryColumnError } from "@/lib/organization-industry";
+import { isActiveMentorAssignmentStatus } from "@/lib/mentor-access";
 import { canonicalizeRoleTitle } from "@/lib/role-title";
 import { getActivePlatformSupportOrganization } from "@/lib/platform-support";
 import {
@@ -293,6 +299,7 @@ type DashboardSnapshot = {
   subscription: OrganizationSubscriptionState | null;
   roles: DashboardRole[];
   mentors: DashboardMentor[];
+  mentorRankings: CompanyMentorRanking[];
   candidates: DashboardCandidate[];
   counts: {
     roles: number;
@@ -1822,6 +1829,7 @@ async function getDashboardSnapshot(
       subscription: null,
       roles: [],
       mentors: [],
+      mentorRankings: [],
       candidates: [],
       counts: null,
       setupJourney: null,
@@ -1889,6 +1897,7 @@ async function getDashboardSnapshot(
       subscription,
       roles: [],
       mentors: [],
+      mentorRankings: [],
       candidates: [],
       counts: null,
       setupJourney: null,
@@ -1899,6 +1908,8 @@ async function getDashboardSnapshot(
   const [
     rolesResult,
     mentorsResult,
+    mentorDirectoryResult,
+    mentorUsersResult,
     candidatesResult,
     considerationsResult,
     mentorRoleAssignmentsResult,
@@ -1920,6 +1931,16 @@ async function getDashboardSnapshot(
       .eq("role", "mentor")
       .order("created_at", { ascending: true }),
     admin
+      .from("profiles")
+      .select("id, full_name, position_title, role")
+      .eq("organization_id", organizationId)
+      .order("created_at", { ascending: true }),
+    admin
+      .from("organization_users")
+      .select("profile_id, is_mentor, status")
+      .eq("organization_id", organizationId)
+      .eq("status", "active"),
+    admin
       .from("candidates")
       .select("id, full_name, current_title, target_role_id, mentor_profile_id, status, created_at")
       .eq("organization_id", organizationId)
@@ -1934,8 +1955,9 @@ async function getDashboardSnapshot(
       .eq("organization_id", organizationId),
     admin
       .from("mentor_reports")
-      .select("candidate_id, role_id")
-      .eq("organization_id", organizationId),
+      .select("candidate_id, role_id, created_at")
+      .eq("organization_id", organizationId)
+      .order("created_at", { ascending: false }),
     admin
       .from("candidate_strengths")
       .select("candidate_id")
@@ -1960,6 +1982,8 @@ async function getDashboardSnapshot(
   for (const result of [
     rolesResult,
     mentorsResult,
+    mentorDirectoryResult,
+    mentorUsersResult,
     candidatesResult,
     considerationsResult,
     mentorRoleAssignmentsResult,
@@ -1998,6 +2022,74 @@ async function getDashboardSnapshot(
   const rawStrengths = strengthsResult.data ?? [];
   const rawSourceDocuments = sourceDocumentsResult.data ?? [];
   const rawAssignments = assignmentsResult.data ?? [];
+  const mentorDirectory = mentorDirectoryResult.data ?? [];
+  const mentorDirectoryById = new Map(
+    mentorDirectory.map((mentor) => [mentor.id, mentor]),
+  );
+  const mentorRankingIds = new Set(
+    (mentorUsersResult.data ?? [])
+      .filter((user) => user.is_mentor && user.profile_id)
+      .map((user) => user.profile_id as string),
+  );
+  for (const mentor of rawMentors) {
+    mentorRankingIds.add(mentor.id);
+  }
+  for (const assignment of rawMentorAssignments) {
+    if (assignment.mentor_profile_id && isActiveMentorAssignmentStatus(assignment.status)) {
+      mentorRankingIds.add(assignment.mentor_profile_id);
+    }
+  }
+
+  const latestReportDateByTrack = new Map<string, string>();
+  for (const report of rawReports) {
+    const key = `${report.candidate_id}:${report.role_id}`;
+    if (!latestReportDateByTrack.has(key)) {
+      latestReportDateByTrack.set(key, report.created_at);
+    }
+  }
+  const latestDevelopmentRecordByMentorTrack = new Map<string, DevelopmentRecordRow>();
+  for (const record of developmentRecords) {
+    const key = `${record.candidate_id}:${record.role_id}:${record.mentor_id}`;
+    if (!latestDevelopmentRecordByMentorTrack.has(key)) {
+      latestDevelopmentRecordByMentorTrack.set(key, record);
+    }
+  }
+  const allMentorRankings = Array.from(mentorRankingIds)
+    .map((mentorId) => {
+      const tracks = rawMentorAssignments.filter(
+        (assignment) =>
+          assignment.mentor_profile_id === mentorId &&
+          isActiveMentorAssignmentStatus(assignment.status),
+      );
+      const scorecard = computeMentorScorecard(
+        tracks.map((assignment) => {
+          const record = latestDevelopmentRecordByMentorTrack.get(
+            `${assignment.candidate_id}:${assignment.role_id}:${mentorId}`,
+          );
+          return {
+            hasDevelopmentRecord: Boolean(record),
+            latestReportAt:
+              latestReportDateByTrack.get(
+                `${assignment.candidate_id}:${assignment.role_id}`,
+              ) ?? null,
+            latestReviewAt: record?.mentor_review_date ?? null,
+          };
+        }),
+      );
+      const mentor = mentorDirectoryById.get(mentorId);
+
+      return {
+        mentorId,
+        mentorName: mentor?.full_name ?? "Mentor name not entered",
+        positionTitle: mentor?.position_title ?? null,
+        score: scorecard.score,
+        tier: scorecard.tier,
+        activeTrackCount: scorecard.activeTrackCount,
+      } satisfies CompanyMentorRanking;
+    })
+    .sort((left, right) =>
+      right.score - left.score || left.mentorName.localeCompare(right.mentorName),
+    );
 
   const mentorScopedAssignments = isMentorView
     ? rawMentorAssignments.filter(
@@ -2239,6 +2331,9 @@ async function getDashboardSnapshot(
     subscription,
     roles,
     mentors,
+    mentorRankings: isMentorView
+      ? allMentorRankings.filter((ranking) => ranking.mentorId === profileResult.data?.id)
+      : allMentorRankings,
     candidates,
     counts: {
       roles: roles.length,
@@ -2428,6 +2523,11 @@ export default async function DashboardPage({
             {snapshot.setupJourney ? (
               <DashboardSetupJourney summary={snapshot.setupJourney} />
             ) : null}
+
+            <CompanyMentorRankings
+              mentors={snapshot.mentorRankings}
+              isCompanyView={snapshot.profile.role !== "mentor"}
+            />
 
             {intelligence ? (
               <section className="theme-panel-strong rounded-[2rem] p-5 sm:p-8">
