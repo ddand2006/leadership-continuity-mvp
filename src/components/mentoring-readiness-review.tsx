@@ -237,7 +237,7 @@ export function MentoringReadinessReview({
         </article>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
+      <section className="grid gap-6">
         <article className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
           <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
             Mentor scorecard
