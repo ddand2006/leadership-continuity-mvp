@@ -222,7 +222,7 @@ export function CandidateInsightExplorer({
                             className={`rounded-full border px-4 py-3 text-sm font-semibold transition ${
                               isActive
                                 ? "border-teal-900 bg-teal-900 text-white"
-                                : "border-teal-200 bg-white text-teal-900 hover:bg-teal-50"
+                                : "border-sky-200 bg-sky-50 text-sky-900 hover:bg-sky-100"
                             }`}
                           >
                             #{strength.rank} {sanitizeAppText(strength.theme_name)}
@@ -256,7 +256,7 @@ export function CandidateInsightExplorer({
                               className={`rounded-full border px-4 py-3 text-sm font-semibold transition ${
                                 isActive
                                   ? "border-teal-900 bg-teal-900 text-white"
-                                  : "border-teal-200 bg-white text-teal-900 hover:bg-teal-50"
+                                  : "border-sky-200 bg-sky-50 text-sky-900 hover:bg-sky-100"
                               }`}
                             >
                               #{strength.rank} {sanitizeAppText(strength.theme_name)}

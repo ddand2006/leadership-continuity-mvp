@@ -291,7 +291,7 @@ function StrengthGroup({
               className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${
                 isSelected
                   ? "border-teal-900 bg-teal-900 text-white"
-                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                  : "border-sky-200 bg-sky-50 text-sky-900 hover:bg-sky-100"
               }`}
             >
               #{strength.rank} {strength.themeName}

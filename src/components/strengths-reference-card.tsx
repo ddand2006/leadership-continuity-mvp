@@ -56,7 +56,7 @@ export function StrengthsReferenceCard({
                 className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
                   isActive
                     ? "border-teal-900 bg-teal-900 text-white"
-                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                    : "border-sky-200 bg-sky-50 text-sky-900 hover:bg-sky-100"
                 }`}
               >
                 #{strength.rank} {sanitizeAppText(strength.theme_name)}
