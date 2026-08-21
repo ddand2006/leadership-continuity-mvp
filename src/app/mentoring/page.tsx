@@ -4,6 +4,7 @@ import { MentoringCrossDepartmentalProjectWorksheetManager } from "@/components/
 import { MentoringDepartmentalProjectWorksheetManager } from "@/components/mentoring-departmental-project-worksheet-manager";
 import { MentoringPreparationWorksheetManager } from "@/components/mentoring-preparation-worksheet-manager";
 import { MentoringReadinessReview } from "@/components/mentoring-readiness-review";
+import { MentorScorecard } from "@/components/mentor-scorecard";
 import { LeadershipDevelopmentRecordManager } from "@/components/leadership-development-record-manager";
 import { MentoringAssignmentSidebar } from "@/components/mentoring-assignment-sidebar";
 import { getCandidateDisplayName } from "@/lib/candidate-display-name";
@@ -17,6 +18,7 @@ import {
 } from "@/lib/mentor-access";
 import { isMissingLeadershipDevelopmentRecordTableError, type LeadershipDevelopmentRecordRecord } from "@/lib/leadership-development-record";
 import { mentorReportSchema, type MentorReport } from "@/lib/mentor-report";
+import { computeMentorScorecard } from "@/lib/mentor-scorecard";
 import { isMissingPreparationWorksheetTableError } from "@/lib/mentoring-preparation-worksheet";
 import { canonicalizeRoleTitle } from "@/lib/role-title";
 import { requirePaidWorkspaceProfile } from "@/lib/workspace";
@@ -169,6 +171,7 @@ export default async function MentoringPage({
     "departmental-project",
     "cross-departmental-project",
     "readiness-review",
+    ...(canManageMentorAssignments ? ["mentor-scorecard"] : []),
   ]);
   const selectedSectionId =
     requestedSection && allowedSectionIds.has(requestedSection)
@@ -192,11 +195,14 @@ export default async function MentoringPage({
   const needsCrossDepartmentalProjectWorksheets =
     selectedSectionId === "cross-departmental-project";
   const needsReadinessReview = selectedSectionId === "readiness-review";
+  const needsMentorScorecard = selectedSectionId === "mentor-scorecard";
+  const needsMentorEngagement = needsReadinessReview || needsMentorScorecard;
   const [
     candidatesResult,
     reportsResult,
     rolesResult,
     mentorsResult,
+    mentorUsersResult,
     mentorAssignmentsResult,
     roleMentorAssignmentsResult,
     preparationWorksheetsResult,
@@ -211,7 +217,8 @@ export default async function MentoringPage({
     supabase
       .from("mentor_reports")
       .select("id, candidate_id, role_id, created_at")
-      .eq("organization_id", profile.organization_id),
+      .eq("organization_id", profile.organization_id)
+      .order("created_at", { ascending: false }),
     supabase
       .from("roles")
       .select("id, title, department")
@@ -221,6 +228,11 @@ export default async function MentoringPage({
       .select("id, full_name, position_title")
       .eq("organization_id", profile.organization_id)
       .order("created_at", { ascending: true }),
+    supabase
+      .from("organization_users")
+      .select("profile_id, is_mentor, status")
+      .eq("organization_id", profile.organization_id)
+      .eq("status", "active"),
     supabase
       .from("mentor_role_assignments")
       .select("candidate_id, role_id, mentor_profile_id, status, start_date, notes")
@@ -266,6 +278,7 @@ export default async function MentoringPage({
     reportsResult,
     rolesResult,
     mentorsResult,
+    mentorUsersResult,
     mentorAssignmentsResult,
     roleMentorAssignmentsResult,
   ]) {
@@ -326,18 +339,20 @@ export default async function MentoringPage({
     ),
   );
   const [readinessReportsResult, readinessRecordsResult] =
-    needsReadinessReview &&
+    needsMentorEngagement &&
     readinessCandidateIds.length > 0 &&
     readinessRoleIds.length > 0
       ? await Promise.all([
-          supabase
-            .from("mentor_reports")
-            .select("id, candidate_id, role_id, version, created_at, report_json")
-            .eq("organization_id", profile.organization_id)
-            .in("candidate_id", readinessCandidateIds)
-            .in("role_id", readinessRoleIds)
-            .order("version", { ascending: false })
-            .order("created_at", { ascending: false }),
+          needsReadinessReview
+            ? supabase
+                .from("mentor_reports")
+                .select("id, candidate_id, role_id, version, created_at, report_json")
+                .eq("organization_id", profile.organization_id)
+                .in("candidate_id", readinessCandidateIds)
+                .in("role_id", readinessRoleIds)
+                .order("version", { ascending: false })
+                .order("created_at", { ascending: false })
+            : Promise.resolve({ data: [], error: null }),
           readinessMentorIds.length > 0
             ? supabase
                 .from("development_records")
@@ -841,6 +856,68 @@ export default async function MentoringPage({
     });
   }
 
+  const latestReportDateByCandidateRole = new Map<string, string>();
+  for (const report of reportsResult.data ?? []) {
+    const key = `${report.candidate_id}:${report.role_id}`;
+    if (!latestReportDateByCandidateRole.has(key)) {
+      latestReportDateByCandidateRole.set(key, report.created_at);
+    }
+  }
+
+  const scorecardMentorIds = new Set<string>();
+  if (isAdmin) {
+    for (const user of mentorUsersResult.data ?? []) {
+      if (user.is_mentor && user.profile_id) {
+        scorecardMentorIds.add(user.profile_id);
+      }
+    }
+  } else if (isMentor) {
+    scorecardMentorIds.add(profile.id);
+  }
+
+  for (const assignment of mentorAssignmentsResult.data ?? []) {
+    if (assignment.mentor_profile_id && isActiveMentorAssignmentStatus(assignment.status)) {
+      if (isAdmin || assignment.mentor_profile_id === profile.id) {
+        scorecardMentorIds.add(assignment.mentor_profile_id);
+      }
+    }
+  }
+
+  const mentorScorecardEntries = Array.from(scorecardMentorIds)
+    .map((mentorId) => {
+      const tracks = (mentorAssignmentsResult.data ?? []).filter(
+        (assignment) =>
+          assignment.mentor_profile_id === mentorId &&
+          isActiveMentorAssignmentStatus(assignment.status),
+      );
+      const scorecard = computeMentorScorecard(
+        tracks.map((assignment) => ({
+          hasDevelopmentRecord: latestDevelopmentRecordByAssignment.has(
+            getAssignmentKey(assignment),
+          ),
+          latestReportAt:
+            latestReportDateByCandidateRole.get(
+              `${assignment.candidate_id}:${assignment.role_id}`,
+            ) ?? null,
+          latestReviewAt:
+            latestDevelopmentRecordByAssignment.get(getAssignmentKey(assignment))
+              ?.mentorReviewDate ?? null,
+        })),
+      );
+      const mentor = mentorMap.get(mentorId);
+
+      return {
+        mentorId,
+        mentorName: mentor?.full_name ?? "Mentor name not entered",
+        positionTitle: mentor?.position_title ?? null,
+        isCurrentMentor: mentorId === profile.id,
+        ...scorecard,
+      };
+    })
+    .sort((left, right) =>
+      right.score - left.score || left.mentorName.localeCompare(right.mentorName),
+    );
+
   const readinessReviewAssignments = orderedVisibleAssignments.map((assignment) => ({
     assignmentKey: getAssignmentKey(assignment),
     candidateId: assignment.candidate_id,
@@ -1161,6 +1238,20 @@ export default async function MentoringPage({
         />
       ),
     },
+    ...(canManageMentorAssignments
+      ? [
+          {
+            id: "mentor-scorecard",
+            label: "Mentor Scorecard",
+            content: (
+              <MentorScorecard
+                entries={mentorScorecardEntries}
+                isAdmin={isAdmin}
+              />
+            ),
+          },
+        ]
+      : []),
   ] satisfies Array<{
     id: string;
     label: string;
@@ -1194,7 +1285,7 @@ export default async function MentoringPage({
           <div className="min-w-0">
             <section className="grid gap-6">
               <nav className="flex flex-wrap gap-3 border-b border-slate-200 pb-5" aria-label="Mentoring workspace sections">
-                {["leadership-development-record", "readiness-review", "resources"].flatMap((sectionId) => mentoringSections.filter((section) => section.id === sectionId)).map((section) => {
+                {["leadership-development-record", "readiness-review", "mentor-scorecard", "resources"].flatMap((sectionId) => mentoringSections.filter((section) => section.id === sectionId)).map((section) => {
                   const isActive = section.id === selectedSectionId;
                   return <Link key={section.id} href={getMentoringSectionHref(section.id)} prefetch={true} className={`rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition ${isActive ? "interactive-contrast border-teal-900 bg-teal-900 text-white shadow-[0_18px_40px_rgba(15,118,110,0.18)]" : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"}`}>{section.label}</Link>;
                 })}
