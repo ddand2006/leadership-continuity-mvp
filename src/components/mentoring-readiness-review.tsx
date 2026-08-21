@@ -162,7 +162,23 @@ function getCombinedTrafficLightStatus(
   return statuses.includes("yellow") ? "yellow" : "green";
 }
 
-function TrafficLightDot({
+function getOverallStatusLabel(status: TrafficLightStatus) {
+  return {
+    green: "Overall status: On Track",
+    yellow: "Overall status: Needs Attention",
+    red: "Overall status: Overdue",
+  }[status];
+}
+
+function getTimingStatusLabel(status: TrafficLightStatus) {
+  return {
+    green: "Current",
+    yellow: "Due Soon",
+    red: "Overdue",
+  }[status];
+}
+
+function StatusIndicator({
   status,
   label,
 }: {
@@ -179,8 +195,11 @@ function TrafficLightDot({
     <span
       aria-label={label}
       title={label}
-      className={`absolute bottom-5 left-5 h-3.5 w-3.5 rounded-full ring-4 ring-white ${tone}`}
-    />
+      className="absolute bottom-5 left-5 inline-flex items-center gap-2 text-xs font-semibold text-slate-600"
+    >
+      <span className={`h-3.5 w-3.5 rounded-full ring-4 ring-white ${tone}`} />
+      {label}
+    </span>
   );
 }
 
@@ -261,6 +280,13 @@ export function MentoringReadinessReview({
     mentorReportStatus,
     mentorReviewStatus,
   ]);
+  const currentReadinessLabel = getOverallStatusLabel(currentReadinessStatus);
+  const developmentLabel =
+    developmentStatus === "green"
+      ? "Development Active"
+      : "Development Not Started";
+  const mentorReportLabel = getTimingStatusLabel(mentorReportStatus);
+  const mentorReviewLabel = getTimingStatusLabel(mentorReviewStatus);
   const tracksWithReports = assignments.filter(
     (assignment) => assignment.latestMentorReport !== null,
   ).length;
@@ -380,9 +406,9 @@ export function MentoringReadinessReview({
                 <p className="mt-2 text-sm text-slate-600">
                   {formatScore(readinessScore)}
                 </p>
-                <TrafficLightDot
+                <StatusIndicator
                   status={currentReadinessStatus}
-                  label={`Current readiness status: ${currentReadinessStatus}`}
+                  label={currentReadinessLabel}
                 />
               </article>
               <article className="relative rounded-3xl bg-slate-50 p-5 pb-12">
@@ -395,9 +421,9 @@ export function MentoringReadinessReview({
                 <p className="mt-2 text-sm text-slate-600">
                   Record assigned {formatDate(selectedRecord?.dateAssigned ?? null)}
                 </p>
-                <TrafficLightDot
+                <StatusIndicator
                   status={developmentStatus}
-                  label={`Development status: ${developmentStatus}`}
+                  label={developmentLabel}
                 />
               </article>
               <article className="relative rounded-3xl bg-slate-50 p-5 pb-12">
@@ -412,9 +438,9 @@ export function MentoringReadinessReview({
                     ? `Generated ${formatDate(selectedReport.createdAt)}`
                     : "Generate from the candidate workspace"}
                 </p>
-                <TrafficLightDot
+                <StatusIndicator
                   status={mentorReportStatus}
-                  label={`Latest mentor report status: ${mentorReportStatus}`}
+                  label={mentorReportLabel}
                 />
               </article>
               <article className="relative rounded-3xl bg-slate-50 p-5 pb-12">
@@ -429,9 +455,9 @@ export function MentoringReadinessReview({
                     ? "Next experience already noted"
                     : "Next experience not recorded yet"}
                 </p>
-                <TrafficLightDot
+                <StatusIndicator
                   status={mentorReviewStatus}
-                  label={`Last mentor review status: ${mentorReviewStatus}`}
+                  label={mentorReviewLabel}
                 />
               </article>
             </div>
