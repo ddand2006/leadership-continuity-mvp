@@ -37,6 +37,8 @@ type MentoringReadinessReviewAssignment = {
   } | null;
 };
 
+type TrafficLightStatus = "green" | "yellow" | "red";
+
 function formatDate(value: string | null) {
   if (!value) {
     return "Not yet recorded";
@@ -130,6 +132,58 @@ function getStatusLabel(status: LeadershipDevelopmentRecordRecord["status"] | nu
   }
 }
 
+function getDateTrafficLightStatus(value: string | null): TrafficLightStatus {
+  if (!value) {
+    return "red";
+  }
+
+  const timestamp = new Date(value).getTime();
+
+  if (Number.isNaN(timestamp)) {
+    return "red";
+  }
+
+  const daysSince = Math.max(0, (Date.now() - timestamp) / 86_400_000);
+
+  if (daysSince <= 30) {
+    return "green";
+  }
+
+  return daysSince <= 60 ? "yellow" : "red";
+}
+
+function getCombinedTrafficLightStatus(
+  statuses: TrafficLightStatus[],
+): TrafficLightStatus {
+  if (statuses.includes("red")) {
+    return "red";
+  }
+
+  return statuses.includes("yellow") ? "yellow" : "green";
+}
+
+function TrafficLightDot({
+  status,
+  label,
+}: {
+  status: TrafficLightStatus;
+  label: string;
+}) {
+  const tone = {
+    green: "bg-emerald-500",
+    yellow: "bg-amber-400",
+    red: "bg-rose-500",
+  }[status];
+
+  return (
+    <span
+      aria-label={label}
+      title={label}
+      className={`absolute bottom-5 left-5 h-3.5 w-3.5 rounded-full ring-4 ring-white ${tone}`}
+    />
+  );
+}
+
 function buildReadinessReviewHref(assignment: MentoringReadinessReviewAssignment) {
   const params = new URLSearchParams({
     section: "readiness-review",
@@ -195,6 +249,18 @@ export function MentoringReadinessReview({
     selectedRecord?.readinessSignal ?? "",
     selectedRecord?.averageFeedbackScore ?? null,
   );
+  const developmentStatus: TrafficLightStatus = selectedRecord ? "green" : "red";
+  const mentorReportStatus = getDateTrafficLightStatus(
+    selectedReport?.createdAt ?? null,
+  );
+  const mentorReviewStatus = getDateTrafficLightStatus(
+    selectedRecord?.mentorReviewDate ?? null,
+  );
+  const currentReadinessStatus = getCombinedTrafficLightStatus([
+    developmentStatus,
+    mentorReportStatus,
+    mentorReviewStatus,
+  ]);
   const tracksWithReports = assignments.filter(
     (assignment) => assignment.latestMentorReport !== null,
   ).length;
@@ -304,7 +370,7 @@ export function MentoringReadinessReview({
             </div>
 
             <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <article className="rounded-3xl bg-slate-50 p-5">
+              <article className="relative rounded-3xl bg-slate-50 p-5 pb-12">
                 <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                   Current readiness
                 </p>
@@ -314,8 +380,12 @@ export function MentoringReadinessReview({
                 <p className="mt-2 text-sm text-slate-600">
                   {formatScore(readinessScore)}
                 </p>
+                <TrafficLightDot
+                  status={currentReadinessStatus}
+                  label={`Current readiness status: ${currentReadinessStatus}`}
+                />
               </article>
-              <article className="rounded-3xl bg-slate-50 p-5">
+              <article className="relative rounded-3xl bg-slate-50 p-5 pb-12">
                 <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                   Development status
                 </p>
@@ -325,8 +395,12 @@ export function MentoringReadinessReview({
                 <p className="mt-2 text-sm text-slate-600">
                   Record assigned {formatDate(selectedRecord?.dateAssigned ?? null)}
                 </p>
+                <TrafficLightDot
+                  status={developmentStatus}
+                  label={`Development status: ${developmentStatus}`}
+                />
               </article>
-              <article className="rounded-3xl bg-slate-50 p-5">
+              <article className="relative rounded-3xl bg-slate-50 p-5 pb-12">
                 <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                   Latest mentor report
                 </p>
@@ -338,8 +412,12 @@ export function MentoringReadinessReview({
                     ? `Generated ${formatDate(selectedReport.createdAt)}`
                     : "Generate from the candidate workspace"}
                 </p>
+                <TrafficLightDot
+                  status={mentorReportStatus}
+                  label={`Latest mentor report status: ${mentorReportStatus}`}
+                />
               </article>
-              <article className="rounded-3xl bg-slate-50 p-5">
+              <article className="relative rounded-3xl bg-slate-50 p-5 pb-12">
                 <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                   Last mentor review
                 </p>
@@ -351,6 +429,10 @@ export function MentoringReadinessReview({
                     ? "Next experience already noted"
                     : "Next experience not recorded yet"}
                 </p>
+                <TrafficLightDot
+                  status={mentorReviewStatus}
+                  label={`Last mentor review status: ${mentorReviewStatus}`}
+                />
               </article>
             </div>
           </article>
