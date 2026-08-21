@@ -260,61 +260,71 @@ export function MentoringReadinessReview({
               );
 
               return (
-                <Link
+                <details
                   key={assignment.assignmentKey}
-                  href={buildReadinessReviewHref(assignment)}
-                  className={`rounded-3xl border p-4 text-sm transition ${
+                  className={`group rounded-3xl border p-4 text-sm transition ${
                     isSelected
                       ? "border-teal-500 bg-teal-50 shadow-[0_20px_50px_rgba(13,148,136,0.12)]"
                       : "border-slate-200 bg-slate-50 hover:-translate-y-0.5 hover:bg-white"
                   }`}
                 >
-                  <div className="flex items-start justify-between gap-3">
+                  <summary className="flex cursor-pointer list-none items-start justify-between gap-3 [&::-webkit-details-marker]:hidden">
                     <div>
                       <p className="font-semibold text-slate-900">
                         {assignment.candidateName}
                       </p>
                       <p className="mt-1 text-slate-600">{assignment.roleTitle}</p>
-                      <p className="mt-1 text-slate-500">
-                        Mentor: {assignment.mentorName}
-                      </p>
                     </div>
-                    <span
-                      className={`rounded-full border px-3 py-1 text-xs font-semibold ${getReadinessTone(
-                        record?.readinessSignal ?? "",
-                      )}`}
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`rounded-full border px-3 py-1 text-xs font-semibold ${getReadinessTone(
+                          record?.readinessSignal ?? "",
+                        )}`}
+                      >
+                        {getReadinessLabel(record?.readinessSignal ?? "")}
+                      </span>
+                      <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 group-open:hidden">
+                        Expand
+                      </span>
+                      <span className="hidden rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 group-open:inline-flex">
+                        Collapse
+                      </span>
+                    </div>
+                  </summary>
+
+                  <div className="mt-4 border-t border-slate-200 pt-4">
+                    <p className="text-slate-500">Mentor: {assignment.mentorName}</p>
+                    <dl className="mt-4 grid gap-2 text-xs text-slate-600">
+                      <div className="flex items-center justify-between gap-3">
+                        <dt>Readiness score</dt>
+                        <dd className="font-semibold text-slate-900">
+                          {formatScore(score)}
+                        </dd>
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <dt>Track status</dt>
+                        <dd className="font-semibold text-slate-900">
+                          {getStatusLabel(record?.status ?? null)}
+                        </dd>
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <dt>Mentor report</dt>
+                        <dd className="font-semibold text-slate-900">
+                          {assignment.latestMentorReport
+                            ? `v${assignment.latestMentorReport.version}`
+                            : "Not generated"}
+                        </dd>
+                      </div>
+                    </dl>
+
+                    <Link
+                      href={buildReadinessReviewHref(assignment)}
+                      className="mt-4 inline-flex rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
                     >
-                      {getReadinessLabel(record?.readinessSignal ?? "")}
-                    </span>
+                      {isSelected ? "Viewing this track" : "Open readiness review"}
+                    </Link>
                   </div>
-
-                  <dl className="mt-4 grid gap-2 text-xs text-slate-600">
-                    <div className="flex items-center justify-between gap-3">
-                      <dt>Readiness score</dt>
-                      <dd className="font-semibold text-slate-900">
-                        {formatScore(score)}
-                      </dd>
-                    </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <dt>Track status</dt>
-                      <dd className="font-semibold text-slate-900">
-                        {getStatusLabel(record?.status ?? null)}
-                      </dd>
-                    </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <dt>Mentor report</dt>
-                      <dd className="font-semibold text-slate-900">
-                        {assignment.latestMentorReport
-                          ? `v${assignment.latestMentorReport.version}`
-                          : "Not generated"}
-                      </dd>
-                    </div>
-                  </dl>
-
-                  <span className="mt-4 inline-flex rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700">
-                    {isSelected ? "Viewing this track" : "Open readiness review"}
-                  </span>
-                </Link>
+                </details>
               );
             })}
           </div>
