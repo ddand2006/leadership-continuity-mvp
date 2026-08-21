@@ -2524,11 +2524,6 @@ export default async function DashboardPage({
               <DashboardSetupJourney summary={snapshot.setupJourney} />
             ) : null}
 
-            <CompanyMentorRankings
-              mentors={snapshot.mentorRankings}
-              isCompanyView={snapshot.profile.role !== "mentor"}
-            />
-
             {intelligence ? (
               <section className="theme-panel-strong rounded-[2rem] p-5 sm:p-8">
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
@@ -3266,6 +3261,11 @@ export default async function DashboardPage({
             {snapshot.profile.role !== "mentor" ? (
               <MentorDirectoryManager mentors={snapshot.mentors} />
             ) : null}
+
+            <CompanyMentorRankings
+              mentors={snapshot.mentorRankings}
+              isCompanyView={snapshot.profile.role !== "mentor"}
+            />
           </>
         )}
       </div>
