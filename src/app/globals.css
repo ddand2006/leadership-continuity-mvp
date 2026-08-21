@@ -1,11 +1,11 @@
 @import "tailwindcss";
 
 :root {
-  --background: #dceff9;
+  --background: #ffffff;
   --foreground: #14385c;
-  --page-surface: rgba(224, 244, 253, 0.95);
-  --page-surface-strong: rgba(238, 249, 254, 0.98);
-  --page-border: rgba(97, 180, 218, 0.94);
+  --page-surface: #ffffff;
+  --page-surface-strong: #ffffff;
+  --page-border: rgba(159, 198, 218, 0.82);
   --page-shadow: 0 30px 90px rgba(20, 56, 92, 0.1);
   --page-shadow-soft: 0 20px 60px rgba(20, 56, 92, 0.07);
 }
@@ -17,11 +17,11 @@
   --font-display: var(--font-display);
 
   /* Leadership Continuity brand palette */
-  --color-slate-50: #e4f3fb;
-  --color-slate-100: #d0eaf7;
-  --color-slate-200: #afdaf0;
-  --color-slate-300: #87c6e3;
-  --color-slate-400: #5fa9cf;
+  --color-slate-50: #f7fafc;
+  --color-slate-100: #f0f5f8;
+  --color-slate-200: #dbe7ed;
+  --color-slate-300: #bfd3df;
+  --color-slate-400: #86a9bc;
   --color-slate-500: #6689a6;
   --color-slate-600: #4b728f;
   --color-slate-700: #365b78;
@@ -83,12 +83,12 @@
 }
 
 html {
-  background: radial-gradient(circle at top, #f9fdff 0%, #dff3fc 50%, #c8e7f5 100%);
+  background: #ffffff;
 }
 
 body {
   position: relative;
-  background: radial-gradient(circle at top, #f9fdff 0%, #dff3fc 50%, #c8e7f5 100%);
+  background: #ffffff;
   color: var(--foreground);
   font-family: var(--font-body), sans-serif;
 }
@@ -151,25 +151,24 @@ a {
 }
 
 .theme-panel {
-  border: 1px solid rgba(76, 164, 207, 0.75);
-  background: linear-gradient(145deg, rgba(249, 254, 255, 0.98), rgba(202, 236, 250, 0.95));
+  border: 1px solid rgba(159, 198, 218, 0.82);
+  background: var(--page-surface);
   box-shadow: var(--page-shadow-soft);
   backdrop-filter: blur(18px);
 }
 
 .theme-panel-strong {
-  border: 1px solid rgba(58, 157, 204, 0.8);
-  background:
-    linear-gradient(120deg, rgba(255, 255, 255, 0.99) 0%, rgba(222, 244, 252, 0.98) 58%, rgba(178, 222, 243, 0.94) 100%);
+  border: 1px solid rgba(126, 185, 215, 0.84);
+  background: var(--page-surface-strong);
   box-shadow: var(--page-shadow);
   backdrop-filter: blur(18px);
 }
 
 /* Shared card treatment: bright enough to create hierarchy, but quiet enough for long-form work. */
 .app-page :is(section, article, aside, div)[class~="bg-white"][class*="rounded-"] {
-  border-color: rgba(104, 190, 228, 0.9);
-  background-color: #eaf7fc;
-  background-image: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(201, 237, 251, 0.94));
+  border-color: rgba(174, 207, 224, 0.86);
+  background-color: #ffffff;
+  background-image: none;
 }
 
 .app-page :is(section, article, aside)[class~="bg-white"][class*="shadow-"] {
