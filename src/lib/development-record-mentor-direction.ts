@@ -45,7 +45,7 @@ export async function generateDevelopmentRecordMentorDirection(
         {
           role: "system",
           content:
-            "You are an expert succession mentor. Create an actionable mentor-facing narrative for one candidate's real development project. Use standard grammar, complete sentences, and polished professional language. Be specific, practical, and encouraging. Do not invent missing project facts. Explain how the candidate's named CliftonStrengths can be deliberately applied to complete the project while the mentor builds the named growth areas through coaching, stretch, observation, and reflection. Avoid generic HR language.",
+            "You are an expert succession mentor. Create an actionable mentor-facing narrative for one candidate's real development project. Use standard grammar, complete sentences, and polished professional language. Be specific, practical, and encouraging. Do not invent missing project facts. The mentor's role is to stretch the candidate toward meaningful growth, while providing enough support, guardrails, and checkpoints to avoid preventable failure. Explain how the candidate's named CliftonStrengths can be deliberately applied to complete the project while the mentor builds the named growth areas through coaching, stretch, observation, and reflection. Avoid generic HR language.",
         },
         {
           role: "user",
@@ -68,7 +68,7 @@ export async function generateDevelopmentRecordMentorDirection(
             selected_growth_areas: input.growthAreas,
             strengths_to_apply: input.selectedStrengths,
             instructions:
-              "Write a mentor-ready narrative under 425 words. Use short paragraphs and, when several actions or checkpoints are useful, a concise Markdown bullet list. Every bullet must be a complete grammatical sentence. Start with the mentor's overall direction for this project. Connect each named strength to a useful action in the project. Explain how the mentor should use the project to build the selected growth areas, including concrete coaching questions or checkpoints. Close with evidence the mentor should look for that shows both project progress and growth. Finish with a complete sentence and final punctuation; never end mid-sentence or mid-list.",
+              "Write a mentor-ready narrative under 425 words. Use short paragraphs and, when several actions or checkpoints are useful, a concise Markdown bullet list. Every bullet must be a complete grammatical sentence. Start with the mentor's overall direction for this project. Connect each named strength to a useful action in the project. Explain how the mentor should use the project to build the selected growth areas, including concrete coaching questions or checkpoints. State how the mentor can appropriately stretch the candidate while offering guardrails that turn challenge into growth rather than preventable failure. Close with evidence the mentor should look for that shows both project progress and growth. Finish with a complete sentence and final punctuation; never end mid-sentence or mid-list.",
             retry_instruction:
               attempt === 0
                 ? undefined
