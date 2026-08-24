@@ -1,6 +1,10 @@
 import { redirect } from "next/navigation";
 import { PlatformOperationsPanel } from "@/components/platform-operations-panel";
-import { FOUNDATION_PLAN, getOrganizationSeatLimit } from "@/lib/billing";
+import {
+  FOUNDATION_PLAN,
+  calculateExpectedAnnualBilling,
+  getOrganizationSeatLimit,
+} from "@/lib/billing";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { requireWorkspaceProfile } from "@/lib/workspace";
 
@@ -43,6 +47,11 @@ export default async function PlatformOperationsPage() {
     const activeUsers = organizationUsers.filter((user) => user.status === "active");
     const billableUsers = organizationUsers.filter((user) => user.status === "active" || user.status === "invited");
     const seatLimit = getOrganizationSeatLimit({ included_seats: organization.included_seats, additional_seat_packs: organization.additional_seat_packs });
+    const expectedBilling = calculateExpectedAnnualBilling({
+      billableSeats: billableUsers.length,
+      includedSeats: organization.included_seats,
+      additionalSeatPacks: organization.additional_seat_packs,
+    });
     return {
       id: organization.id,
       name: organization.name,
@@ -56,6 +65,8 @@ export default async function PlatformOperationsPage() {
       billableSeatsUsed: billableUsers.length,
       seatLimit,
       additionalSeatPacks: organization.additional_seat_packs ?? 0,
+      expectedAnnualBillingDollars: expectedBilling.annualBillingDollars,
+      expectedSeatPacks: expectedBilling.billedSeatPacks,
       subscriptionStatus: organization.subscription_status ?? "not configured",
       billingContactEmail: organization.billing_contact_email,
     };

@@ -3,6 +3,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const FOUNDATION_INCLUDED_SEATS = 10;
 export const SEATS_PER_GROWTH_PACK = 5;
+export const FIRST_SEAT_PACK_ANNUAL_PRICE_DOLLARS = 1350;
+export const VOLUME_SEAT_PACK_ANNUAL_PRICE_DOLLARS = 1150;
 
 export const FOUNDATION_PLAN = {
   annualPriceDollars: 3000,
@@ -18,6 +20,32 @@ export function getOrganizationSeatLimit(input: {
     Math.max(0, input.included_seats ?? FOUNDATION_INCLUDED_SEATS) +
     Math.max(0, input.additional_seat_packs ?? 0) * SEATS_PER_GROWTH_PACK
   );
+}
+
+export function calculateExpectedAnnualBilling(input: {
+  billableSeats: number;
+  includedSeats: number | null;
+  additionalSeatPacks: number | null;
+}) {
+  const includedSeats = Math.max(0, input.includedSeats ?? FOUNDATION_INCLUDED_SEATS);
+  const requiredSeatPacks = Math.max(
+    0,
+    Math.ceil(Math.max(0, input.billableSeats - includedSeats) / SEATS_PER_GROWTH_PACK),
+  );
+  const billedSeatPacks = Math.max(
+    requiredSeatPacks,
+    Math.max(0, input.additionalSeatPacks ?? 0),
+  );
+  const seatPackCost =
+    billedSeatPacks === 0
+      ? 0
+      : FIRST_SEAT_PACK_ANNUAL_PRICE_DOLLARS +
+        Math.max(0, billedSeatPacks - 1) * VOLUME_SEAT_PACK_ANNUAL_PRICE_DOLLARS;
+
+  return {
+    annualBillingDollars: FOUNDATION_PLAN.annualPriceDollars + seatPackCost,
+    billedSeatPacks,
+  };
 }
 
 export function isBillableInternalUserStatus(status: string) {
