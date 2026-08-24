@@ -7,6 +7,10 @@ const generatedMentorDirectionSchema = z.object({
   narrative: z.string().trim().min(1).max(3000),
 });
 
+function hasCompleteEnding(narrative: string) {
+  return /[.!?][\"')\]]?$/.test(narrative.trim());
+}
+
 export type DevelopmentRecordMentorDirectionInput = {
   candidateName: string;
   targetRole: string;
@@ -33,50 +37,58 @@ export type DevelopmentRecordMentorDirectionInput = {
 export async function generateDevelopmentRecordMentorDirection(
   input: DevelopmentRecordMentorDirectionInput,
 ) {
-  const response = await createOpenAIClient().responses.parse({
-    model: getOpenAIEnv().OPENAI_MODEL,
-    input: [
-      {
-        role: "system",
-        content:
-          "You are an expert succession mentor. Create an actionable mentor-facing narrative for one candidate's real development project. Be specific, practical, and encouraging. Do not invent missing project facts. Explain how the candidate's named CliftonStrengths can be deliberately applied to complete the project while the mentor builds the named growth areas through coaching, stretch, observation, and reflection. Avoid generic HR language.",
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const response = await createOpenAIClient().responses.parse({
+      model: getOpenAIEnv().OPENAI_MODEL,
+      max_output_tokens: 1600,
+      input: [
+        {
+          role: "system",
+          content:
+            "You are an expert succession mentor. Create an actionable mentor-facing narrative for one candidate's real development project. Use standard grammar, complete sentences, and polished professional language. Be specific, practical, and encouraging. Do not invent missing project facts. Explain how the candidate's named CliftonStrengths can be deliberately applied to complete the project while the mentor builds the named growth areas through coaching, stretch, observation, and reflection. Avoid generic HR language.",
+        },
+        {
+          role: "user",
+          content: serializeModelInput({
+            candidate: input.candidateName,
+            target_role: input.targetRole,
+            mentor: input.mentorName,
+            project: {
+              title: input.experienceTitle,
+              mentee_task: input.menteeTask,
+              summary: input.projectSummary,
+              purpose: input.projectPurpose,
+              working_goal: input.workingGoal,
+              why_it_fits: input.whyItFits,
+              existing_mentor_focus: input.mentorFocus,
+              first_step: input.firstStep,
+              leadership_actions_required: input.leadershipActionsRequired,
+              success_measures: input.successMeasures,
+            },
+            selected_growth_areas: input.growthAreas,
+            strengths_to_apply: input.selectedStrengths,
+            instructions:
+              "Write a mentor-ready narrative under 425 words. Use short paragraphs and, when several actions or checkpoints are useful, a concise Markdown bullet list. Every bullet must be a complete grammatical sentence. Start with the mentor's overall direction for this project. Connect each named strength to a useful action in the project. Explain how the mentor should use the project to build the selected growth areas, including concrete coaching questions or checkpoints. Close with evidence the mentor should look for that shows both project progress and growth. Finish with a complete sentence and final punctuation; never end mid-sentence or mid-list.",
+            retry_instruction:
+              attempt === 0
+                ? undefined
+                : "The prior response ended incompletely. Produce a fresh, concise response that ends with a complete, grammatically correct sentence.",
+          }),
+        },
+      ],
+      text: {
+        format: zodTextFormat(
+          generatedMentorDirectionSchema,
+          "development_record_mentor_direction",
+        ),
       },
-      {
-        role: "user",
-        content: serializeModelInput({
-          candidate: input.candidateName,
-          target_role: input.targetRole,
-          mentor: input.mentorName,
-          project: {
-            title: input.experienceTitle,
-            mentee_task: input.menteeTask,
-            summary: input.projectSummary,
-            purpose: input.projectPurpose,
-            working_goal: input.workingGoal,
-            why_it_fits: input.whyItFits,
-            existing_mentor_focus: input.mentorFocus,
-            first_step: input.firstStep,
-            leadership_actions_required: input.leadershipActionsRequired,
-            success_measures: input.successMeasures,
-          },
-          selected_growth_areas: input.growthAreas,
-          strengths_to_apply: input.selectedStrengths,
-          instructions:
-            "Write 3 to 5 short paragraphs under 550 words. Start with the mentor's overall direction for this project. Then connect each named strength to a useful action in the project. Explain how the mentor should use the project to build the selected growth areas, including concrete coaching questions or checkpoints. Close with evidence the mentor should look for that shows both project progress and growth. Return prose only; do not include a title, greeting, or markdown bullets.",
-        }),
-      },
-    ],
-    text: {
-      format: zodTextFormat(
-        generatedMentorDirectionSchema,
-        "development_record_mentor_direction",
-      ),
-    },
-  });
+    });
 
-  if (!response.output_parsed) {
-    throw new Error("OpenAI returned no mentor direction.");
+    const narrative = response.output_parsed?.narrative.trim();
+    if (narrative && hasCompleteEnding(narrative)) {
+      return narrative;
+    }
   }
 
-  return response.output_parsed.narrative.trim();
+  throw new Error("OpenAI returned an incomplete mentor direction.");
 }
