@@ -483,6 +483,7 @@ export function LeadershipDevelopmentRecordManager({
   const [isPending, startTransition] = useTransition();
   const [isLoading, setIsLoading] = useState(false);
   const [isRemovingProject, setIsRemovingProject] = useState(false);
+  const [isGeneratingMentorDirection, setIsGeneratingMentorDirection] = useState(false);
   const [storageReady, setStorageReady] = useState(true);
   const [selectedAssignmentKey, setSelectedAssignmentKey] = useState(
     assignments.some(
@@ -1238,6 +1239,72 @@ export function LeadershipDevelopmentRecordManager({
             : [createEmptyLeadershipDevelopmentFeedback()],
       };
     });
+  }
+
+  async function handleGenerateMentorDirection() {
+    if (!formState || !selectedAssignment) return;
+
+    const hasProjectInformation = [
+      formState.experienceTitle,
+      formState.menteeTask,
+      formState.projectSummary,
+      formState.projectPurpose,
+      formState.workingGoal,
+    ].some((value) => value.trim().length > 0);
+
+    if (!hasProjectInformation) {
+      setError("Add the project information in Section 2 before generating mentor direction.");
+      return;
+    }
+    if (formState.growthAreas.length === 0) {
+      setError("Select at least one growth area before generating mentor direction.");
+      return;
+    }
+    if (formState.selectedStrengths.length === 0) {
+      setError("Select at least one existing strength before generating mentor direction.");
+      return;
+    }
+
+    setError(null);
+    setSuccess(null);
+    setIsGeneratingMentorDirection(true);
+
+    try {
+      const response = await fetch(
+        "/api/mentoring/leadership-development-record/generate-mentor-direction",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...formState,
+            candidateId: selectedAssignment.candidateId,
+            roleId: selectedAssignment.roleId,
+            mentorId: selectedAssignment.mentorProfileId,
+            candidateName: selectedAssignment.candidateName,
+            targetRole: selectedAssignment.roleTitle,
+            primaryMentor: selectedAssignment.mentorName,
+          }),
+        },
+      );
+      const result = (await response.json()) as { error?: string; narrative?: string };
+
+      if (!response.ok || !result.narrative) {
+        setError(result.error ?? "Unable to generate mentor direction.");
+        return;
+      }
+
+      setFormState((current) =>
+        current
+          ? { ...current, mentorDirectionNarrative: result.narrative ?? "" }
+          : current,
+      );
+      setOpenSections((current) => ({ ...current, "development-focus": false }));
+      setSuccess("Mentor direction generated. Save the draft to keep it with this project.");
+    } catch {
+      setError("Unable to generate mentor direction.");
+    } finally {
+      setIsGeneratingMentorDirection(false);
+    }
   }
 
   function handleCreateNewRecord() {
@@ -2144,6 +2211,28 @@ export function LeadershipDevelopmentRecordManager({
                           ))}
                         </div>
                       ) : null}
+
+                      <div className="rounded-2xl border border-sky-200 bg-sky-50/70 p-4">
+                        <p className="text-sm font-semibold text-slate-900">
+                          Mentor direction for this project
+                        </p>
+                        <p className="mt-1 text-sm leading-6 text-slate-600">
+                          Generate tailored direction from the project details in Section 2,
+                          the growth areas, and the candidate&apos;s selected strengths.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={handleGenerateMentorDirection}
+                          disabled={isGeneratingMentorDirection}
+                          className="mt-4 rounded-full bg-teal-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+                        >
+                          {isGeneratingMentorDirection
+                            ? "Generating direction..."
+                            : formState.mentorDirectionNarrative
+                              ? "Regenerate mentor direction"
+                              : "Generate mentor direction"}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ),
@@ -2537,6 +2626,16 @@ export function LeadershipDevelopmentRecordManager({
                 </button>
                 {openSections[section.id] ? (
                   <div className="border-t border-slate-200 px-5 py-5">{section.body}</div>
+                ) : null}
+                {section.id === "development-focus" &&
+                !openSections[section.id] &&
+                formState.mentorDirectionNarrative.trim() ? (
+                  <div className="border-t border-slate-200 bg-teal-50/60 px-5 py-5">
+                    <p className="text-sm font-semibold text-teal-900">Mentor direction</p>
+                    <p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-slate-700">
+                      {formState.mentorDirectionNarrative}
+                    </p>
+                  </div>
                 ) : null}
               </article>
             ))}

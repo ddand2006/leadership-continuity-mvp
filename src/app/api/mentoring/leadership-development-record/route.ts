@@ -150,6 +150,7 @@ function normalizeRecordFromDatabase(record: {
   growth_areas: string[] | null;
   assignment_reason: string | null;
   selected_strengths: LeadershipDevelopmentSelectedStrengthInput[] | null;
+  mentor_direction_narrative: string | null;
   experience_title: string;
   mentee_task: string | null;
   project_summary: string | null;
@@ -213,6 +214,7 @@ function normalizeRecordFromDatabase(record: {
     growthAreas: (record.growth_areas ?? []) as LeadershipDevelopmentRecordRecord["growthAreas"],
     assignmentReason: record.assignment_reason ?? "",
     selectedStrengths: record.selected_strengths ?? [],
+    mentorDirectionNarrative: record.mentor_direction_narrative ?? "",
     experienceTitle: record.experience_title,
     menteeTask: record.mentee_task ?? "",
     projectSummary: record.project_summary ?? "",
@@ -425,7 +427,7 @@ export async function GET(request: Request) {
     const recordsResult = await admin
       .from("development_records")
       .select(
-        "id, source_project_assignment_id, candidate_id, role_id, mentor_id, target_role, date_assigned, status, growth_areas, assignment_reason, selected_strengths, experience_title, mentee_task, project_summary, project_purpose, working_goal, why_it_fits, mentor_focus, first_step, key_partners, leadership_actions_required, anticipated_challenges, success_measures, mentor_preparation, mentee_preparation, reflection_questions, success_signals, readiness_signal, mentor_improvement_observed, mentor_development_needed, next_recommended_experience, mentor_review_date, updated_at, average_feedback_score, archived_at",
+        "id, source_project_assignment_id, candidate_id, role_id, mentor_id, target_role, date_assigned, status, growth_areas, assignment_reason, selected_strengths, mentor_direction_narrative, experience_title, mentee_task, project_summary, project_purpose, working_goal, why_it_fits, mentor_focus, first_step, key_partners, leadership_actions_required, anticipated_challenges, success_measures, mentor_preparation, mentee_preparation, reflection_questions, success_signals, readiness_signal, mentor_improvement_observed, mentor_development_needed, next_recommended_experience, mentor_review_date, updated_at, average_feedback_score, archived_at",
       )
       .eq("organization_id", profile.organization_id)
       .eq("candidate_id", query.candidateId)
@@ -816,6 +818,7 @@ export async function POST(request: Request) {
       growth_areas: payload.growthAreas,
       assignment_reason: payload.assignmentReason || null,
       selected_strengths: payload.selectedStrengths,
+      mentor_direction_narrative: payload.mentorDirectionNarrative || null,
       experience_title: payload.experienceTitle,
       mentee_task: payload.menteeTask || null,
       project_summary: payload.projectSummary || null,

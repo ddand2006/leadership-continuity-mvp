@@ -114,6 +114,7 @@ export const leadershipDevelopmentRecordPayloadSchema = z.object({
   growthAreas: z.array(z.enum(LEADERSHIP_DEVELOPMENT_GROWTH_AREAS)).min(1),
   assignmentReason: z.string().trim().max(1000),
   selectedStrengths: z.array(leadershipDevelopmentSelectedStrengthSchema).default([]),
+  mentorDirectionNarrative: z.string().trim().max(3000),
   experienceTitle: z.string().trim().min(1),
   menteeTask: z.string().trim().max(1500),
   projectSummary: z.string().trim().max(3000),
@@ -219,6 +220,7 @@ export function createEmptyLeadershipDevelopmentRecord(options: {
     growthAreas: [],
     assignmentReason: "",
     selectedStrengths: [],
+    mentorDirectionNarrative: "",
     experienceTitle: "",
     menteeTask: "",
     projectSummary: "",
@@ -252,6 +254,7 @@ export function normalizeLeadershipDevelopmentRecord<T extends LeadershipDevelop
   const normalized = {
     ...record,
     selectedStrengths: record.selectedStrengths ?? [],
+    mentorDirectionNarrative: record.mentorDirectionNarrative ?? "",
     keyPartners: record.keyPartners ?? [],
     leadershipActionsRequired: record.leadershipActionsRequired ?? [],
     anticipatedChallenges: record.anticipatedChallenges ?? [],
