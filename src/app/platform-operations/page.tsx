@@ -31,7 +31,14 @@ export default async function PlatformOperationsPage() {
   const organizations = organizationsResult.data ?? [];
   const users = usersResult.data ?? [];
   const candidates = candidatesResult.data ?? [];
-  const organizationUsage = organizations.map((organization) => {
+  const organizationsByAccessAndName = [...organizations].sort((left, right) => {
+    const accessOrder =
+      Number(left.manual_access_status !== "active") -
+      Number(right.manual_access_status !== "active");
+
+    return accessOrder || left.name.localeCompare(right.name);
+  });
+  const organizationUsage = organizationsByAccessAndName.map((organization) => {
     const organizationUsers = users.filter((user) => user.organization_id === organization.id);
     const activeUsers = organizationUsers.filter((user) => user.status === "active");
     const billableUsers = organizationUsers.filter((user) => user.status === "active" || user.status === "invited");
@@ -70,7 +77,7 @@ export default async function PlatformOperationsPage() {
         </section>
         <PlatformOperationsPanel
           requests={requests.data ?? []}
-          organizations={organizations.map(({ id, name, manual_access_status, manual_access_note }) => ({ id, name, manual_access_status, manual_access_note }))}
+          organizations={organizationsByAccessAndName.map(({ id, name, manual_access_status, manual_access_note }) => ({ id, name, manual_access_status, manual_access_note }))}
           organizationUsage={organizationUsage}
           awardNotifications={awardNotifications}
           foundationAnnualPrice={FOUNDATION_PLAN.annualPriceDollars}
