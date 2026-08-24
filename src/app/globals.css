@@ -265,3 +265,12 @@ nav :is(a, button)[class*="bg-teal-900"][class*="text-white"]:hover {
   background: #2d6e95;
   color: #ffffff;
 }
+@media print {
+  header {
+    display: none !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}
