@@ -22,6 +22,31 @@ type OrganizationItem = {
   manual_access_note: string | null;
 };
 
+type OrganizationUsage = {
+  id: string;
+  name: string;
+  peopleCount: number;
+  activeUsers: number;
+  signedInUsers: number;
+  neverSignedInUsers: string[];
+  inactiveUsers: number;
+  candidateCount: number;
+  mentorCount: number;
+  billableSeatsUsed: number;
+  seatLimit: number;
+  additionalSeatPacks: number;
+  subscriptionStatus: string;
+  billingContactEmail: string | null;
+};
+
+type AwardNotification = {
+  id: string;
+  organizationId: string;
+  organizationName: string;
+  tier: "bronze" | "silver" | "gold" | "platinum";
+  reachedAt: string;
+};
+
 type ApiResponse = {
   message?: string;
   error?: string;
@@ -32,6 +57,9 @@ type ApiResponse = {
 export function PlatformOperationsPanel(props: {
   requests: RequestItem[];
   organizations: OrganizationItem[];
+  organizationUsage: OrganizationUsage[];
+  awardNotifications: AwardNotification[];
+  foundationAnnualPrice: number;
   salesNotificationEmail: string | null;
   remindersEnabled: boolean;
 }) {
@@ -69,11 +97,12 @@ export function PlatformOperationsPanel(props: {
             <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">
               Notifications & follow-up
             </p>
-            <h2 className="mt-2 font-display text-3xl">Sales queue controls</h2>
+            <h2 className="mt-2 font-display text-3xl">Platform notification controls</h2>
           </div>
-          <button type="button" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold" disabled={isPending} onClick={() => submit({ action: "send-due-reminders" })}>
-            Send due reminders now
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold" disabled={isPending} onClick={() => submit({ action: "check-award-notifications" })}>Check award alerts</button>
+            <button type="button" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold" disabled={isPending} onClick={() => submit({ action: "send-due-reminders" })}>Send due reminders now</button>
+          </div>
         </div>
         <div className="mt-6 grid gap-4 md:grid-cols-[1fr_auto_auto]">
           <input className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" placeholder="Notification email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
@@ -81,7 +110,21 @@ export function PlatformOperationsPanel(props: {
           <button className="interactive-contrast rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white" disabled={isPending} onClick={() => submit({ action: "settings", salesNotificationEmail: email, remindersEnabled })}>Save notifications</button>
         </div>
         {feedback ? <p className="mt-4 text-sm font-medium text-teal-800">{feedback}</p> : null}
-        <p className="mt-3 text-sm leading-6 text-slate-600">New account requests email this address immediately. Follow-up cadence is monthly for the first 90 days, quarterly through the first year, then every six months.</p>
+        <p className="mt-3 text-sm leading-6 text-slate-600">New account requests and new organization award levels use this notification email when email delivery is configured. Follow-up cadence is monthly for the first 90 days, quarterly through the first year, then every six months.</p>
+      </section>
+
+      <section className="theme-panel-strong rounded-[2rem] p-7">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div><p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">Customer adoption & billing</p><h2 className="mt-2 font-display text-3xl">Organization usage</h2></div>
+          <p className="text-sm text-slate-600">Foundation billing basis: ${props.foundationAnnualPrice.toLocaleString()}/year, including 10 internal seats.</p>
+        </div>
+        <div className="mt-6 overflow-x-auto"><table className="w-full min-w-[980px] text-left text-sm"><thead className="border-b border-slate-200 text-xs font-semibold uppercase tracking-wide text-slate-500"><tr><th className="pb-3 pr-4">Organization</th><th className="pb-3 pr-4">People</th><th className="pb-3 pr-4">Using system</th><th className="pb-3 pr-4">Not signed in</th><th className="pb-3 pr-4">Candidates / mentors</th><th className="pb-3 pr-4">Seats</th><th className="pb-3 pr-4">Billing posture</th></tr></thead><tbody>{props.organizationUsage.map((organization) => <tr key={organization.id} className="border-b border-slate-100 align-top"><td className="py-4 pr-4 font-semibold text-slate-900">{organization.name}<p className="mt-1 font-normal text-slate-500">{organization.billingContactEmail ?? "No billing contact"}</p></td><td className="py-4 pr-4">{organization.peopleCount} total<br/><span className="text-slate-500">{organization.inactiveUsers} inactive</span></td><td className="py-4 pr-4">{organization.signedInUsers} of {organization.activeUsers} active</td><td className="py-4 pr-4">{organization.neverSignedInUsers.length ? organization.neverSignedInUsers.join(", ") : "Everyone has signed in"}</td><td className="py-4 pr-4">{organization.candidateCount} / {organization.mentorCount}</td><td className="py-4 pr-4">{organization.billableSeatsUsed} / {organization.seatLimit}<br/><span className="text-slate-500">{organization.additionalSeatPacks} added pack{organization.additionalSeatPacks === 1 ? "" : "s"}</span></td><td className="py-4 pr-4 capitalize">{organization.subscriptionStatus.replaceAll("_", " ")}</td></tr>)}</tbody></table></div>
+      </section>
+
+      <section className="theme-panel-strong rounded-[2rem] p-7">
+        <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">Organization award alerts</p>
+        <h2 className="mt-2 font-display text-3xl">New legacy-award levels</h2>
+        <div className="mt-5 space-y-3">{props.awardNotifications.length ? props.awardNotifications.map((notification) => <article key={notification.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4"><div><p className="font-semibold text-slate-900">{notification.organizationName} reached {notification.tier[0].toUpperCase()}{notification.tier.slice(1)} Organization</p><p className="mt-1 text-sm text-slate-600">Recorded {new Date(notification.reachedAt).toLocaleDateString()}</p></div><Link className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold" href={`/platform-operations/support/${notification.organizationId}`}>Open support summary</Link></article>) : <p className="rounded-2xl bg-slate-50 p-5 text-sm text-slate-600">No organization award alerts have been recorded yet.</p>}</div>
       </section>
 
       <section className="theme-panel-strong rounded-[2rem] p-7">

@@ -4,6 +4,7 @@ import { ApiRouteError, createApiErrorResponse, requireApiWorkspaceProfile } fro
 import { hasResendEnv } from "@/lib/env";
 import { sendResendEmail } from "@/lib/resend";
 import { PLATFORM_SUPPORT_ORGANIZATION_COOKIE } from "@/lib/platform-support";
+import { syncPlatformAwardNotifications } from "@/lib/platform-award-notifications";
 
 const actionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("settings"), salesNotificationEmail: z.string().trim().email().or(z.literal("")), remindersEnabled: z.boolean() }),
@@ -13,6 +14,7 @@ const actionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("support-session"), organizationId: z.string().uuid(), reason: z.string().trim().max(500).optional() }),
   z.object({ action: z.literal("end-support-session") }),
   z.object({ action: z.literal("send-due-reminders") }),
+  z.object({ action: z.literal("check-award-notifications") }),
 ]);
 
 function requireSystemAdmin(role: string) { if (role !== "system_admin") throw new ApiRouteError("Only system administrators can use platform operations.", 403); }
@@ -86,6 +88,33 @@ export async function POST(request: Request) {
       const response = NextResponse.json({ message: "Returned to your platform workspace.", workspaceUrl: "/platform-operations" });
       response.cookies.set(PLATFORM_SUPPORT_ORGANIZATION_COOKIE, "", { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 0 });
       return response;
+    }
+    if (payload.action === "check-award-notifications") {
+      const notifications = await syncPlatformAwardNotifications({
+        admin: context.admin,
+        actorProfileId: context.profile.id,
+      });
+      const settings = await context.admin
+        .from("platform_settings")
+        .select("sales_notification_email, reminders_enabled")
+        .eq("id", true)
+        .single();
+      if (settings.error) throw settings.error;
+      if (notifications.length && settings.data.reminders_enabled && settings.data.sales_notification_email && hasResendEnv()) {
+        const lines = notifications.map((notification) => `${notification.organizationName} reached ${notification.tier[0].toUpperCase()}${notification.tier.slice(1)} Organization.`);
+        await sendResendEmail({
+          to: settings.data.sales_notification_email,
+          subject: `${notifications.length} organization award alert${notifications.length === 1 ? "" : "s"}`,
+          text: lines.join("\n"),
+          html: `<ul>${lines.map((line) => `<li>${line}</li>`).join("")}</ul>`,
+          idempotencyKey: `organization-award-alert-${notifications.map((notification) => notification.id).join("-")}`,
+        });
+      }
+      return NextResponse.json({
+        message: notifications.length
+          ? `${notifications.length} new organization award alert${notifications.length === 1 ? "" : "s"} recorded.`
+          : "No new organization award levels were reached.",
+      });
     }
     const settings = await context.admin.from("platform_settings").select("sales_notification_email, reminders_enabled").eq("id", true).single();
     if (settings.error) throw settings.error;
