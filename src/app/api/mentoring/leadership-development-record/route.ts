@@ -37,6 +37,8 @@ import {
   mentoringSourceProjectMatchesRoleTitle,
 } from "@/lib/mentoring-source-project";
 import { canonicalizeRoleTitle } from "@/lib/role-title";
+import { hasOpenAIEnv } from "@/lib/env";
+import { anonymizeProjectForIndustryBenchmark } from "@/lib/project-benchmark";
 
 const leadershipDevelopmentQuerySchema = z.object({
   candidateId: z.string().uuid(),
@@ -151,6 +153,8 @@ function normalizeRecordFromDatabase(record: {
   assignment_reason: string | null;
   selected_strengths: LeadershipDevelopmentSelectedStrengthInput[] | null;
   mentor_direction_narrative: string | null;
+  mentee_worksheet: LeadershipDevelopmentRecordRecord["menteeWorksheet"] | null;
+  mentee_report_notes: string | null;
   experience_title: string;
   mentee_task: string | null;
   project_summary: string | null;
@@ -215,6 +219,8 @@ function normalizeRecordFromDatabase(record: {
     assignmentReason: record.assignment_reason ?? "",
     selectedStrengths: record.selected_strengths ?? [],
     mentorDirectionNarrative: record.mentor_direction_narrative ?? "",
+    menteeWorksheet: record.mentee_worksheet ?? null,
+    menteeReportNotes: record.mentee_report_notes ?? "",
     experienceTitle: record.experience_title,
     menteeTask: record.mentee_task ?? "",
     projectSummary: record.project_summary ?? "",
@@ -427,7 +433,7 @@ export async function GET(request: Request) {
     const recordsResult = await admin
       .from("development_records")
       .select(
-        "id, source_project_assignment_id, candidate_id, role_id, mentor_id, target_role, date_assigned, status, growth_areas, assignment_reason, selected_strengths, mentor_direction_narrative, experience_title, mentee_task, project_summary, project_purpose, working_goal, why_it_fits, mentor_focus, first_step, key_partners, leadership_actions_required, anticipated_challenges, success_measures, mentor_preparation, mentee_preparation, reflection_questions, success_signals, readiness_signal, mentor_improvement_observed, mentor_development_needed, next_recommended_experience, mentor_review_date, updated_at, average_feedback_score, archived_at",
+        "id, source_project_assignment_id, candidate_id, role_id, mentor_id, target_role, date_assigned, status, growth_areas, assignment_reason, selected_strengths, mentor_direction_narrative, mentee_worksheet, mentee_report_notes, experience_title, mentee_task, project_summary, project_purpose, working_goal, why_it_fits, mentor_focus, first_step, key_partners, leadership_actions_required, anticipated_challenges, success_measures, mentor_preparation, mentee_preparation, reflection_questions, success_signals, readiness_signal, mentor_improvement_observed, mentor_development_needed, next_recommended_experience, mentor_review_date, updated_at, average_feedback_score, archived_at",
       )
       .eq("organization_id", profile.organization_id)
       .eq("candidate_id", query.candidateId)
@@ -819,6 +825,8 @@ export async function POST(request: Request) {
       assignment_reason: payload.assignmentReason || null,
       selected_strengths: payload.selectedStrengths,
       mentor_direction_narrative: payload.mentorDirectionNarrative || null,
+      mentee_worksheet: payload.menteeWorksheet,
+      mentee_report_notes: payload.menteeReportNotes || null,
       experience_title: payload.experienceTitle,
       mentee_task: payload.menteeTask || null,
       project_summary: payload.projectSummary || null,
@@ -998,7 +1006,7 @@ export async function POST(request: Request) {
 
     const organizationResult = await admin
       .from("organizations")
-      .select("industry")
+      .select("industry, benchmark_contribution_enabled")
       .eq("id", profile.organization_id)
       .maybeSingle();
 
@@ -1102,10 +1110,49 @@ export async function POST(request: Request) {
           .update(syncedProjectPayload)
           .eq("organization_id", profile.organization_id)
           .eq("id", existingOrgProject.id)
-      : await admin.from("development_projects").insert(syncedProjectPayload);
+          .select("id")
+          .single()
+      : await admin
+          .from("development_projects")
+          .insert(syncedProjectPayload)
+          .select("id")
+          .single();
 
     if (syncProjectResult.error) {
       throw new ApiRouteError(syncProjectResult.error.message, 500);
+    }
+
+    if (
+      payload.status === "completed" &&
+      organizationResult.data?.benchmark_contribution_enabled &&
+      organizationResult.data.industry?.trim() &&
+      hasOpenAIEnv()
+    ) {
+      const benchmarkProject = await anonymizeProjectForIndustryBenchmark({
+        title: syncedProjectFields.title,
+        description: syncedProjectFields.description,
+        purpose: syncedProjectFields.purpose,
+        workingGoal: syncedProjectFields.working_goal,
+        mentorFocus: syncedProjectFields.mentor_focus,
+        firstStep: syncedProjectFields.first_step,
+        leadershipActions: syncedProjectFields.leadership_actions_required,
+        successMeasures: syncedProjectFields.expected_outcomes,
+      });
+      const benchmarkResult = await admin.from("industry_project_benchmarks").upsert(
+        {
+          source_organization_id: profile.organization_id,
+          source_development_project_id: syncProjectResult.data.id,
+          industry: organizationResult.data.industry.trim(),
+          role_titles: syncedProjectFields.applicable_roles,
+          competency_names: syncedProjectFields.competencies_developed,
+          strengths_leveraged: syncedProjectFields.strengths_leveraged,
+          project_json: benchmarkProject,
+        },
+        { onConflict: "source_development_project_id" },
+      );
+      if (benchmarkResult.error) {
+        throw new ApiRouteError(benchmarkResult.error.message, 500);
+      }
     }
 
     return NextResponse.json({

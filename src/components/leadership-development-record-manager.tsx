@@ -484,6 +484,10 @@ export function LeadershipDevelopmentRecordManager({
   const [isLoading, setIsLoading] = useState(false);
   const [isRemovingProject, setIsRemovingProject] = useState(false);
   const [isGeneratingMentorDirection, setIsGeneratingMentorDirection] = useState(false);
+  const [isGeneratingProjectTool, setIsGeneratingProjectTool] = useState(false);
+  const [menteeWorksheet, setMenteeWorksheet] = useState<{
+    assignmentSummary: string; firstSteps: string[]; weeklyCheckpoints: string[]; reportBackPrompts: string[]; reflectionQuestions: string[];
+  } | null>(null);
   const [storageReady, setStorageReady] = useState(true);
   const [selectedAssignmentKey, setSelectedAssignmentKey] = useState(
     assignments.some(
@@ -593,7 +597,7 @@ export function LeadershipDevelopmentRecordManager({
     selectedSourceProject ??
     findLinkedProjectForRecord(selectedRecord, visibleSourceProjects);
   const shouldShowTransferredProjectEditor = Boolean(
-    linkedSourceProject || (formState && hasTransferredProjectDetails(formState)),
+    linkedSourceProject || (formState && (hasTransferredProjectDetails(formState) || formState.experienceTitle || formState.menteeTask)),
   );
 
   useEffect(() => {
@@ -1307,6 +1311,31 @@ export function LeadershipDevelopmentRecordManager({
     }
   }
 
+  async function handleProjectTool(action: "expand_project" | "generate_worksheet") {
+    if (!formState || !selectedAssignment) return;
+    if (!formState.experienceTitle.trim() && !formState.menteeTask.trim()) {
+      setError("Add a project title or task before generating project materials."); return;
+    }
+    setError(null); setSuccess(null); setIsGeneratingProjectTool(true);
+    try {
+      const response = await fetch("/api/mentoring/leadership-development-record/project-tools", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...formState, action, candidateId: selectedAssignment.candidateId, roleId: selectedAssignment.roleId, mentorId: selectedAssignment.mentorProfileId, candidateName: selectedAssignment.candidateName, targetRole: selectedAssignment.roleTitle, primaryMentor: selectedAssignment.mentorName }),
+      });
+      const payload = (await response.json()) as { error?: string; result?: Record<string, unknown> };
+      if (!response.ok || !payload.result) { setError(payload.error ?? "Unable to generate project materials."); return; }
+      if (action === "expand_project") {
+        setFormState((current) => current ? { ...current, ...(payload.result as Pick<LeadershipDevelopmentRecordPayload, "projectSummary" | "projectPurpose" | "workingGoal" | "whyItFits" | "mentorFocus" | "firstStep" | "keyPartners" | "leadershipActionsRequired" | "anticipatedChallenges" | "successMeasures" | "mentorPreparation" | "menteePreparation" | "reflectionQuestions" | "successSignals">) } : current);
+        setProjectDetailsOpen(true); setSuccess("Project details expanded. Review and save the record to add this company example to your library.");
+      } else {
+        const worksheet = payload.result as NonNullable<typeof menteeWorksheet>;
+        setMenteeWorksheet(worksheet);
+        setFormState((current) => current ? { ...current, menteeWorksheet: worksheet } : current);
+        setSuccess("Mentee worksheet generated. Save the record after adding any report-back notes.");
+      }
+    } catch { setError("Unable to generate project materials."); } finally { setIsGeneratingProjectTool(false); }
+  }
+
   function handleCreateNewRecord() {
     if (!selectedAssignment) {
       return;
@@ -1803,6 +1832,11 @@ export function LeadershipDevelopmentRecordManager({
                   </div>
 
                   <div className="flex flex-wrap gap-2">
+                    {!linkedSourceProject ? (
+                      <button type="button" onClick={() => handleProjectTool("expand_project")} disabled={isGeneratingProjectTool} className="rounded-full bg-teal-900 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300">
+                        {isGeneratingProjectTool ? "Generating..." : "Expand project with AI"}
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       onClick={() => {
@@ -1920,6 +1954,16 @@ export function LeadershipDevelopmentRecordManager({
                         onChange={(value) => updateRecord("successSignals", value)}
                       />
                     </div>
+                  </div>
+                ) : null}
+                {formState.id ? (
+                  <div className="mt-4 rounded-2xl border border-sky-200 bg-sky-50/70 p-4">
+                    <p className="text-sm font-semibold text-slate-900">Mentee worksheet</p>
+                    <p className="mt-1 text-sm text-slate-600">Generate a clear assignment, first steps, checkpoints, and report-back prompts for the mentee.</p>
+                    <button type="button" onClick={() => handleProjectTool("generate_worksheet")} disabled={isGeneratingProjectTool} className="mt-3 rounded-full border border-sky-200 bg-white px-4 py-2 text-sm font-semibold text-sky-900 disabled:cursor-not-allowed disabled:text-slate-400">
+                      {isGeneratingProjectTool ? "Generating..." : "Generate mentee worksheet"}
+                    </button>
+                    {(menteeWorksheet ?? formState.menteeWorksheet) ? <div className="mt-4 space-y-3 text-sm leading-6 text-slate-700"><p>{(menteeWorksheet ?? formState.menteeWorksheet)!.assignmentSummary}</p><ProjectDetailListCard label="First steps" values={(menteeWorksheet ?? formState.menteeWorksheet)!.firstSteps} onChange={(values) => { setMenteeWorksheet((current) => current ? { ...current, firstSteps: values } : current); updateRecord("menteeWorksheet", { ...(menteeWorksheet ?? formState.menteeWorksheet)!, firstSteps: values }); }} /><ProjectDetailListCard label="Report-back prompts" values={(menteeWorksheet ?? formState.menteeWorksheet)!.reportBackPrompts} onChange={(values) => { setMenteeWorksheet((current) => current ? { ...current, reportBackPrompts: values } : current); updateRecord("menteeWorksheet", { ...(menteeWorksheet ?? formState.menteeWorksheet)!, reportBackPrompts: values }); }} /><label className="block"><span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">Mentee report-back notes</span><textarea value={formState.menteeReportNotes} onChange={(event) => updateRecord("menteeReportNotes", event.target.value)} className="mt-2 min-h-28 w-full rounded-2xl border border-sky-200 bg-white px-4 py-3 text-sm text-slate-900" placeholder="What I completed, learned, and need from my mentor next." /></label></div> : null}
                   </div>
                 ) : null}
               </article>

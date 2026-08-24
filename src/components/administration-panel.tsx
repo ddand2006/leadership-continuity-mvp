@@ -65,6 +65,7 @@ type AdministrationPanelProps = {
     included_seats: number | null;
     additional_seat_packs: number | null;
     hide_billing_controls: boolean | null;
+    benchmark_contribution_enabled: boolean | null;
   }>;
   selectedOrganizationId: string;
   canEditOrganizationAccess: boolean;
@@ -214,6 +215,7 @@ export function AdministrationPanel({
           leadershipHelpEnabled: selectedOrganization.leadership_help_enabled,
           leadershipHelpTier: selectedOrganization.leadership_help_tier,
           additionalSeatPacks: selectedOrganization.additional_seat_packs ?? 0,
+          benchmarkContributionEnabled: Boolean(selectedOrganization.benchmark_contribution_enabled),
         }
       : {
           organizationName: "",
@@ -225,6 +227,7 @@ export function AdministrationPanel({
           leadershipHelpEnabled: false,
           leadershipHelpTier: "none",
           additionalSeatPacks: 0,
+          benchmarkContributionEnabled: false,
         },
   );
   const [newOrganizationForm, setNewOrganizationForm] = useState({
@@ -237,6 +240,7 @@ export function AdministrationPanel({
     leadershipHelpEnabled: false,
     leadershipHelpTier: "none",
     additionalSeatPacks: 0,
+    benchmarkContributionEnabled: false,
   });
   const filtersSectionRef = useRef<HTMLElement | null>(null);
   const actionMenuRef = useDismissibleLayer<HTMLDivElement>(
@@ -639,6 +643,7 @@ export function AdministrationPanel({
           leadershipHelpEnabled: false,
           leadershipHelpTier: "none",
           additionalSeatPacks: 0,
+          benchmarkContributionEnabled: false,
         });
         if (result.organizationId) {
           window.location.assign(
@@ -764,6 +769,29 @@ export function AdministrationPanel({
                   />
                 </label>
               </div>
+
+              <label className="flex gap-3 rounded-2xl border border-teal-200 bg-teal-50/70 p-4 text-sm leading-6 text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={organizationForm.benchmarkContributionEnabled}
+                  onChange={(event) =>
+                    setOrganizationForm((current) => ({
+                      ...current,
+                      benchmarkContributionEnabled: event.target.checked,
+                    }))
+                  }
+                  disabled={!canEditOrganizationAccess}
+                  className="mt-1 h-4 w-4 accent-teal-700"
+                />
+                <span>
+                  <span className="block font-semibold text-slate-900">
+                    Contribute anonymized projects to industry benchmarks
+                  </span>
+                  Finalized projects may be de-identified and used as examples for
+                  future organizations in the same industry. Company, candidate, and
+                  mentor names are never included.
+                </span>
+              </label>
 
               {!selectedOrganization.hide_billing_controls ? <>
               <fieldset className="rounded-[1.25rem] border border-slate-200 bg-white/80 p-4">

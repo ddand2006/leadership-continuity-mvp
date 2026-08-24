@@ -115,6 +115,13 @@ export const leadershipDevelopmentRecordPayloadSchema = z.object({
   assignmentReason: z.string().trim().max(1000),
   selectedStrengths: z.array(leadershipDevelopmentSelectedStrengthSchema).default([]),
   mentorDirectionNarrative: z.string().trim().max(3000),
+  menteeWorksheet: z
+    .object({
+      assignmentSummary: z.string(), firstSteps: z.array(z.string()), weeklyCheckpoints: z.array(z.string()), reportBackPrompts: z.array(z.string()), reflectionQuestions: z.array(z.string()),
+    })
+    .nullable()
+    .default(null),
+  menteeReportNotes: z.string().trim().max(4000),
   experienceTitle: z.string().trim().min(1),
   menteeTask: z.string().trim().max(1500),
   projectSummary: z.string().trim().max(3000),
@@ -221,6 +228,8 @@ export function createEmptyLeadershipDevelopmentRecord(options: {
     assignmentReason: "",
     selectedStrengths: [],
     mentorDirectionNarrative: "",
+    menteeWorksheet: null,
+    menteeReportNotes: "",
     experienceTitle: "",
     menteeTask: "",
     projectSummary: "",
@@ -255,6 +264,8 @@ export function normalizeLeadershipDevelopmentRecord<T extends LeadershipDevelop
     ...record,
     selectedStrengths: record.selectedStrengths ?? [],
     mentorDirectionNarrative: record.mentorDirectionNarrative ?? "",
+    menteeWorksheet: record.menteeWorksheet ?? null,
+    menteeReportNotes: record.menteeReportNotes ?? "",
     keyPartners: record.keyPartners ?? [],
     leadershipActionsRequired: record.leadershipActionsRequired ?? [],
     anticipatedChallenges: record.anticipatedChallenges ?? [],

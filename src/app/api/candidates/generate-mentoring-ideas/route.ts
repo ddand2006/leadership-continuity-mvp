@@ -216,7 +216,7 @@ export async function POST(request: Request) {
           (project.leadership_actions_required as string[] | null) ?? [],
       }),
     );
-    const referenceIdeas = rankMentoringIdeasForCompetency(developmentProjects, {
+    const organizationReferenceIdeas = rankMentoringIdeasForCompetency(developmentProjects, {
       roleTitle,
       industry: organizationResult.data?.industry ?? null,
       competencyName: competencyAssessment.competencyName,
@@ -248,6 +248,38 @@ export async function POST(request: Request) {
           developmentProjects.find((project) => project.title === idea.title)
             ?.leadership_actions_required ?? [],
       }));
+
+    const industry = organizationResult.data?.industry?.trim() ?? "";
+    const benchmarksResult = industry
+      ? await admin
+          .from("industry_project_benchmarks")
+          .select("project_json")
+          .eq("industry", industry)
+          .neq("source_organization_id", profile.organization_id)
+          .limit(3)
+      : { data: [], error: null };
+    if (benchmarksResult.error) throw new ApiRouteError(benchmarksResult.error.message, 500);
+    const benchmarkReferenceIdeas = (benchmarksResult.data ?? []).map((benchmark) => {
+      const project = benchmark.project_json as {
+        title: string; description: string; purpose?: string; workingGoal?: string;
+        mentorFocus?: string; firstStep?: string; leadershipActions?: string[]; successMeasures?: string[];
+      };
+      return {
+        title: project.title,
+        description: project.description,
+        difficulty: "intermediate",
+        industry,
+        durationDays: 45,
+        expectedOutcomes: project.successMeasures ?? [],
+        mentorQuestions: [],
+        purpose: project.purpose ?? null,
+        workingGoal: project.workingGoal ?? null,
+        mentorFocus: project.mentorFocus ?? null,
+        firstStep: project.firstStep ?? null,
+        leadershipActionsRequired: project.leadershipActions ?? [],
+      };
+    });
+    const referenceIdeas = [...organizationReferenceIdeas, ...benchmarkReferenceIdeas].slice(0, 5);
 
     const ideas = await generateCandidateMentoringIdeas({
       candidate: {
