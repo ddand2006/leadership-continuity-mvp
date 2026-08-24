@@ -90,6 +90,13 @@ export const leadershipDevelopmentFeedbackSchema = z.object({
   evidenceComments: z.string().trim().max(1000),
 });
 
+export const leadershipDevelopmentSelectedStrengthSchema = z.object({
+  themeName: z.string().trim().min(1).max(100),
+  rank: z.number().int().min(1).max(34),
+  domain: z.string().trim().min(1).max(100),
+  helpDescription: z.string().trim().min(1).max(1000),
+});
+
 export const leadershipDevelopmentRecordPayloadSchema = z.object({
   id: z.string().uuid().optional(),
   sourceProjectAssignmentId: z
@@ -106,6 +113,7 @@ export const leadershipDevelopmentRecordPayloadSchema = z.object({
   status: z.enum(LEADERSHIP_DEVELOPMENT_STATUSES),
   growthAreas: z.array(z.enum(LEADERSHIP_DEVELOPMENT_GROWTH_AREAS)).min(1),
   assignmentReason: z.string().trim().max(1000),
+  selectedStrengths: z.array(leadershipDevelopmentSelectedStrengthSchema).default([]),
   experienceTitle: z.string().trim().min(1),
   menteeTask: z.string().trim().max(1500),
   projectSummary: z.string().trim().max(3000),
@@ -142,6 +150,9 @@ export type LeadershipDevelopmentLeaderInput = z.infer<
 >;
 export type LeadershipDevelopmentFeedbackInput = z.infer<
   typeof leadershipDevelopmentFeedbackSchema
+>;
+export type LeadershipDevelopmentSelectedStrengthInput = z.infer<
+  typeof leadershipDevelopmentSelectedStrengthSchema
 >;
 export type LeadershipDevelopmentRecordPayload = z.infer<
   typeof leadershipDevelopmentRecordPayloadSchema
@@ -207,6 +218,7 @@ export function createEmptyLeadershipDevelopmentRecord(options: {
     status: "assigned",
     growthAreas: [],
     assignmentReason: "",
+    selectedStrengths: [],
     experienceTitle: "",
     menteeTask: "",
     projectSummary: "",
@@ -239,6 +251,7 @@ export function normalizeLeadershipDevelopmentRecord<T extends LeadershipDevelop
 ): T {
   const normalized = {
     ...record,
+    selectedStrengths: record.selectedStrengths ?? [],
     keyPartners: record.keyPartners ?? [],
     leadershipActionsRequired: record.leadershipActionsRequired ?? [],
     anticipatedChallenges: record.anticipatedChallenges ?? [],

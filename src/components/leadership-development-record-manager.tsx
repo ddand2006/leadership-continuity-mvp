@@ -48,6 +48,14 @@ type LeadershipDevelopmentCompetencyOption = {
   targetScore: number;
 };
 
+type LeadershipDevelopmentStrengthOption = {
+  themeName: string;
+  rank: number;
+  domain: string;
+  developmentUse: string | null;
+  notes: string | null;
+};
+
 type CollapsibleSectionId =
   | "candidate-information"
   | "development-focus"
@@ -502,6 +510,8 @@ export function LeadershipDevelopmentRecordManager({
   >({});
   const [competencyOptionsByAssignmentKey, setCompetencyOptionsByAssignmentKey] =
     useState<Record<string, LeadershipDevelopmentCompetencyOption[]>>({});
+  const [strengthOptionsByAssignmentKey, setStrengthOptionsByAssignmentKey] =
+    useState<Record<string, LeadershipDevelopmentStrengthOption[]>>({});
   const [sourceProjectsByAssignmentKey, setSourceProjectsByAssignmentKey] = useState<
     Record<string, MentoringSourceProject[]>
   >({});
@@ -535,6 +545,9 @@ export function LeadershipDevelopmentRecordManager({
     : [];
   const currentCompetencyOptions = selectedAssignment
     ? competencyOptionsByAssignmentKey[getAssignmentKey(selectedAssignment)] ?? []
+    : [];
+  const currentStrengthOptions = selectedAssignment
+    ? strengthOptionsByAssignmentKey[getAssignmentKey(selectedAssignment)] ?? []
     : [];
   const pendingTransferredProject = useMemo(() => {
     if (!selectedAssignment) {
@@ -734,6 +747,7 @@ export function LeadershipDevelopmentRecordManager({
           archivedRecords?: LeadershipDevelopmentRecordRecord[];
           projects?: MentoringSourceProject[];
           competencyAssessments?: LeadershipDevelopmentCompetencyOption[];
+          candidateStrengths?: LeadershipDevelopmentStrengthOption[];
         };
         const assignmentKey = getAssignmentKey(selectedAssignment);
 
@@ -751,6 +765,10 @@ export function LeadershipDevelopmentRecordManager({
             [assignmentKey]: [],
           }));
           setCompetencyOptionsByAssignmentKey((current) => ({
+            ...current,
+            [assignmentKey]: [],
+          }));
+          setStrengthOptionsByAssignmentKey((current) => ({
             ...current,
             [assignmentKey]: [],
           }));
@@ -774,6 +792,7 @@ export function LeadershipDevelopmentRecordManager({
           ),
         );
         const competencyOptions = payload.competencyAssessments ?? [];
+        const strengthOptions = payload.candidateStrengths ?? [];
 
         setRecordsByAssignmentKey((current) => ({
           ...current,
@@ -790,6 +809,10 @@ export function LeadershipDevelopmentRecordManager({
         setCompetencyOptionsByAssignmentKey((current) => ({
           ...current,
           [assignmentKey]: competencyOptions,
+        }));
+        setStrengthOptionsByAssignmentKey((current) => ({
+          ...current,
+          [assignmentKey]: strengthOptions,
         }));
 
         const applyLoadedRecord = (nextRecordId: string) => {
@@ -1057,6 +1080,50 @@ export function LeadershipDevelopmentRecordManager({
           : [...current.growthAreas, growthArea],
       };
     });
+  }
+
+  function toggleSelectedStrength(strength: LeadershipDevelopmentStrengthOption) {
+    setFormState((current) => {
+      if (!current) return current;
+
+      const isSelected = current.selectedStrengths.some(
+        (selected) => selected.themeName === strength.themeName,
+      );
+      return {
+        ...current,
+        selectedStrengths: isSelected
+          ? current.selectedStrengths.filter(
+              (selected) => selected.themeName !== strength.themeName,
+            )
+          : [
+              ...current.selectedStrengths,
+              {
+                themeName: strength.themeName,
+                rank: strength.rank,
+                domain: strength.domain,
+                helpDescription:
+                  strength.developmentUse?.trim() ||
+                  strength.notes?.trim() ||
+                  `Use ${strength.themeName} to support the goals and responsibilities in this development experience.`,
+              },
+            ],
+      };
+    });
+  }
+
+  function updateSelectedStrengthDescription(themeName: string, helpDescription: string) {
+    setFormState((current) =>
+      current
+        ? {
+            ...current,
+            selectedStrengths: current.selectedStrengths.map((strength) =>
+              strength.themeName === themeName
+                ? { ...strength, helpDescription }
+                : strength,
+            ),
+          }
+        : current,
+    );
   }
 
   function addLeader() {
@@ -2000,20 +2067,84 @@ export function LeadershipDevelopmentRecordManager({
                         })}
                       </div>
                     </div>
-                    <label className="block">
-                      <span className="mb-2 block text-sm font-semibold text-slate-700">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-700">
                         What strengths will assist in this project?
-                      </span>
-                      <textarea
-                        value={formState.assignmentReason}
-                        onChange={(event) => updateRecord("assignmentReason", event.target.value)}
-                        maxLength={1000}
-                        className="min-h-28 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
-                      />
-                      <p className="mt-2 text-xs text-slate-500">
-                        {formState.assignmentReason.length} / 1000 characters
                       </p>
-                    </label>
+                      {currentStrengthOptions.length > 0 ? (
+                        <>
+                          <p className="mt-1 text-sm text-slate-600">
+                            Select the candidate&apos;s existing strengths to record how each will support this experience.
+                          </p>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {currentStrengthOptions.map((strength) => {
+                              const isSelected = formState.selectedStrengths.some(
+                                (selected) => selected.themeName === strength.themeName,
+                              );
+
+                              return (
+                                <button
+                                  key={strength.themeName}
+                                  type="button"
+                                  onClick={() => toggleSelectedStrength(strength)}
+                                  className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                                    isSelected
+                                      ? "border-teal-900 bg-teal-900 text-white"
+                                      : "border-sky-200 bg-sky-50 text-sky-900 hover:bg-sky-100"
+                                  }`}
+                                >
+                                  #{strength.rank} {strength.themeName}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </>
+                      ) : (
+                        <p className="mt-2 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm leading-6 text-slate-600">
+                          This candidate does not have CliftonStrengths recorded yet. Add their strengths in the candidate workspace first.
+                        </p>
+                      )}
+
+                      {formState.selectedStrengths.length > 0 ? (
+                        <div className="mt-5 space-y-3">
+                          <p className="text-sm font-semibold text-slate-700">
+                            Selected strengths and how they help
+                          </p>
+                          {formState.selectedStrengths.map((strength) => (
+                            <article
+                              key={strength.themeName}
+                              className="rounded-2xl border border-teal-100 bg-teal-50/60 p-4"
+                            >
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <p className="font-semibold text-slate-900">
+                                  #{strength.rank} {strength.themeName}
+                                </p>
+                                <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold tracking-[0.1em] text-teal-800 uppercase">
+                                  {strength.domain}
+                                </span>
+                              </div>
+                              <label className="mt-3 block">
+                                <span className="text-xs font-semibold tracking-[0.12em] text-slate-600 uppercase">
+                                  How this strength will help
+                                </span>
+                                <textarea
+                                  value={strength.helpDescription}
+                                  onChange={(event) =>
+                                    updateSelectedStrengthDescription(
+                                      strength.themeName,
+                                      event.target.value,
+                                    )
+                                  }
+                                  maxLength={1000}
+                                  rows={3}
+                                  className="mt-2 w-full rounded-2xl border border-teal-100 bg-white px-4 py-3 text-sm leading-6 text-slate-900 outline-none transition focus:border-teal-500"
+                                />
+                              </label>
+                            </article>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
                 ),
               },

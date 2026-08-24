@@ -25,6 +25,7 @@ import {
   parseLeadershipDevelopmentScore,
   type LeadershipDevelopmentFeedbackInput,
   type LeadershipDevelopmentRecordRecord,
+  type LeadershipDevelopmentSelectedStrengthInput,
 } from "@/lib/leadership-development-record";
 import {
   buildDevelopmentProjectFieldsFromLeadershipRecord,
@@ -148,6 +149,7 @@ function normalizeRecordFromDatabase(record: {
   status: LeadershipDevelopmentRecordRecord["status"];
   growth_areas: string[] | null;
   assignment_reason: string | null;
+  selected_strengths: LeadershipDevelopmentSelectedStrengthInput[] | null;
   experience_title: string;
   mentee_task: string | null;
   project_summary: string | null;
@@ -210,6 +212,7 @@ function normalizeRecordFromDatabase(record: {
     status: record.status,
     growthAreas: (record.growth_areas ?? []) as LeadershipDevelopmentRecordRecord["growthAreas"],
     assignmentReason: record.assignment_reason ?? "",
+    selectedStrengths: record.selected_strengths ?? [],
     experienceTitle: record.experience_title,
     menteeTask: record.mentee_task ?? "",
     projectSummary: record.project_summary ?? "",
@@ -325,7 +328,13 @@ export async function GET(request: Request) {
 
     const canonicalRoleTitle = canonicalizeRoleTitle(roleResult.data?.title ?? null);
 
-    const [roleCompetenciesResult, panelsResult, strengthAssessmentsResult] =
+    const [
+      roleCompetenciesResult,
+      panelsResult,
+      strengthAssessmentsResult,
+      candidateStrengthsResult,
+      strengthsLibraryResult,
+    ] =
       await Promise.all([
         admin
           .from("role_competencies")
@@ -345,12 +354,21 @@ export async function GET(request: Request) {
           .eq("organization_id", profile.organization_id)
           .eq("candidate_id", query.candidateId)
           .eq("role_id", query.roleId),
+        admin
+          .from("candidate_strengths")
+          .select("theme_name, rank, domain, notes")
+          .eq("organization_id", profile.organization_id)
+          .eq("candidate_id", query.candidateId)
+          .order("rank", { ascending: true }),
+        admin.from("strengths_library").select("theme_name, development_uses"),
       ]);
 
     for (const result of [
       roleCompetenciesResult,
       panelsResult,
       strengthAssessmentsResult,
+      candidateStrengthsResult,
+      strengthsLibraryResult,
     ]) {
       if (result.error) {
         throw new ApiRouteError(result.error.message, 500);
@@ -390,11 +408,24 @@ export async function GET(request: Request) {
       candidateScore: assessment.averageScore,
       targetScore: assessment.targetScore,
     }));
+    const strengthUseByTheme = new Map(
+      (strengthsLibraryResult.data ?? []).map((strength) => [
+        strength.theme_name,
+        strength.development_uses,
+      ]),
+    );
+    const candidateStrengths = (candidateStrengthsResult.data ?? []).map((strength) => ({
+      themeName: strength.theme_name,
+      rank: strength.rank,
+      domain: strength.domain,
+      developmentUse: strengthUseByTheme.get(strength.theme_name) ?? null,
+      notes: strength.notes ?? null,
+    }));
 
     const recordsResult = await admin
       .from("development_records")
       .select(
-        "id, source_project_assignment_id, candidate_id, role_id, mentor_id, target_role, date_assigned, status, growth_areas, assignment_reason, experience_title, mentee_task, project_summary, project_purpose, working_goal, why_it_fits, mentor_focus, first_step, key_partners, leadership_actions_required, anticipated_challenges, success_measures, mentor_preparation, mentee_preparation, reflection_questions, success_signals, readiness_signal, mentor_improvement_observed, mentor_development_needed, next_recommended_experience, mentor_review_date, updated_at, average_feedback_score, archived_at",
+        "id, source_project_assignment_id, candidate_id, role_id, mentor_id, target_role, date_assigned, status, growth_areas, assignment_reason, selected_strengths, experience_title, mentee_task, project_summary, project_purpose, working_goal, why_it_fits, mentor_focus, first_step, key_partners, leadership_actions_required, anticipated_challenges, success_measures, mentor_preparation, mentee_preparation, reflection_questions, success_signals, readiness_signal, mentor_improvement_observed, mentor_development_needed, next_recommended_experience, mentor_review_date, updated_at, average_feedback_score, archived_at",
       )
       .eq("organization_id", profile.organization_id)
       .eq("candidate_id", query.candidateId)
@@ -608,6 +639,7 @@ export async function GET(request: Request) {
       archivedRecords: archivedDatabaseRecords.map(normalizeRecord),
       projects: sourceProjectsWithFallbackCompetencies,
       competencyAssessments,
+      candidateStrengths,
     });
   } catch (error) {
     return createApiErrorResponse(
@@ -783,6 +815,7 @@ export async function POST(request: Request) {
       status: payload.status,
       growth_areas: payload.growthAreas,
       assignment_reason: payload.assignmentReason || null,
+      selected_strengths: payload.selectedStrengths,
       experience_title: payload.experienceTitle,
       mentee_task: payload.menteeTask || null,
       project_summary: payload.projectSummary || null,
