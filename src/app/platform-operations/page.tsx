@@ -55,6 +55,7 @@ export default async function PlatformOperationsPage() {
     return {
       id: organization.id,
       name: organization.name,
+      hasActiveAccess: organization.manual_access_status === "active",
       peopleCount: organizationUsers.length,
       activeUsers: activeUsers.length,
       signedInUsers: activeUsers.filter((user) => Boolean(user.last_login_at)).length,
@@ -77,6 +78,12 @@ export default async function PlatformOperationsPage() {
       ? [{ id: event.id, organizationId: event.organization_id, organizationName: details.organization_name, tier: details.award_tier, reachedAt: event.created_at }]
       : [];
   });
+  const activePortfolioAnnualBilling = organizationUsage
+    .filter((organization) => organization.hasActiveAccess)
+    .reduce((total, organization) => total + organization.expectedAnnualBillingDollars, 0);
+  const activePortfolioBillableSeats = organizationUsage
+    .filter((organization) => organization.hasActiveAccess)
+    .reduce((total, organization) => total + organization.billableSeatsUsed, 0);
 
   return (
     <main className="app-page">
@@ -90,6 +97,8 @@ export default async function PlatformOperationsPage() {
           requests={requests.data ?? []}
           organizations={organizationsByAccessAndName.map(({ id, name, manual_access_status, manual_access_note }) => ({ id, name, manual_access_status, manual_access_note }))}
           organizationUsage={organizationUsage}
+          activePortfolioAnnualBilling={activePortfolioAnnualBilling}
+          activePortfolioBillableSeats={activePortfolioBillableSeats}
           awardNotifications={awardNotifications}
           foundationAnnualPrice={FOUNDATION_PLAN.annualPriceDollars}
           salesNotificationEmail={settings.data?.sales_notification_email ?? null}
