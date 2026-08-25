@@ -7,9 +7,6 @@ const cycleSteps = [
     title: "Identify Key Competencies",
     description:
       "The organization identifies the characteristics and competencies required for each role to create a clear standard for development and readiness.",
-    accent: "#133b78",
-    surface: "from-slate-50 via-white to-sky-50",
-    border: "border-sky-200/80",
     desktopPosition: {
       left: "50%",
       top: "14%",
@@ -24,9 +21,6 @@ const cycleSteps = [
     title: "Assign a Mentor",
     description:
       "Each individual is paired with a mentor who helps guide the process, shape priorities, and support growth through meaningful experience.",
-    accent: "#4f7c3c",
-    surface: "from-emerald-50 via-white to-lime-50",
-    border: "border-emerald-200/80",
     desktopPosition: {
       left: "79%",
       top: "41%",
@@ -41,9 +35,6 @@ const cycleSteps = [
     title: "Execute & Learn",
     description:
       "The individual applies new learning through meaningful work, gaining confidence, experience, and support from the mentor along the way.",
-    accent: "#1582a0",
-    surface: "from-cyan-50 via-white to-sky-50",
-    border: "border-cyan-200/80",
     desktopPosition: {
       left: "72%",
       top: "79%",
@@ -58,9 +49,6 @@ const cycleSteps = [
     title: "Reflect & Reinforce",
     description:
       "The mentor and individual review progress, discuss lessons learned, reinforce growth, and identify the next development priority.",
-    accent: "#6450aa",
-    surface: "from-violet-50 via-white to-purple-50",
-    border: "border-violet-200/80",
     desktopPosition: {
       left: "28%",
       top: "79%",
@@ -75,9 +63,6 @@ const cycleSteps = [
     title: "Apply & Advance",
     description:
       "The individual applies stronger skills in the role and prepares for greater responsibility as the cycle continues.",
-    accent: "#d48812",
-    surface: "from-amber-50 via-white to-orange-50",
-    border: "border-amber-200/80",
     desktopPosition: {
       left: "21%",
       top: "41%",
@@ -201,7 +186,7 @@ function PrincipleAccordionItem(props: {
       name={props.groupName}
     >
       <summary className="flex cursor-pointer list-none items-start gap-4 px-4 py-4">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#0a254e] text-sm font-semibold text-white">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-teal-900 text-sm font-semibold text-white">
           {props.index}
         </span>
         <div className="flex-1">
@@ -224,9 +209,6 @@ function CycleStepCard(props: {
   number: string;
   title: string;
   description: string;
-  accent: string;
-  surface: string;
-  border: string;
   desktopPosition?: CSSProperties;
   hoverShift?: {
     x: string;
@@ -236,24 +218,18 @@ function CycleStepCard(props: {
   return (
     <article
       tabIndex={0}
-      className={`cycle-step-card group relative rounded-[1.75rem] border ${props.border} bg-gradient-to-br ${props.surface} p-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)] transition duration-300 ease-out hover:z-30 hover:shadow-[0_28px_70px_rgba(15,23,42,0.16)] focus:z-30 focus:shadow-[0_28px_70px_rgba(15,23,42,0.16)] focus:outline-none lg:absolute lg:z-10 lg:h-[13.75rem] lg:w-[20rem]`}
+      className="cycle-step-card group relative rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_18px_50px_rgba(36,95,135,0.08)] transition duration-300 ease-out hover:z-30 hover:shadow-[0_28px_70px_rgba(36,95,135,0.14)] focus:z-30 focus:shadow-[0_28px_70px_rgba(36,95,135,0.14)] focus:outline-none lg:absolute lg:z-10 lg:h-[13.75rem] lg:w-[20rem]"
       style={{
         ...props.desktopPosition,
         ["--cycle-hover-x" as string]: props.hoverShift?.x ?? "0px",
         ["--cycle-hover-y" as string]: props.hoverShift?.y ?? "0px",
       }}
     >
-      <div
-        className="absolute -top-5 left-5 flex h-12 w-12 items-center justify-center rounded-full text-lg font-semibold text-white shadow-[0_12px_30px_rgba(15,23,42,0.18)]"
-        style={{ backgroundColor: props.accent }}
-      >
+      <div className="absolute -top-5 left-5 flex h-12 w-12 items-center justify-center rounded-full bg-teal-900 text-lg font-semibold text-white shadow-[0_12px_30px_rgba(29,78,216,0.24)]">
         {props.number}
       </div>
       <div className="mt-6 flex h-full flex-col">
-        <h3
-          className="min-h-[2.75rem] text-xl leading-tight font-semibold tracking-[-0.03em]"
-          style={{ color: props.accent }}
-        >
+        <h3 className="min-h-[2.75rem] text-xl leading-tight font-semibold tracking-[-0.03em] text-slate-900">
           {props.title}
         </h3>
         <p
@@ -274,20 +250,20 @@ function CycleStepCard(props: {
 
 export default function Home() {
   return (
-    <main className="relative flex-1 overflow-hidden bg-[radial-gradient(circle_at_top,#f6f3ea_0%,#eff6f5_46%,#e7eef2_100%)] text-slate-950">
-      <div className="relative mx-auto flex w-full max-w-[1380px] flex-col gap-8 px-5 py-6 sm:px-8 lg:px-10 lg:py-8">
+    <main className="app-page flex-1 text-slate-950">
+      <div className="mx-auto flex w-full max-w-[1380px] flex-col gap-8 px-5 py-6 sm:px-8 lg:px-10 lg:py-8">
         <section className="theme-panel-strong overflow-hidden rounded-[2rem]">
-          <div className="bg-[linear-gradient(135deg,#08244a,#123d76)] px-6 py-5 text-white sm:px-8">
+          <div className="border-b border-slate-200 px-6 py-5 sm:px-8">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="flex items-center gap-4">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full border-4 border-white/85 bg-white/8 text-3xl font-semibold">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-teal-900 text-3xl font-semibold text-white">
                   1
                 </div>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-100">
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-teal-700">
                     Leadership Continuity System
                   </p>
-                  <h1 className="mt-1 text-3xl leading-tight font-semibold tracking-[-0.04em] sm:text-4xl lg:text-[3.1rem]">
+                  <h1 className="mt-1 text-3xl leading-tight font-semibold tracking-[-0.04em] text-slate-950 sm:text-4xl lg:text-[3.1rem]">
                     The Leadership Continuity Cycle
                   </h1>
                 </div>
@@ -296,14 +272,13 @@ export default function Home() {
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Link
                   href="/auth?mode=signup"
-                  className="inline-flex items-center justify-center rounded-full bg-white px-5 py-3 text-sm font-semibold !text-[#123d76] transition hover:bg-sky-50"
-                  style={{ WebkitTextFillColor: "#123d76" }}
+                  className="interactive-contrast inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-900"
                 >
                   Create an Account
                 </Link>
                 <Link
                   href="/about"
-                  className="inline-flex items-center justify-center rounded-full border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/16"
+                  className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                 >
                   Read About
                 </Link>
@@ -312,11 +287,11 @@ export default function Home() {
           </div>
 
           <div className="px-6 py-6 sm:px-8 sm:py-8">
-            <p className="mx-auto max-w-5xl text-center text-lg leading-8 text-[#123d76] sm:text-[1.35rem]">
+            <p className="mx-auto max-w-5xl text-center text-lg leading-8 text-slate-700 sm:text-[1.35rem]">
               &ldquo;The strongest organizations aren&apos;t built by hiring great leaders. They&apos;re built by continuously developing the leaders they already have.&rdquo;
             </p>
 
-            <div className="mt-8 rounded-[2rem] border border-slate-200/80 bg-white/78 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] sm:p-6 lg:p-8">
+            <div className="mt-8 rounded-[2rem] border border-slate-200 bg-slate-50 p-4 sm:p-6 lg:p-8">
               <div className="grid gap-5 lg:hidden">
                 {cycleSteps.map((step) => (
                   <CycleStepCard key={step.number} {...step} />
@@ -324,17 +299,17 @@ export default function Home() {
               </div>
 
               <div className="relative hidden min-h-[50rem] lg:block">
-                <div className="absolute left-1/2 top-1/2 z-0 h-[37rem] w-[37rem] -translate-x-1/2 -translate-y-1/2 rounded-full border-[8px] border-[#08244a]" />
+                <div className="absolute left-1/2 top-1/2 z-0 h-[37rem] w-[37rem] -translate-x-1/2 -translate-y-1/2 rounded-full border-[8px] border-teal-700" />
 
                 {cycleSteps.map((step) => (
                   <CycleStepCard key={step.number} {...step} />
                 ))}
 
-                <div className="absolute left-1/2 top-1/2 z-10 flex h-[20rem] w-[20rem] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-full border-[10px] border-slate-200 bg-[radial-gradient(circle_at_top,#ffffff_0%,#eef3f9_100%)] px-8 text-center shadow-[0_24px_70px_rgba(15,23,42,0.12)]">
-                  <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#0a254e] text-2xl font-semibold text-white">
+                <div className="absolute left-1/2 top-1/2 z-10 flex h-[20rem] w-[20rem] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-full border-[10px] border-slate-200 bg-white px-8 text-center shadow-[0_24px_70px_rgba(36,95,135,0.12)]">
+                  <div className="flex h-20 w-20 items-center justify-center rounded-full bg-teal-900 text-2xl font-semibold text-white">
                     LC
                   </div>
-                  <h2 className="mt-5 text-3xl font-semibold tracking-[-0.04em] text-[#123d76]">
+                  <h2 className="mt-5 text-3xl font-semibold tracking-[-0.04em] text-slate-900">
                     Mentor & Mentee
                   </h2>
                   <p className="mt-4 text-base leading-7 text-slate-600">
@@ -384,29 +359,29 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="rounded-[2rem] bg-[linear-gradient(135deg,#08244a,#123d76)] p-6 text-white shadow-[0_28px_70px_rgba(2,6,23,0.22)] sm:p-8">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-100">
+            <div className="theme-panel rounded-[2rem] p-6 sm:p-8">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-teal-700">
                 Organizational Impact
               </p>
-              <p className="mt-3 text-sm leading-7 text-sky-50">
+              <p className="mt-3 text-sm leading-7 text-slate-600">
                 Leadership development that strengthens the entire organization.
               </p>
               <div className="mt-5 grid gap-3">
                 {outcomes.map((outcome) => (
                   <div
                     key={outcome}
-                    className="rounded-[1.35rem] border border-white/10 bg-white/8 px-4 py-4 text-sm leading-7 text-sky-50"
+                    className="rounded-[1.35rem] border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-7 text-slate-600"
                   >
                     {outcome}
                   </div>
                 ))}
               </div>
 
-              <div className="mt-6 border-t border-white/10 pt-6">
-                <p className="text-2xl font-semibold tracking-[-0.03em]">
+              <div className="mt-6 border-t border-slate-200 pt-6">
+                <p className="text-2xl font-semibold tracking-[-0.03em] text-slate-900">
                   Every leader develops the next.
                 </p>
-                <p className="mt-3 text-2xl font-semibold leading-tight tracking-[-0.03em] text-sky-50">
+                <p className="mt-3 text-2xl font-semibold leading-tight tracking-[-0.03em] text-teal-800">
                   Every generation strengthens the organization.
                 </p>
               </div>
