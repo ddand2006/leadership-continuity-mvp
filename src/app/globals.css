@@ -201,6 +201,25 @@ a {
   backdrop-filter: blur(18px);
 }
 
+/* Supporting highlights add warmth and visual rhythm while royal blue remains the action color. */
+.accent-card-gold {
+  border-color: #fbdc91;
+  background-color: #fef3c7;
+  color: #0b2f6b;
+}
+
+.accent-card-green {
+  border-color: #bbf7d0;
+  background-color: #dcfce7;
+  color: #0b2f6b;
+}
+
+.accent-card-coral {
+  border-color: #fda4af;
+  background-color: #ffe4e6;
+  color: #0b2f6b;
+}
+
 /* Shared card treatment: bright enough to create hierarchy, but quiet enough for long-form work. */
 .app-page :is(section, article, aside, div)[class~="bg-white"][class*="rounded-"] {
   border-color: rgba(174, 207, 224, 0.86);

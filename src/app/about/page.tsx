@@ -5,6 +5,7 @@ const processStages = [
     badge: "Step 1",
     name: "Add priority roles",
     icon: "01",
+    tone: "accent-card-gold",
     summary:
       "Define the leadership roles you want to protect first, so every candidate and mentor track has a clear destination.",
   },
@@ -12,6 +13,7 @@ const processStages = [
     badge: "Step 2",
     name: "Add people",
     icon: "02",
+    tone: "accent-card-green",
     summary:
       "Add the candidates who will move through the succession process and the mentors who will guide them.",
   },
@@ -19,6 +21,7 @@ const processStages = [
     badge: "Step 3",
     name: "Connect mentor tracks",
     icon: "03",
+    tone: "accent-card-coral",
     summary:
       "Connect each candidate to a priority role and mentor, creating a focused development track with shared context.",
   },
@@ -26,6 +29,7 @@ const processStages = [
     badge: "Step 4",
     name: "Start a development record",
     icon: "04",
+    tone: "accent-card-gold",
     summary:
       "Launch the leadership development record and use mentoring activities, project work, and readiness reviews to build evidence over time.",
   },
@@ -33,6 +37,7 @@ const processStages = [
     badge: "Step 5",
     name: "Build bench strength, retain culture",
     icon: "05",
+    tone: "accent-card-green",
     summary:
       "Use the insight from each development track to strengthen the internal bench while carrying forward the values and knowledge that make your organization distinct.",
   },
@@ -201,7 +206,7 @@ export default function AboutPage() {
             {processStages.map((stage) => (
               <article
                 key={stage.name}
-                className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_16px_45px_rgba(36,95,135,0.08)]"
+                className={`rounded-[1.75rem] border p-6 shadow-[0_16px_45px_rgba(36,95,135,0.08)] ${stage.tone}`}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>

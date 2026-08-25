@@ -5,6 +5,7 @@ const cycleSteps = [
   {
     number: "1",
     title: "Identify Key Competencies",
+    tone: "accent-card-gold",
     description:
       "The organization identifies the characteristics and competencies required for each role to create a clear standard for development and readiness.",
     desktopPosition: {
@@ -19,6 +20,7 @@ const cycleSteps = [
   {
     number: "2",
     title: "Assign a Mentor",
+    tone: "accent-card-green",
     description:
       "Each individual is paired with a mentor who helps guide the process, shape priorities, and support growth through meaningful experience.",
     desktopPosition: {
@@ -33,6 +35,7 @@ const cycleSteps = [
   {
     number: "3",
     title: "Execute & Learn",
+    tone: "accent-card-coral",
     description:
       "The individual applies new learning through meaningful work, gaining confidence, experience, and support from the mentor along the way.",
     desktopPosition: {
@@ -47,6 +50,7 @@ const cycleSteps = [
   {
     number: "4",
     title: "Reflect & Reinforce",
+    tone: "accent-card-gold",
     description:
       "The mentor and individual review progress, discuss lessons learned, reinforce growth, and identify the next development priority.",
     desktopPosition: {
@@ -61,6 +65,7 @@ const cycleSteps = [
   {
     number: "5",
     title: "Apply & Advance",
+    tone: "accent-card-green",
     description:
       "The individual applies stronger skills in the role and prepares for greater responsibility as the cycle continues.",
     desktopPosition: {
@@ -209,6 +214,7 @@ function CycleStepCard(props: {
   number: string;
   title: string;
   description: string;
+  tone: string;
   desktopPosition?: CSSProperties;
   hoverShift?: {
     x: string;
@@ -218,7 +224,7 @@ function CycleStepCard(props: {
   return (
     <article
       tabIndex={0}
-      className="cycle-step-card group relative rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_18px_50px_rgba(36,95,135,0.08)] transition duration-300 ease-out hover:z-30 hover:shadow-[0_28px_70px_rgba(36,95,135,0.14)] focus:z-30 focus:shadow-[0_28px_70px_rgba(36,95,135,0.14)] focus:outline-none lg:absolute lg:z-10 lg:h-[13.75rem] lg:w-[20rem]"
+      className={`cycle-step-card group relative rounded-[1.75rem] border p-5 shadow-[0_18px_50px_rgba(36,95,135,0.08)] transition duration-300 ease-out hover:z-30 hover:shadow-[0_28px_70px_rgba(36,95,135,0.14)] focus:z-30 focus:shadow-[0_28px_70px_rgba(36,95,135,0.14)] focus:outline-none lg:absolute lg:z-10 lg:h-[13.75rem] lg:w-[20rem] ${props.tone}`}
       style={{
         ...props.desktopPosition,
         ["--cycle-hover-x" as string]: props.hoverShift?.x ?? "0px",
