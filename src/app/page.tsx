@@ -274,9 +274,9 @@ function CycleStepCard(props: {
 
 export default function Home() {
   return (
-    <main className="relative flex-1 overflow-hidden bg-[radial-gradient(circle_at_top,#f6f3ea_0%,#eff6f5_46%,#e7eef2_100%)] text-slate-950">
+    <main className="app-page relative flex-1 overflow-hidden text-slate-950">
       <div className="relative mx-auto flex w-full max-w-[1380px] flex-col gap-8 px-5 py-6 sm:px-8 lg:px-10 lg:py-8">
-        <section className="theme-panel-strong overflow-hidden rounded-[2rem]">
+        <section className="theme-panel-strong overflow-hidden rounded-3xl">
           <div className="bg-[linear-gradient(135deg,#08244a,#123d76)] px-6 py-5 text-white sm:px-8">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="flex items-center gap-4">

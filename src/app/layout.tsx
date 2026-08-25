@@ -87,7 +87,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={`${displayFont.variable} ${bodyFont.variable} h-full antialiased`}
+      className={`${displayFont.variable} ${bodyFont.variable} h-full bg-background antialiased`}
     >
       <body className="min-h-full flex flex-col">
         {navigation}

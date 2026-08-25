@@ -1,13 +1,13 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #0b2f6b;
+  --background: #f5f7f8;
+  --foreground: #102a43;
   --page-surface: #ffffff;
   --page-surface-strong: #ffffff;
-  --page-border: rgba(159, 198, 218, 0.82);
-  --page-shadow: 0 30px 90px rgba(20, 56, 92, 0.1);
-  --page-shadow-soft: 0 20px 60px rgba(20, 56, 92, 0.07);
+  --page-border: rgba(148, 163, 184, 0.34);
+  --page-shadow: 0 24px 70px rgba(16, 42, 67, 0.10);
+  --page-shadow-soft: 0 12px 34px rgba(16, 42, 67, 0.07);
 }
 
 @theme inline {
@@ -83,14 +83,24 @@
 }
 
 html {
-  background: #ffffff;
+  background: var(--background);
 }
 
 body {
   position: relative;
-  background: #ffffff;
+  background: var(--background);
   color: var(--foreground);
   font-family: var(--font-body), sans-serif;
+}
+
+:focus-visible {
+  outline: 3px solid #3b82f6;
+  outline-offset: 3px;
+}
+
+::selection {
+  background: #cfeaf6;
+  color: #102a43;
 }
 
 .emerald-soft-panel {
@@ -177,10 +187,19 @@ a {
 }
 
 .theme-panel {
-  border: 1px solid rgba(159, 198, 218, 0.82);
+  border: 1px solid var(--page-border);
   background: var(--page-surface);
   box-shadow: var(--page-shadow-soft);
-  backdrop-filter: blur(18px);
+}
+
+.app-page {
+  background: var(--background);
+}
+
+.app-page h1,
+.app-page h2,
+.app-page h3 {
+  text-wrap: balance;
 }
 
 .theme-panel-strong {
