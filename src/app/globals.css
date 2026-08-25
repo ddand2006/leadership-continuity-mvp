@@ -86,7 +86,7 @@ html {
   min-height: 100%;
   background:
     linear-gradient(rgba(247, 250, 252, 0.89), rgba(239, 246, 250, 0.91)),
-    url("/compass-wallpaper.jpg") center / cover fixed no-repeat;
+    url("/compass-map-wallpaper.jpg") center / cover fixed no-repeat;
 }
 
 body {

@@ -554,6 +554,15 @@ export function LeadershipDevelopmentRecordManager({
   const currentStrengthOptions = selectedAssignment
     ? strengthOptionsByAssignmentKey[getAssignmentKey(selectedAssignment)] ?? []
     : [];
+  const displayedStrengthOptions = [...currentStrengthOptions]
+    .filter((strength) => strength.rank <= 15)
+    .sort((left, right) => left.rank - right.rank);
+  const topFiveStrengthOptions = displayedStrengthOptions.filter(
+    (strength) => strength.rank <= 5,
+  );
+  const nextTenStrengthOptions = displayedStrengthOptions.filter(
+    (strength) => strength.rank >= 6,
+  );
   const pendingTransferredProject = useMemo(() => {
     if (!selectedAssignment) {
       return null;
@@ -2182,13 +2191,45 @@ export function LeadershipDevelopmentRecordManager({
                       <p className="text-sm font-semibold text-slate-700">
                         What strengths will assist in this project?
                       </p>
-                      {currentStrengthOptions.length > 0 ? (
+                      {displayedStrengthOptions.length > 0 ? (
                         <>
                           <p className="mt-1 text-sm text-slate-600">
-                            Select the candidate&apos;s existing strengths to record how each will support this experience.
+                            Select from the candidate&apos;s top 15 strengths to record how each will support this experience.
                           </p>
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            {currentStrengthOptions.map((strength) => {
+                          <div className="mt-3">
+                            <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                              Top 5 Strengths
+                            </p>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {topFiveStrengthOptions.map((strength) => {
+                                const isSelected = formState.selectedStrengths.some(
+                                  (selected) => selected.themeName === strength.themeName,
+                                );
+
+                                return (
+                                  <button
+                                    key={strength.themeName}
+                                    type="button"
+                                    onClick={() => toggleSelectedStrength(strength)}
+                                    className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                                      isSelected
+                                        ? "border-teal-900 bg-teal-900 text-white"
+                                        : "border-sky-200 bg-sky-50 text-sky-900 hover:bg-sky-100"
+                                    }`}
+                                  >
+                                    #{strength.rank} {strength.themeName}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                          {nextTenStrengthOptions.length > 0 ? (
+                            <div className="mt-4">
+                              <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                                Next 10 Strengths
+                              </p>
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                {nextTenStrengthOptions.map((strength) => {
                               const isSelected = formState.selectedStrengths.some(
                                 (selected) => selected.themeName === strength.themeName,
                               );
@@ -2208,7 +2249,9 @@ export function LeadershipDevelopmentRecordManager({
                                 </button>
                               );
                             })}
-                          </div>
+                              </div>
+                            </div>
+                          ) : null}
                         </>
                       ) : (
                         <p className="mt-2 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm leading-6 text-slate-600">
