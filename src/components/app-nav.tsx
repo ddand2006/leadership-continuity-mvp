@@ -220,7 +220,7 @@ export async function AppNav({ pathname }: { pathname: string }) {
         : "Open Dashboard";
 
   return (
-    <header className="relative z-10 px-4 pt-4 sm:px-6 lg:px-8">
+    <header className="relative z-10 px-4 pt-2 sm:px-6 lg:px-8">
       <div className="mx-auto w-full max-w-[1380px]">
         <div className="theme-panel-strong rounded-3xl px-4 py-3 sm:px-6 sm:py-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">

@@ -88,7 +88,7 @@ export default function AboutPage() {
       <div className="absolute inset-x-0 top-0 h-72 bg-[linear-gradient(115deg,rgba(19,78,74,0.12),rgba(59,130,246,0.08),transparent)] blur-3xl" />
       <div className="absolute left-1/2 top-20 h-64 w-64 -translate-x-1/2 rounded-full bg-[rgba(255,255,255,0.6)] blur-3xl" />
 
-      <div className="relative mx-auto flex w-full max-w-[1380px] flex-col gap-12 px-5 py-6 sm:px-8 lg:px-10 lg:py-8">
+      <div className="relative mx-auto flex w-full max-w-[1380px] flex-col gap-12 px-5 pt-2 pb-6 sm:px-8 lg:px-10 lg:pt-3 lg:pb-8">
         <section className="grid gap-6 lg:grid-cols-[1.25fr_0.78fr]">
           <div className="brand-card overflow-hidden rounded-[2rem] p-6 sm:p-8 lg:p-10">
             <div className="flex flex-wrap items-center gap-3">
