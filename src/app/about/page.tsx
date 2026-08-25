@@ -3,82 +3,104 @@ import Link from "next/link";
 const processStages = [
   {
     badge: "Step 1",
-    name: "Roles",
+    name: "Confirm company settings",
     accent: "from-amber-100 via-white to-orange-50",
     border: "border-amber-200/80",
     icon: "01",
     summary:
-      "Define the leadership role, the competencies that matter most, and the composite of what success looks like before urgency takes over.",
+      "Confirm company settings, including the organization name and industry, before building the program.",
     steps: [
-      "Create role",
-      "Select role",
-      "Input competencies",
-      "Create composite",
-      "View role narrative",
+      "Company settings",
+      "Organization profile",
+      "Product access",
     ],
   },
   {
     badge: "Step 2",
-    name: "Candidates",
+    name: "Add priority roles",
     accent: "from-sky-100 via-white to-cyan-50",
     border: "border-sky-200/80",
     icon: "02",
     summary:
-      "Evaluate internal talent against the role using consistent evidence, strengths, readiness signals, and development gaps.",
+      "Define the leadership roles you want to protect first, so every candidate and mentor track has a clear destination.",
     steps: [
-      "Add candidate",
-      "Select candidate",
-      "Input interview scores",
-      "View role fit and strengths",
-      "Generate mentor report",
+      "Priority roles",
+      "Role competencies",
+      "Leadership standard",
     ],
   },
   {
     badge: "Step 3",
-    name: "Mentoring",
+    name: "Add people",
     accent: "from-emerald-100 via-white to-teal-50",
     border: "border-emerald-200/80",
     icon: "03",
     summary:
-      "Turn assessment into guided development with mentor conversations, preparation work, and stretch assignments anchored in real leadership demands.",
+      "Add the candidates who will move through the succession process and the mentors who will guide them.",
     steps: [
-      "Assign mentor",
-      "Select track",
-      "Preparation worksheet",
-      "Departmental project",
-      "Cross-departmental project",
+      "Candidate profiles",
+      "Mentor profiles",
+      "User access",
+    ],
+  },
+  {
+    badge: "Step 4",
+    name: "Connect mentor tracks",
+    accent: "from-violet-100 via-white to-indigo-50",
+    border: "border-violet-200/80",
+    icon: "04",
+    summary:
+      "Connect each candidate to a priority role and mentor, creating a focused development track with shared context.",
+    steps: [
+      "Candidate",
+      "Target role",
+      "Assigned mentor",
+    ],
+  },
+  {
+    badge: "Step 5",
+    name: "Start a development record",
+    accent: "from-rose-100 via-white to-orange-50",
+    border: "border-rose-200/80",
+    icon: "05",
+    summary:
+      "Launch the leadership development record and use mentoring activities, project work, and readiness reviews to build evidence over time.",
+    steps: [
+      "Development record",
+      "Mentoring activities",
+      "Readiness review",
     ],
   },
 ] as const;
 
 const narrativePoints = [
-  "Protect culture by making leadership expectations explicit instead of keeping them trapped in the experience of a few long-tenured leaders.",
-  "Protect institutional knowledge by moving emerging leaders through deliberate coaching before a transition happens.",
-  "Build a visible development pipeline so succession becomes an operating discipline rather than a last-minute replacement exercise.",
+  "Give every development conversation a clear target role, a named mentor, and a shared record of progress.",
+  "Turn succession planning into active development by connecting people, roles, mentoring work, and readiness evidence in one process.",
+  "See which priority roles have a development pipeline and where the organization needs to build more coverage.",
 ] as const;
 
 const outcomes = [
-  "Shared language for what great leadership looks like in each role",
-  "Clearer evidence about who is ready now and who needs development",
-  "Mentoring work tied directly to real organizational leadership demands",
-  "A stronger internal bench that keeps knowledge inside the organization",
+  "A clear onboarding path from company setup through active development",
+  "Candidate-role mentor tracks that keep development focused",
+  "Leadership development records that make progress visible over time",
+  "A stronger bench for the priority roles the organization needs to protect",
 ] as const;
 
 const operatingSignals = [
   {
-    label: "Role Clarity",
-    value: "Defined before a vacancy",
-    detail: "Turn implicit expectations into a visible leadership standard.",
+    label: "Priority Roles",
+    value: "Chosen intentionally",
+    detail: "Start with the roles where continuity matters most.",
   },
   {
-    label: "Talent Evidence",
-    value: "Compared consistently",
-    detail: "See strengths, readiness, and developmental gaps in one flow.",
+    label: "Mentor Tracks",
+    value: "Connected with purpose",
+    detail: "Pair each candidate, target role, and mentor in one focused track.",
   },
   {
-    label: "Mentoring Motion",
-    value: "Linked to the role",
-    detail: "Guide development through practical, role-based work.",
+    label: "Development Evidence",
+    value: "Recorded over time",
+    detail: "Use the development record and readiness review to see progress.",
   },
 ] as const;
 
@@ -99,17 +121,17 @@ export default function AboutPage() {
 
             <div className="mt-6 max-w-4xl space-y-6">
               <h1 className="max-w-3xl text-4xl font-semibold tracking-[-0.05em] text-slate-950 sm:text-5xl lg:text-6xl xl:text-[4.75rem] xl:leading-[0.95]">
-                A development process built to raise the next generation of leaders.
+                A clear path from priority role to leadership readiness.
               </h1>
               <p className="max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">
-                Leadership Continuity helps an organization define what leadership success looks like, identify internal talent against that standard, and move promising people into structured mentoring that grows readiness while preserving culture and institutional knowledge.
+                Leadership Continuity gives your organization a guided way to set up the program, identify the roles that matter most, connect candidates with mentors, and record the development work that builds leadership readiness.
               </p>
             </div>
 
             <div className="mt-8 flex flex-wrap gap-3 text-sm font-medium text-slate-700">
-              <span className="rounded-full bg-[#fff1c7] px-4 py-2">Roles First</span>
-              <span className="rounded-full bg-[#d8f8f1] px-4 py-2">Candidate Evidence</span>
-              <span className="rounded-full bg-[#e5eef8] px-4 py-2">Mentoring Development</span>
+              <span className="rounded-full bg-[#fff1c7] px-4 py-2">Priority Roles</span>
+              <span className="rounded-full bg-[#d8f8f1] px-4 py-2">Mentor Tracks</span>
+              <span className="rounded-full bg-[#e5eef8] px-4 py-2">Development Records</span>
             </div>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -123,33 +145,33 @@ export default function AboutPage() {
                 href="/roles"
                 className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
               >
-                Start With Roles
+                Add Priority Roles
               </Link>
             </div>
 
             <div className="mt-10 grid gap-4 rounded-[1.5rem] border border-slate-200/80 bg-slate-50/85 p-4 sm:grid-cols-3 sm:p-5">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-                  Leadership Standard
+                  Priority Roles
                 </p>
                 <p className="mt-2 text-sm leading-7 text-slate-700">
-                  Clarify what success means before a vacancy creates pressure.
+                  Define the roles your succession program needs to protect.
                 </p>
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-                  Evidence Review
+                  Mentor Tracks
                 </p>
                 <p className="mt-2 text-sm leading-7 text-slate-700">
-                  Compare internal talent with consistent role-based evidence.
+                  Connect each candidate, role, and mentor in a shared track.
                 </p>
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-                  Mentoring Action
+                  Development Records
                 </p>
                 <p className="mt-2 text-sm leading-7 text-slate-700">
-                  Turn readiness insight into deliberate developmental motion.
+                  Capture development work and review readiness over time.
                 </p>
               </div>
             </div>
@@ -202,18 +224,18 @@ export default function AboutPage() {
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
-                Three-Step Flow
+                Guided Setup Journey
               </p>
               <h2 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-slate-950 sm:text-4xl">
-                Roles lead to candidates, and candidates lead to mentoring.
+                Set up the program, then put mentoring work in motion.
               </h2>
             </div>
             <p className="max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
-              The system is designed as a sequence. We first define the role, then evaluate people against that role, then guide development through mentoring anchored in real leadership demands.
+              Follow the same five steps shown on the Dashboard: confirm company settings, add priority roles, add candidates and mentors, connect mentor tracks, and start the first leadership development record.
             </p>
           </div>
 
-          <div className="mt-8 grid gap-5 xl:grid-cols-3">
+          <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-5">
             {processStages.map((stage) => (
               <article
                 key={stage.name}
@@ -257,13 +279,13 @@ export default function AboutPage() {
             </p>
             <div className="mt-5 space-y-4 text-base leading-8 text-slate-600">
               <p>
-                This process starts by clarifying leadership expectations before a vacancy creates pressure. That alone strengthens the organization because people stop guessing what success looks like in important roles.
+                Begin by confirming company settings and selecting the priority roles you want your continuity plan to protect. Those roles give the program a practical focus from the beginning.
               </p>
               <p>
-                From there, the candidate workflow creates a more thoughtful picture of internal talent. Instead of choosing future leaders based on familiarity or urgency, the organization can compare evidence, strengths, readiness, and developmental gaps in a consistent way.
+                Next, add candidates and mentors, then connect each candidate to a target role and mentor. A mentor track gives everyone the same view of the development goal and the relationship supporting it.
               </p>
               <p>
-                The mentoring stage turns that insight into action. Emerging leaders are developed in context, with real assignments, mentor conversations, and exposure to cross-functional leadership work.
+                Finally, start a leadership development record. Use mentoring conversations, preparation work, projects, and readiness reviews to document the experience and evidence that build role readiness.
               </p>
             </div>
           </div>
