@@ -3,73 +3,48 @@ import Link from "next/link";
 const processStages = [
   {
     badge: "Step 1",
-    name: "Confirm company settings",
+    name: "Add priority roles",
     accent: "from-amber-100 via-white to-orange-50",
     border: "border-amber-200/80",
     icon: "01",
     summary:
-      "Confirm company settings, including the organization name and industry, before building the program.",
-    steps: [
-      "Company settings",
-      "Organization profile",
-      "Product access",
-    ],
+      "Define the leadership roles you want to protect first, so every candidate and mentor track has a clear destination.",
   },
   {
     badge: "Step 2",
-    name: "Add priority roles",
+    name: "Add people",
     accent: "from-sky-100 via-white to-cyan-50",
     border: "border-sky-200/80",
     icon: "02",
     summary:
-      "Define the leadership roles you want to protect first, so every candidate and mentor track has a clear destination.",
-    steps: [
-      "Priority roles",
-      "Role competencies",
-      "Leadership standard",
-    ],
+      "Add the candidates who will move through the succession process and the mentors who will guide them.",
   },
   {
     badge: "Step 3",
-    name: "Add people",
+    name: "Connect mentor tracks",
     accent: "from-emerald-100 via-white to-teal-50",
     border: "border-emerald-200/80",
     icon: "03",
     summary:
-      "Add the candidates who will move through the succession process and the mentors who will guide them.",
-    steps: [
-      "Candidate profiles",
-      "Mentor profiles",
-      "User access",
-    ],
+      "Connect each candidate to a priority role and mentor, creating a focused development track with shared context.",
   },
   {
     badge: "Step 4",
-    name: "Connect mentor tracks",
+    name: "Start a development record",
     accent: "from-violet-100 via-white to-indigo-50",
     border: "border-violet-200/80",
     icon: "04",
     summary:
-      "Connect each candidate to a priority role and mentor, creating a focused development track with shared context.",
-    steps: [
-      "Candidate",
-      "Target role",
-      "Assigned mentor",
-    ],
+      "Launch the leadership development record and use mentoring activities, project work, and readiness reviews to build evidence over time.",
   },
   {
     badge: "Step 5",
-    name: "Start a development record",
+    name: "Build bench strength, retain culture",
     accent: "from-rose-100 via-white to-orange-50",
     border: "border-rose-200/80",
     icon: "05",
     summary:
-      "Launch the leadership development record and use mentoring activities, project work, and readiness reviews to build evidence over time.",
-    steps: [
-      "Development record",
-      "Mentoring activities",
-      "Readiness review",
-    ],
+      "Use the insight from each development track to strengthen the internal bench while carrying forward the values and knowledge that make your organization distinct.",
   },
 ] as const;
 
@@ -80,7 +55,7 @@ const narrativePoints = [
 ] as const;
 
 const outcomes = [
-  "A clear onboarding path from company setup through active development",
+  "A clear path from priority roles through active development",
   "Candidate-role mentor tracks that keep development focused",
   "Leadership development records that make progress visible over time",
   "A stronger bench for the priority roles the organization needs to protect",
@@ -124,7 +99,7 @@ export default function AboutPage() {
                 A clear path from priority role to leadership readiness.
               </h1>
               <p className="max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">
-                Leadership Continuity gives your organization a guided way to set up the program, identify the roles that matter most, connect candidates with mentors, and record the development work that builds leadership readiness.
+                Leadership Continuity gives your organization a guided way to identify the roles that matter most, connect candidates with mentors, and record the development work that builds leadership readiness.
               </p>
             </div>
 
@@ -231,7 +206,7 @@ export default function AboutPage() {
               </h2>
             </div>
             <p className="max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
-              Follow the same five steps shown on the Dashboard: confirm company settings, add priority roles, add candidates and mentors, connect mentor tracks, and start the first leadership development record.
+              Start with priority roles, add the people who will do the work, connect each candidate to a mentor track, and use development records to build the leadership bench while retaining your culture.
             </p>
           </div>
 
@@ -257,16 +232,6 @@ export default function AboutPage() {
                 <p className="mt-4 text-sm leading-7 text-slate-700">
                   {stage.summary}
                 </p>
-                <div className="mt-6 flex flex-wrap gap-2">
-                  {stage.steps.map((step) => (
-                    <span
-                      key={step}
-                      className="rounded-full border border-slate-200/80 bg-white/80 px-3 py-2 text-xs font-semibold text-slate-700"
-                    >
-                      {step}
-                    </span>
-                  ))}
-                </div>
               </article>
             ))}
           </div>
@@ -279,13 +244,13 @@ export default function AboutPage() {
             </p>
             <div className="mt-5 space-y-4 text-base leading-8 text-slate-600">
               <p>
-                Begin by confirming company settings and selecting the priority roles you want your continuity plan to protect. Those roles give the program a practical focus from the beginning.
+                Begin by selecting the priority roles you want your continuity plan to protect. Those roles give the program a practical focus from the beginning.
               </p>
               <p>
                 Next, add candidates and mentors, then connect each candidate to a target role and mentor. A mentor track gives everyone the same view of the development goal and the relationship supporting it.
               </p>
               <p>
-                Finally, start a leadership development record. Use mentoring conversations, preparation work, projects, and readiness reviews to document the experience and evidence that build role readiness.
+                Start a leadership development record to document mentoring conversations, preparation work, projects, and readiness evidence. Over time, that work builds a stronger bench while helping the organization retain its culture and institutional knowledge.
               </p>
             </div>
           </div>
