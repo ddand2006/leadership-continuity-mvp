@@ -4,8 +4,6 @@ const processStages = [
   {
     badge: "Step 1",
     name: "Add priority roles",
-    accent: "from-amber-100 via-white to-orange-50",
-    border: "border-amber-200/80",
     icon: "01",
     summary:
       "Define the leadership roles you want to protect first, so every candidate and mentor track has a clear destination.",
@@ -13,8 +11,6 @@ const processStages = [
   {
     badge: "Step 2",
     name: "Add people",
-    accent: "from-sky-100 via-white to-cyan-50",
-    border: "border-sky-200/80",
     icon: "02",
     summary:
       "Add the candidates who will move through the succession process and the mentors who will guide them.",
@@ -22,8 +18,6 @@ const processStages = [
   {
     badge: "Step 3",
     name: "Connect mentor tracks",
-    accent: "from-emerald-100 via-white to-teal-50",
-    border: "border-emerald-200/80",
     icon: "03",
     summary:
       "Connect each candidate to a priority role and mentor, creating a focused development track with shared context.",
@@ -31,8 +25,6 @@ const processStages = [
   {
     badge: "Step 4",
     name: "Start a development record",
-    accent: "from-violet-100 via-white to-indigo-50",
-    border: "border-violet-200/80",
     icon: "04",
     summary:
       "Launch the leadership development record and use mentoring activities, project work, and readiness reviews to build evidence over time.",
@@ -40,8 +32,6 @@ const processStages = [
   {
     badge: "Step 5",
     name: "Build bench strength, retain culture",
-    accent: "from-rose-100 via-white to-orange-50",
-    border: "border-rose-200/80",
     icon: "05",
     summary:
       "Use the insight from each development track to strengthen the internal bench while carrying forward the values and knowledge that make your organization distinct.",
@@ -81,15 +71,12 @@ const operatingSignals = [
 
 export default function AboutPage() {
   return (
-    <main className="relative flex-1 overflow-hidden bg-[radial-gradient(circle_at_top,#fff6d8_0%,#f4fbf8_42%,#edf4f2_100%)] text-slate-950">
-      <div className="absolute inset-x-0 top-0 h-72 bg-[linear-gradient(115deg,rgba(19,78,74,0.12),rgba(59,130,246,0.08),transparent)] blur-3xl" />
-      <div className="absolute left-1/2 top-20 h-64 w-64 -translate-x-1/2 rounded-full bg-[rgba(255,255,255,0.6)] blur-3xl" />
-
-      <div className="relative mx-auto flex w-full max-w-[1380px] flex-col gap-12 px-5 py-6 sm:px-8 lg:px-10 lg:py-8">
+    <main className="app-page flex-1 text-slate-950">
+      <div className="mx-auto flex w-full max-w-[1380px] flex-col gap-8 px-5 py-6 sm:px-8 lg:px-10 lg:py-8">
         <section className="grid gap-6 lg:grid-cols-[1.25fr_0.78fr]">
-          <div className="overflow-hidden rounded-[2rem] border border-white/75 bg-white/84 p-6 shadow-[0_30px_90px_rgba(15,23,42,0.08)] backdrop-blur sm:p-8 lg:p-10">
+          <div className="theme-panel-strong overflow-hidden rounded-[2rem] p-6 sm:p-8 lg:p-10">
             <div className="flex flex-wrap items-center gap-3">
-              <span className="rounded-full border border-teal-200 bg-teal-50 px-4 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-teal-800">
+              <span className="rounded-full border border-teal-200 bg-teal-50 px-4 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-teal-700">
                 About The System
               </span>
             </div>
@@ -104,9 +91,9 @@ export default function AboutPage() {
             </div>
 
             <div className="mt-8 flex flex-wrap gap-3 text-sm font-medium text-slate-700">
-              <span className="rounded-full bg-[#fff1c7] px-4 py-2">Priority Roles</span>
-              <span className="rounded-full bg-[#d8f8f1] px-4 py-2">Mentor Tracks</span>
-              <span className="rounded-full bg-[#e5eef8] px-4 py-2">Development Records</span>
+              <span className="rounded-full bg-teal-50 px-4 py-2 text-teal-800">Priority Roles</span>
+              <span className="rounded-full bg-slate-100 px-4 py-2">Mentor Tracks</span>
+              <span className="rounded-full bg-teal-50 px-4 py-2 text-teal-800">Development Records</span>
             </div>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -124,7 +111,7 @@ export default function AboutPage() {
               </Link>
             </div>
 
-            <div className="mt-10 grid gap-4 rounded-[1.5rem] border border-slate-200/80 bg-slate-50/85 p-4 sm:grid-cols-3 sm:p-5">
+            <div className="mt-10 grid gap-4 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:grid-cols-3 sm:p-5">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
                   Priority Roles
@@ -153,15 +140,15 @@ export default function AboutPage() {
           </div>
 
           <aside className="grid gap-4">
-            <div className="rounded-[2rem] bg-[#04111f] p-6 text-white shadow-[0_30px_90px_rgba(2,6,23,0.28)] sm:p-7">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-amber-200">
+            <div className="theme-panel rounded-[2rem] p-6 sm:p-7">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-teal-700">
                 Why It Matters
               </p>
               <div className="mt-5 space-y-4">
                 {narrativePoints.map((point) => (
                   <div
                     key={point}
-                    className="rounded-[1.35rem] border border-white/10 bg-white/5 p-4 text-sm leading-7 text-slate-200"
+                    className="rounded-[1.35rem] border border-slate-200 bg-slate-50 p-4 text-sm leading-7 text-slate-600"
                   >
                     {point}
                   </div>
@@ -169,7 +156,7 @@ export default function AboutPage() {
               </div>
             </div>
 
-            <div className="rounded-[2rem] border border-white/75 bg-white/82 p-6 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur sm:p-7">
+            <div className="theme-panel rounded-[2rem] p-6 sm:p-7">
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
                 Continuity Lens
               </p>
@@ -177,7 +164,7 @@ export default function AboutPage() {
                 {operatingSignals.map((signal) => (
                   <article
                     key={signal.label}
-                    className="rounded-[1.35rem] border border-slate-200/80 bg-slate-50/85 p-4"
+                    className="rounded-[1.35rem] border border-slate-200 bg-slate-50 p-4"
                   >
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
                       {signal.label}
@@ -195,7 +182,7 @@ export default function AboutPage() {
           </aside>
         </section>
 
-        <section className="rounded-[2rem] border border-white/75 bg-white/82 p-6 shadow-[0_30px_90px_rgba(15,23,42,0.07)] backdrop-blur sm:p-8 lg:p-10">
+        <section className="theme-panel-strong rounded-[2rem] p-6 sm:p-8 lg:p-10">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
@@ -214,7 +201,7 @@ export default function AboutPage() {
             {processStages.map((stage) => (
               <article
                 key={stage.name}
-                className={`rounded-[1.75rem] border ${stage.border} bg-gradient-to-br ${stage.accent} p-6 shadow-[0_16px_45px_rgba(15,23,42,0.05)]`}
+                className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_16px_45px_rgba(36,95,135,0.08)]"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
@@ -225,7 +212,7 @@ export default function AboutPage() {
                       {stage.name}
                     </h3>
                   </div>
-                  <span className="rounded-full border border-slate-200/70 bg-white/75 px-3 py-1 text-xs font-semibold text-slate-700">
+                  <span className="rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-800">
                     {stage.icon}
                   </span>
                 </div>
@@ -238,7 +225,7 @@ export default function AboutPage() {
         </section>
 
         <section className="grid gap-6 lg:grid-cols-[1fr_0.9fr]">
-          <div className="rounded-[2rem] border border-white/75 bg-white/82 p-6 shadow-[0_30px_90px_rgba(15,23,42,0.07)] backdrop-blur sm:p-8">
+          <div className="theme-panel rounded-[2rem] p-6 sm:p-8">
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
               The Development Narrative
             </p>
@@ -255,15 +242,15 @@ export default function AboutPage() {
             </div>
           </div>
 
-          <div className="rounded-[2rem] bg-slate-950 p-6 text-white shadow-[0_30px_90px_rgba(2,6,23,0.28)] sm:p-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">
+          <div className="theme-panel rounded-[2rem] p-6 sm:p-8">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-teal-700">
               What This Builds
             </p>
-            <div className="mt-6 grid gap-3 text-sm leading-7 text-slate-200">
+            <div className="mt-6 grid gap-3 text-sm leading-7 text-slate-600">
               {outcomes.map((outcome) => (
                 <article
                   key={outcome}
-                  className="rounded-[1.35rem] border border-white/10 bg-white/5 px-4 py-4"
+                  className="rounded-[1.35rem] border border-slate-200 bg-slate-50 px-4 py-4"
                 >
                   {outcome}
                 </article>
