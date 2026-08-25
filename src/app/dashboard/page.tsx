@@ -2971,11 +2971,14 @@ export default async function DashboardPage({
                         ["Completed Program", intelligence.candidateMovement.completedProgram],
                         ["Removed from Pipeline", intelligence.candidateMovement.removedFromPipeline],
                       ].map(([label, value]) => (
-                        <article key={label} className="rounded-2xl border border-slate-200 bg-white p-4 text-sm">
-                          <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                        <article
+                          key={label}
+                          className="flex min-h-32 flex-col rounded-2xl border border-slate-200 bg-white p-4 text-sm"
+                        >
+                          <p className="min-h-12 text-xs leading-4 font-semibold tracking-[0.14em] text-slate-500 uppercase">
                             {label}
                           </p>
-                          <p className="mt-3 text-3xl font-semibold text-slate-900">{value}</p>
+                          <p className="mt-auto text-3xl font-semibold text-slate-900">{value}</p>
                         </article>
                       ))}
                     </div>
