@@ -85,7 +85,7 @@ export function AppNavLinks({
   }, [isResourcesOpen]);
 
   return (
-    <nav className="mt-4 flex flex-wrap gap-2">
+    <nav aria-label="Primary navigation" className="mt-3 flex flex-wrap gap-2 border-t border-slate-200/70 pt-3">
       {navItems.map((item) => {
         const isActive = isActiveNavItem(currentPath, item);
 

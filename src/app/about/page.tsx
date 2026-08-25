@@ -84,13 +84,13 @@ const operatingSignals = [
 
 export default function AboutPage() {
   return (
-    <main className="relative flex-1 overflow-hidden bg-[radial-gradient(circle_at_top,#fff6d8_0%,#f4fbf8_42%,#edf4f2_100%)] text-slate-950">
+    <main className="app-page relative flex-1 overflow-hidden text-slate-950">
       <div className="absolute inset-x-0 top-0 h-72 bg-[linear-gradient(115deg,rgba(19,78,74,0.12),rgba(59,130,246,0.08),transparent)] blur-3xl" />
       <div className="absolute left-1/2 top-20 h-64 w-64 -translate-x-1/2 rounded-full bg-[rgba(255,255,255,0.6)] blur-3xl" />
 
-      <div className="relative mx-auto flex w-full max-w-[1380px] flex-col gap-12 px-5 py-6 sm:px-8 lg:px-10 lg:py-8">
+      <div className="relative mx-auto flex w-full max-w-[1380px] flex-col gap-12 px-5 pt-2 pb-6 sm:px-8 lg:px-10 lg:pt-3 lg:pb-8">
         <section className="grid gap-6 lg:grid-cols-[1.25fr_0.78fr]">
-          <div className="overflow-hidden rounded-[2rem] border border-white/75 bg-white/84 p-6 shadow-[0_30px_90px_rgba(15,23,42,0.08)] backdrop-blur sm:p-8 lg:p-10">
+          <div className="brand-card overflow-hidden rounded-[2rem] p-6 sm:p-8 lg:p-10">
             <div className="flex flex-wrap items-center gap-3">
               <span className="rounded-full border border-teal-200 bg-teal-50 px-4 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-teal-800">
                 About The System
@@ -115,13 +115,13 @@ export default function AboutPage() {
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
                 href="/dashboard"
-                className="interactive-contrast inline-flex items-center justify-center rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-teal-900"
+                className="brand-button-primary interactive-contrast inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold transition"
               >
                 Open Dashboard
               </Link>
               <Link
                 href="/roles"
-                className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                className="brand-button-secondary inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold transition"
               >
                 Start With Roles
               </Link>
@@ -172,7 +172,7 @@ export default function AboutPage() {
               </div>
             </div>
 
-            <div className="rounded-[2rem] border border-white/75 bg-white/82 p-6 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur sm:p-7">
+            <div className="brand-card rounded-[2rem] p-6 sm:p-7">
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
                 Continuity Lens
               </p>

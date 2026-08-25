@@ -2393,7 +2393,7 @@ export default async function DashboardPage({
 
   return (
     <main className="app-page">
-      <div className="mx-auto flex w-full max-w-[1380px] flex-col gap-6 px-4 py-8 sm:gap-8 sm:px-6 sm:py-10 lg:px-10 lg:py-12">
+      <div className="mx-auto flex w-full max-w-[1380px] flex-col gap-6 px-4 py-6 sm:gap-8 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
         {resolvedSearchParams.message ? (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-medium text-amber-900">
             {resolvedSearchParams.message}
@@ -2401,7 +2401,7 @@ export default async function DashboardPage({
         ) : null}
 
         {!snapshot.profile ? (
-          <section className="theme-panel-strong rounded-[2rem] p-5 sm:p-8">
+          <section className="theme-panel-strong rounded-3xl p-5 sm:p-8">
             <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">
               First-Time Setup
             </p>
@@ -2438,7 +2438,7 @@ export default async function DashboardPage({
           />
         ) : (
           <>
-            <section className="theme-panel-strong rounded-[2rem] p-5 sm:p-8">
+            <section className="theme-panel-strong rounded-3xl p-5 sm:p-8">
               <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr] xl:items-start">
                 <div>
                   <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">
@@ -2525,7 +2525,7 @@ export default async function DashboardPage({
             ) : null}
 
             {intelligence ? (
-              <section className="theme-panel-strong rounded-[2rem] p-5 sm:p-8">
+              <section className="theme-panel-strong rounded-3xl p-5 sm:p-8">
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
                   <div>
                     <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">
