@@ -188,6 +188,14 @@ function getDraftStatus(
   return record.status;
 }
 
+function clearUnavailableCandidateScore(value: string) {
+  const score = value.trim();
+
+  // Older open forms may still hold the previous no-evidence placeholder of
+  // zero. Zero is not a valid 1–5 score, so preserve it as an empty field.
+  return score.length > 0 && Number(score) === 0 ? "" : value;
+}
+
 function createDraftRecordForAssignment(
   selectedAssignment: LeadershipDevelopmentAssignmentOption,
   competencyOptions: LeadershipDevelopmentCompetencyOption[] = [],
@@ -1373,6 +1381,12 @@ export function LeadershipDevelopmentRecordManager({
 
     const payload: LeadershipDevelopmentRecordPayload = {
       ...formState,
+      competencies: formState.competencies.map((competency) => ({
+        ...competency,
+        baselineScore: clearUnavailableCandidateScore(
+          competency.baselineScore,
+        ),
+      })),
       sourceProjectAssignmentId:
         selectedProjectId || linkedSourceProject?.id || formState.sourceProjectAssignmentId,
       candidateName: selectedAssignment.candidateName,
