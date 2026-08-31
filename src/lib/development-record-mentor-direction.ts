@@ -7,9 +7,10 @@ const generatedMentorDirectionSchema = z.object({
   narrative: z.string().trim().min(1).max(3000),
 });
 
-function hasCompleteEnding(narrative: string) {
-  return /[.!?][\"')\]]?$/.test(narrative.trim());
-}
+// GPT-5 models use part of the output allowance for reasoning. This response is
+// intentionally detailed, so leave enough room for both reasoning and the
+// mentor-facing narrative rather than treating a Markdown ending as incomplete.
+const mentorDirectionOutputTokenBudget = 4000;
 
 export type DevelopmentRecordMentorDirectionInput = {
   candidateName: string;
@@ -40,7 +41,7 @@ export async function generateDevelopmentRecordMentorDirection(
   for (let attempt = 0; attempt < 2; attempt += 1) {
     const response = await createOpenAIClient().responses.parse({
       model: getOpenAIEnv().OPENAI_MODEL,
-      max_output_tokens: 1600,
+      max_output_tokens: mentorDirectionOutputTokenBudget,
       input: [
         {
           role: "system",
@@ -85,7 +86,7 @@ export async function generateDevelopmentRecordMentorDirection(
     });
 
     const narrative = response.output_parsed?.narrative.trim();
-    if (narrative && hasCompleteEnding(narrative)) {
+    if (response.status === "completed" && narrative) {
       return narrative;
     }
   }
