@@ -35,7 +35,7 @@ export default async function RootLayout({
       </div>
       <div>
         <p className="text-xs font-semibold tracking-[0.16em] text-teal-700 uppercase">
-          Leadership Continuity
+          Leader Continuity System
         </p>
         <p className="text-sm text-slate-600">
           Organization succession planning MVP

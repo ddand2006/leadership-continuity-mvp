@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import Link from "next/link";
+import { getCurrentUser } from "@/lib/auth";
 
 const cycleSteps = [
   {
@@ -254,7 +255,9 @@ function CycleStepCard(props: {
   );
 }
 
-export default function Home() {
+export default async function Home() {
+  const user = await getCurrentUser();
+
   return (
     <main className="app-page flex-1 text-slate-950">
       <div className="mx-auto flex w-full max-w-[1380px] flex-col gap-8 px-5 py-6 sm:px-8 lg:px-10 lg:py-8">
@@ -267,7 +270,7 @@ export default function Home() {
                 </div>
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.24em] text-teal-700">
-                    Leadership Continuity System
+                    Leader Continuity System
                   </p>
                   <h1 className="mt-1 text-3xl leading-tight font-semibold tracking-[-0.04em] text-slate-950 sm:text-4xl lg:text-[3.1rem]">
                     The Leadership Continuity Cycle
@@ -276,12 +279,16 @@ export default function Home() {
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row">
-                <Link
-                  href="/auth?mode=signup"
-                  className="interactive-contrast inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-900"
-                >
-                  Create an Account
-                </Link>
+                {!user ? (
+                  <a
+                    href="https://meet.brevo.com/cycleofbusiness"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="interactive-contrast inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-900"
+                  >
+                    Request a Demo
+                  </a>
+                ) : null}
                 <Link
                   href="/about"
                   className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
@@ -328,6 +335,39 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        {!user ? (
+          <section className="theme-panel-strong flex flex-col gap-6 rounded-[2rem] p-6 sm:p-8 lg:flex-row lg:items-center lg:justify-between">
+            <div className="max-w-3xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-teal-700">
+                See the system in action
+              </p>
+              <h2 className="mt-3 font-display text-3xl text-slate-900 sm:text-4xl">
+                Ready to build leadership continuity from within?
+              </h2>
+              <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">
+                Schedule a brief demo to see how Leader Continuity System connects priority roles, mentoring, and development evidence.
+              </p>
+              <p className="mt-4 text-sm font-semibold text-slate-700">
+                <a className="text-teal-800 underline decoration-teal-300 underline-offset-4" href="mailto:david@cycleofbusiness.com">
+                  david@cycleofbusiness.com
+                </a>
+                <span className="mx-2 text-slate-300">|</span>
+                <a className="text-teal-800 underline decoration-teal-300 underline-offset-4" href="tel:+18019383639">
+                  801-938-3639
+                </a>
+              </p>
+            </div>
+            <a
+              href="https://meet.brevo.com/cycleofbusiness"
+              target="_blank"
+              rel="noreferrer"
+              className="interactive-contrast inline-flex shrink-0 items-center justify-center rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-teal-900"
+            >
+              Request a Demo
+            </a>
+          </section>
+        ) : null}
 
         <section className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
           <div className="theme-panel rounded-[2rem] p-6 sm:p-8">
