@@ -38,7 +38,7 @@ export default async function RootLayout({
           Leader Continuity System
         </p>
         <p className="text-sm text-slate-600">
-          Organization succession planning
+          Preserve the Knowledge. Protect the Culture. Build Bench Strength.
         </p>
       </div>
     </Link>
