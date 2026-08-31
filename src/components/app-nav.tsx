@@ -235,7 +235,7 @@ export async function AppNav({ pathname }: { pathname: string }) {
                 <p className="text-sm text-slate-600">
                   {supportOrganizationName
                     ? `${organizationName} · Support workspace`
-                    : organizationName ?? "Organization succession planning MVP"}
+                    : organizationName ?? "Organization succession planning"}
                 </p>
               </div>
             </Link>

@@ -22,7 +22,7 @@ export default async function AuthPage({ searchParams }: AuthPageProps) {
             <h1 className="font-display text-5xl leading-tight text-slate-900">
               {initialMode === "signup"
                 ? "Create your Leadership Continuity account"
-                : "Sign in to the Leadership Continuity MVP"}
+                : "Sign in to the Leader Continuity System"}
             </h1>
             <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600">
               New organizations begin with an account request. Your team will be contacted to confirm the right plan before the workspace is activated.

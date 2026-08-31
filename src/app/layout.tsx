@@ -16,9 +16,9 @@ const bodyFont = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "Leadership Continuity System MVP",
+  title: "Leader Continuity System",
   description:
-    "Organization succession planning MVP with role composites, strengths analysis, fit scoring, and mentor-ready development reports.",
+    "Organization succession planning with role composites, strengths analysis, fit scoring, and mentor-ready development reports.",
 };
 
 export default async function RootLayout({
@@ -38,7 +38,7 @@ export default async function RootLayout({
           Leader Continuity System
         </p>
         <p className="text-sm text-slate-600">
-          Organization succession planning MVP
+          Organization succession planning
         </p>
       </div>
     </Link>
