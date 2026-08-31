@@ -16,7 +16,6 @@ import {
   calculateLeadershipDevelopmentImprovement,
   computeLeadershipDevelopmentAverageFeedbackScore,
   formatLeadershipDevelopmentScore,
-  isFilledLeadershipDevelopmentCompetency,
   isFilledLeadershipDevelopmentFeedback,
   isFilledLeadershipDevelopmentLeader,
   isLeadershipDevelopmentMentorReviewComplete,
@@ -413,7 +412,13 @@ export async function GET(request: Request) {
     ).map((assessment) => ({
       competencyId: assessment.competencyId,
       competencyName: assessment.competencyName,
-      candidateScore: assessment.averageScore,
+      // An assessment score of zero means no interview or strengths evidence
+      // exists yet. Keep it empty in the form instead of presenting zero as a
+      // valid 1–5 candidate score.
+      candidateScore:
+        assessment.interviewScore !== null || assessment.strengthsScore !== null
+          ? assessment.averageScore
+          : null,
       targetScore: assessment.targetScore,
     }));
     const strengthUseByTheme = new Map(
@@ -693,12 +698,15 @@ export async function POST(request: Request) {
 
     const roleTitle = canonicalizeRoleTitle(roleResult.data.title);
     const filledCompetencies = payload.competencies.filter(
-      isFilledLeadershipDevelopmentCompetency,
+      (competency) => competency.baselineScore.trim().length > 0,
     );
 
-    if (filledCompetencies.length === 0) {
+    if (
+      filledCompetencies.length === 0 &&
+      ["ready_for_review", "completed"].includes(payload.status)
+    ) {
       throw new ApiRouteError(
-        "Add at least one scored competency before saving this record.",
+        "Add at least one candidate score before submitting this record for review.",
         400,
       );
     }

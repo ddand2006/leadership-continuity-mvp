@@ -44,7 +44,7 @@ type LeadershipDevelopmentAssignmentOption = {
 type LeadershipDevelopmentCompetencyOption = {
   competencyId: string;
   competencyName: string;
-  candidateScore: number;
+  candidateScore: number | null;
   targetScore: number;
 };
 
