@@ -1001,6 +1001,95 @@ export function LeadershipDevelopmentRecordManager({
     }));
   }
 
+  function buildRecordSavePayload(
+    record: LeadershipDevelopmentRecordPayload,
+    status: LeadershipDevelopmentRecordPayload["status"],
+  ) {
+    if (!selectedAssignment) {
+      return null;
+    }
+
+    return {
+      ...record,
+      competencies: record.competencies.map((competency) => ({
+        ...competency,
+        baselineScore: clearUnavailableCandidateScore(competency.baselineScore),
+      })),
+      sourceProjectAssignmentId:
+        selectedProjectId || linkedSourceProject?.id || record.sourceProjectAssignmentId,
+      candidateName: selectedAssignment.candidateName,
+      targetRole: selectedAssignment.roleTitle,
+      primaryMentor: selectedAssignment.mentorName,
+      status,
+    };
+  }
+
+  async function saveRecord(
+    payload: LeadershipDevelopmentRecordPayload,
+  ) {
+    try {
+      const response = await fetch("/api/mentoring/leadership-development-record", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const result = (await response.json()) as {
+        error?: string;
+        message?: string;
+        record?: {
+          id: string;
+          updatedAt: string;
+          averageFeedbackScore: number | null;
+        };
+      };
+
+      return { response, result };
+    } catch {
+      return {
+        response: null,
+        result: { error: "Unable to save the leadership development record." },
+      };
+    }
+  }
+
+  function applySavedRecord(
+    payload: LeadershipDevelopmentRecordPayload,
+    record: { id: string; updatedAt: string; averageFeedbackScore: number | null },
+  ) {
+    if (!selectedAssignment) {
+      return;
+    }
+
+    const nextRecord = normalizeLeadershipDevelopmentRecord({
+      ...payload,
+      id: record.id,
+      updatedAt: record.updatedAt,
+      averageFeedbackScore: record.averageFeedbackScore,
+    });
+    const assignmentKey = getAssignmentKey(selectedAssignment);
+
+    setRecordsByAssignmentKey((current) => {
+      const existingRecords = current[assignmentKey] ?? [];
+      const nextRecords = dedupeLeadershipDevelopmentRecords(
+        existingRecords.some((existingRecord) => existingRecord.id === nextRecord.id)
+          ? existingRecords.map((existingRecord) =>
+              existingRecord.id === nextRecord.id ? nextRecord : existingRecord,
+            )
+          : [nextRecord, ...existingRecords],
+      );
+
+      return { ...current, [assignmentKey]: nextRecords };
+    });
+    if (payload.sourceProjectAssignmentId) {
+      setSelectedProjectId(payload.sourceProjectAssignmentId);
+      setSelectedRecordId("");
+    } else {
+      setSelectedProjectId("");
+      setSelectedRecordId(nextRecord.id);
+    }
+    setFormState(nextRecord);
+  }
+
   function updateRecord<K extends keyof LeadershipDevelopmentRecordPayload>(
     field: K,
     value: LeadershipDevelopmentRecordPayload[K],
@@ -1314,13 +1403,33 @@ export function LeadershipDevelopmentRecordManager({
         return;
       }
 
-      setFormState((current) =>
-        current
-          ? { ...current, mentorDirectionNarrative: result.narrative ?? "" }
-          : current,
+      const generatedRecord = {
+        ...formState,
+        mentorDirectionNarrative: result.narrative,
+      };
+      const savePayload = buildRecordSavePayload(
+        generatedRecord,
+        getDraftStatus(generatedRecord),
       );
-      setOpenSections((current) => ({ ...current, "development-focus": false }));
-      setSuccess("Mentor direction generated. Save the draft to keep it with this project.");
+
+      if (!savePayload) {
+        setFormState(generatedRecord);
+        setError("Mentor direction was generated, but the record could not be saved.");
+        return;
+      }
+
+      const saved = await saveRecord(savePayload);
+      if (!saved.response?.ok || !saved.result.record) {
+        setFormState(generatedRecord);
+        setError(
+          `Mentor direction was generated, but could not be saved. ${saved.result.error ?? "Try saving the draft again."}`,
+        );
+        return;
+      }
+
+      applySavedRecord(savePayload, saved.result.record);
+      setOpenSections((current) => ({ ...current, "development-focus": true }));
+      setSuccess("Mentor direction generated and saved with this project.");
     } catch {
       setError("Unable to generate mentor direction.");
     } finally {
@@ -1379,78 +1488,20 @@ export function LeadershipDevelopmentRecordManager({
     setError(null);
     setSuccess(null);
 
-    const payload: LeadershipDevelopmentRecordPayload = {
-      ...formState,
-      competencies: formState.competencies.map((competency) => ({
-        ...competency,
-        baselineScore: clearUnavailableCandidateScore(
-          competency.baselineScore,
-        ),
-      })),
-      sourceProjectAssignmentId:
-        selectedProjectId || linkedSourceProject?.id || formState.sourceProjectAssignmentId,
-      candidateName: selectedAssignment.candidateName,
-      targetRole: selectedAssignment.roleTitle,
-      primaryMentor: selectedAssignment.mentorName,
-      status: nextStatus,
-    };
+    const payload = buildRecordSavePayload(formState, nextStatus);
+    if (!payload) {
+      return;
+    }
 
     startTransition(async () => {
-      const response = await fetch("/api/mentoring/leadership-development-record", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-      const result = (await response.json()) as {
-        error?: string;
-        message?: string;
-        record?: {
-          id: string;
-          updatedAt: string;
-          averageFeedbackScore: number | null;
-        };
-      };
-
-      if (!response.ok || !result.record) {
-        setError(result.error ?? "Unable to save the leadership development record.");
+      const saved = await saveRecord(payload);
+      if (!saved.response?.ok || !saved.result.record) {
+        setError(saved.result.error ?? "Unable to save the leadership development record.");
         return;
       }
 
-      const nextRecord = normalizeLeadershipDevelopmentRecord({
-        ...payload,
-        id: result.record.id,
-        updatedAt: result.record.updatedAt,
-        averageFeedbackScore: result.record.averageFeedbackScore,
-      });
-
-      const assignmentKey = getAssignmentKey(selectedAssignment);
-
-      setRecordsByAssignmentKey((current) => {
-        const existingRecords = current[assignmentKey] ?? [];
-        const nextRecords = dedupeLeadershipDevelopmentRecords(
-          existingRecords.some((record) => record.id === nextRecord.id)
-            ? existingRecords.map((record) =>
-                record.id === nextRecord.id ? nextRecord : record,
-              )
-            : [nextRecord, ...existingRecords],
-        );
-
-        return {
-          ...current,
-          [assignmentKey]: nextRecords,
-        };
-      });
-      if (payload.sourceProjectAssignmentId) {
-        setSelectedProjectId(payload.sourceProjectAssignmentId);
-        setSelectedRecordId("");
-      } else {
-        setSelectedProjectId("");
-        setSelectedRecordId(nextRecord.id);
-      }
-      setFormState(nextRecord);
-      setSuccess(result.message ?? "Leadership development record saved.");
+      applySavedRecord(payload, saved.result.record);
+      setSuccess(saved.result.message ?? "Leadership development record saved.");
     });
   }
 
@@ -2313,6 +2364,17 @@ export function LeadershipDevelopmentRecordManager({
                         </div>
                       ) : null}
 
+                      {formState.mentorDirectionNarrative.trim() ? (
+                        <div className="rounded-2xl border border-sky-200 bg-sky-50/70 p-4">
+                          <p className="text-sm font-semibold text-sky-950">
+                            Mentor direction
+                          </p>
+                          <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-700">
+                            {formState.mentorDirectionNarrative}
+                          </p>
+                        </div>
+                      ) : null}
+
                       <div className="rounded-2xl border border-sky-200 bg-sky-50/70 p-4">
                         <p className="text-sm font-semibold text-slate-900">
                           Mentor direction for this project
@@ -2727,16 +2789,6 @@ export function LeadershipDevelopmentRecordManager({
                 </button>
                 {openSections[section.id] ? (
                   <div className="border-t border-slate-200 px-5 py-5">{section.body}</div>
-                ) : null}
-                {section.id === "development-focus" &&
-                !openSections[section.id] &&
-                formState.mentorDirectionNarrative.trim() ? (
-                  <div className="border-t border-slate-200 bg-teal-50/60 px-5 py-5">
-                    <p className="text-sm font-semibold text-teal-900">Mentor direction</p>
-                    <p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-slate-700">
-                      {formState.mentorDirectionNarrative}
-                    </p>
-                  </div>
                 ) : null}
               </article>
             ))}
