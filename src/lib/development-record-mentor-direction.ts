@@ -10,12 +10,12 @@ const generatedMentorDirectionSchema = z.object({
 // GPT-5 models use part of the output allowance for reasoning. This response is
 // intentionally detailed, so leave enough room for both reasoning and the
 // mentor-facing narrative rather than treating a Markdown ending as incomplete.
-const mentorDirectionOutputTokenBudget = 4000;
+const mentorDirectionOutputTokenBudget = 6000;
 
 function hasCleanCompleteEnding(narrative: string) {
   return (
     /[.!?]["')\]]*$/.test(narrative.trim()) &&
-    !/[\uFFFD]/.test(narrative)
+    !/[^\x09\x0A\x0D\x20-\x7E]/.test(narrative)
   );
 }
 
@@ -45,10 +45,11 @@ export type DevelopmentRecordMentorDirectionInput = {
 export async function generateDevelopmentRecordMentorDirection(
   input: DevelopmentRecordMentorDirectionInput,
 ) {
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
     const response = await createOpenAIClient().responses.parse({
       model: getOpenAIEnv().OPENAI_MODEL,
       max_output_tokens: mentorDirectionOutputTokenBudget,
+      reasoning: { effort: "low" },
       input: [
         {
           role: "system",
@@ -76,7 +77,7 @@ export async function generateDevelopmentRecordMentorDirection(
             selected_growth_areas: input.growthAreas,
             strengths_to_apply: input.selectedStrengths,
             instructions:
-              "Write a mentor-ready narrative under 425 words. Use short paragraphs and, when several actions or checkpoints are useful, a concise Markdown bullet list. Every bullet must be a complete grammatical sentence. Start with the mentor's overall direction for this project. Connect each named strength to a useful action in the project. Explain how the mentor should use the project to build the selected growth areas, including concrete coaching questions or checkpoints. State how the mentor can appropriately stretch the candidate while offering guardrails that turn challenge into growth rather than preventable failure. Close with evidence the mentor should look for that shows both project progress and growth. Finish with a complete sentence and final punctuation; never end mid-sentence or mid-list.",
+              "Write a mentor-ready narrative under 300 words. Use short paragraphs and, when several actions or checkpoints are useful, a concise Markdown bullet list. Every bullet must be a complete grammatical sentence. Start with the mentor's overall direction for this project. Connect each named strength to a useful action in the project. Explain how the mentor should use the project to build the selected growth areas, including concrete coaching questions or checkpoints. State how the mentor can appropriately stretch the candidate while offering guardrails that turn challenge into growth rather than preventable failure. Close with evidence the mentor should look for that shows both project progress and growth. Use plain ASCII characters only. Finish with a complete sentence and final punctuation; never end mid-sentence or mid-list.",
             retry_instruction:
               attempt === 0
                 ? undefined
