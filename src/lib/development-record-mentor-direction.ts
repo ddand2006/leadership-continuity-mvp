@@ -12,6 +12,13 @@ const generatedMentorDirectionSchema = z.object({
 // mentor-facing narrative rather than treating a Markdown ending as incomplete.
 const mentorDirectionOutputTokenBudget = 4000;
 
+function hasCleanCompleteEnding(narrative: string) {
+  return (
+    /[.!?]["')\]]*$/.test(narrative.trim()) &&
+    !/[\uFFFD]/.test(narrative)
+  );
+}
+
 export type DevelopmentRecordMentorDirectionInput = {
   candidateName: string;
   targetRole: string;
@@ -46,7 +53,7 @@ export async function generateDevelopmentRecordMentorDirection(
         {
           role: "system",
           content:
-            "You are an expert succession mentor. Create an actionable mentor-facing narrative for one candidate's real development project. Use standard grammar, complete sentences, and polished professional language. Be specific, practical, and encouraging. Do not invent missing project facts. The mentor's role is to stretch the candidate toward meaningful growth, while providing enough support, guardrails, and checkpoints to avoid preventable failure. Explain how the candidate's named CliftonStrengths can be deliberately applied to complete the project while the mentor builds the named growth areas through coaching, stretch, observation, and reflection. Avoid generic HR language.",
+            "You are an expert succession mentor. Create an actionable mentor-facing narrative for one candidate's real development project. Use standard grammar, complete sentences, and polished professional language. Be specific, practical, and encouraging. Do not invent missing project facts. The mentor's role is to stretch the candidate toward meaningful growth, while providing enough support, guardrails, and checkpoints to avoid preventable failure. Explain how the candidate's named CliftonStrengths can be deliberately applied to complete the project while the mentor builds the named growth areas through coaching, stretch, observation, and reflection. Avoid generic HR language. Use only plain ASCII characters.",
         },
         {
           role: "user",
@@ -73,7 +80,7 @@ export async function generateDevelopmentRecordMentorDirection(
             retry_instruction:
               attempt === 0
                 ? undefined
-                : "The prior response ended incompletely. Produce a fresh, concise response that ends with a complete, grammatically correct sentence.",
+                : "The prior response was incomplete or contained malformed text. Produce a fresh, concise response using plain ASCII only, ending with a complete, grammatically correct sentence and final punctuation.",
           }),
         },
       ],
@@ -86,7 +93,11 @@ export async function generateDevelopmentRecordMentorDirection(
     });
 
     const narrative = response.output_parsed?.narrative.trim();
-    if (response.status === "completed" && narrative) {
+    if (
+      response.status === "completed" &&
+      narrative &&
+      hasCleanCompleteEnding(narrative)
+    ) {
       return narrative;
     }
   }
