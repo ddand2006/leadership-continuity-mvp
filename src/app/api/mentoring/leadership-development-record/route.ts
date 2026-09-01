@@ -697,6 +697,15 @@ export async function POST(request: Request) {
     }
 
     const roleTitle = canonicalizeRoleTitle(roleResult.data.title);
+    if (
+      payload.growthAreas.length === 0 &&
+      ["ready_for_review", "completed"].includes(payload.status)
+    ) {
+      throw new ApiRouteError(
+        "Select at least one growth area before submitting this record for review.",
+        400,
+      );
+    }
     const filledCompetencies = payload.competencies.filter(
       (competency) => competency.baselineScore.trim().length > 0,
     );

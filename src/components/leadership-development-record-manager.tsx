@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import {
   LEADERSHIP_DEVELOPMENT_GROWTH_AREAS,
   LEADERSHIP_DEVELOPMENT_READINESS_SIGNALS,
@@ -531,6 +532,8 @@ export function LeadershipDevelopmentRecordManager({
   const [formState, setFormState] = useState<LeadershipDevelopmentRecordPayload | null>(
     null,
   );
+  const [projectToolsMount, setProjectToolsMount] = useState<HTMLDivElement | null>(null);
+  const [isSavingInitialProject, setIsSavingInitialProject] = useState(false);
   const [openSections, setOpenSections] = useState(createOpenSectionState);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -613,9 +616,7 @@ export function LeadershipDevelopmentRecordManager({
   const linkedSourceProject =
     selectedSourceProject ??
     findLinkedProjectForRecord(selectedRecord, visibleSourceProjects);
-  const shouldShowTransferredProjectEditor = Boolean(
-    linkedSourceProject || (formState && (hasTransferredProjectDetails(formState) || formState.experienceTitle || formState.menteeTask)),
-  );
+  const shouldShowTransferredProjectEditor = Boolean(formState?.id);
 
   useEffect(() => {
     const nextAssignmentKey =
@@ -1505,6 +1506,38 @@ export function LeadershipDevelopmentRecordManager({
     });
   }
 
+  async function handleInitialSaveAndProceed() {
+    if (!formState || !selectedAssignment || !storageReady) {
+      return;
+    }
+    if (!formState.experienceTitle.trim()) {
+      setError("Add an experience or project title before saving the project.");
+      return;
+    }
+
+    setError(null);
+    setSuccess(null);
+    setIsSavingInitialProject(true);
+
+    try {
+      const payload = buildRecordSavePayload(formState, "assigned");
+      if (!payload) {
+        return;
+      }
+      const saved = await saveRecord(payload);
+      if (!saved.response?.ok || !saved.result.record) {
+        setError(saved.result.error ?? "Unable to save the project.");
+        return;
+      }
+
+      applySavedRecord(payload, saved.result.record);
+      setProjectDetailsOpen(true);
+      setSuccess("Project saved. You can now expand the project with AI.");
+    } finally {
+      setIsSavingInitialProject(false);
+    }
+  }
+
   async function handleRemoveProject() {
     if (!selectedAssignment || !linkedSourceProject) {
       return;
@@ -1870,7 +1903,8 @@ export function LeadershipDevelopmentRecordManager({
               </article>
             ) : null}
 
-            {shouldShowTransferredProjectEditor && formState ? (
+            {projectToolsMount && shouldShowTransferredProjectEditor && formState
+              ? createPortal(
               <article className="rounded-2xl border border-teal-200 bg-teal-50/60 px-5 py-5">
                 <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                   <div>
@@ -2040,8 +2074,10 @@ export function LeadershipDevelopmentRecordManager({
                     {(menteeWorksheet ?? formState.menteeWorksheet) ? <div className="mt-4 space-y-3 text-sm leading-6 text-slate-700"><p>{(menteeWorksheet ?? formState.menteeWorksheet)!.assignmentSummary}</p><ProjectDetailListCard label="First steps" values={(menteeWorksheet ?? formState.menteeWorksheet)!.firstSteps} onChange={(values) => { setMenteeWorksheet((current) => current ? { ...current, firstSteps: values } : current); updateRecord("menteeWorksheet", { ...(menteeWorksheet ?? formState.menteeWorksheet)!, firstSteps: values }); }} /><ProjectDetailListCard label="Report-back prompts" values={(menteeWorksheet ?? formState.menteeWorksheet)!.reportBackPrompts} onChange={(values) => { setMenteeWorksheet((current) => current ? { ...current, reportBackPrompts: values } : current); updateRecord("menteeWorksheet", { ...(menteeWorksheet ?? formState.menteeWorksheet)!, reportBackPrompts: values }); }} /><label className="block"><span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">Mentee report-back notes</span><textarea value={formState.menteeReportNotes} onChange={(event) => updateRecord("menteeReportNotes", event.target.value)} className="mt-2 min-h-28 w-full rounded-2xl border border-sky-200 bg-white px-4 py-3 text-sm text-slate-900" placeholder="What I completed, learned, and need from my mentor next." /></label></div> : null}
                   </div>
                 ) : null}
-              </article>
-            ) : null}
+              </article>,
+              projectToolsMount,
+            )
+              : null}
 
             {isLoading ? (
               <p className="text-sm text-slate-600">Loading leadership development records...</p>
@@ -2220,6 +2256,28 @@ export function LeadershipDevelopmentRecordManager({
                           </div>
                         </article>
                       ))}
+
+                      {!formState.id ? (
+                        <div className="rounded-2xl border border-sky-200 bg-sky-50/70 p-4">
+                          <p className="text-sm font-semibold text-slate-900">
+                            Ready for project details?
+                          </p>
+                          <p className="mt-1 text-sm leading-6 text-slate-600">
+                            Save this initial project to unlock AI-assisted project expansion
+                            and the mentee worksheet.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={handleInitialSaveAndProceed}
+                            disabled={isSavingInitialProject || !storageReady}
+                            className="mt-4 rounded-full bg-teal-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+                          >
+                            {isSavingInitialProject ? "Saving project..." : "Save & Proceed"}
+                          </button>
+                        </div>
+                      ) : null}
+
+                      <div ref={setProjectToolsMount} />
                     </div>
                   </div>
                 ),

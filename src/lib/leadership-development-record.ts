@@ -111,7 +111,7 @@ export const leadershipDevelopmentRecordPayloadSchema = z.object({
   primaryMentor: z.string().trim().min(1),
   dateAssigned: z.string().trim().min(1),
   status: z.enum(LEADERSHIP_DEVELOPMENT_STATUSES),
-  growthAreas: z.array(z.enum(LEADERSHIP_DEVELOPMENT_GROWTH_AREAS)).min(1),
+  growthAreas: z.array(z.enum(LEADERSHIP_DEVELOPMENT_GROWTH_AREAS)).default([]),
   assignmentReason: z.string().trim().max(1000),
   selectedStrengths: z.array(leadershipDevelopmentSelectedStrengthSchema).default([]),
   mentorDirectionNarrative: z.string().trim().max(3000),
