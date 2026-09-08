@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import {
   ApiRouteError,
   createApiErrorResponse,
@@ -6,14 +7,20 @@ import {
 } from "@/lib/api-route";
 import {
   FOUNDATION_STRIPE_PRICE_ID,
+  FIRST_SEAT_PACK_STRIPE_PRICE_ID,
   getStripe,
   getStripeBillingReturnUrl,
   hasStripeBillingConfiguration,
+  VOLUME_SEAT_PACK_STRIPE_PRICE_ID,
 } from "@/lib/stripe-billing";
 
 export const runtime = "nodejs";
 
-export async function POST() {
+const checkoutSchema = z.object({
+  additionalSeatPacks: z.number().int().min(0).max(200).default(0),
+});
+
+export async function POST(request: Request) {
   try {
     const context = await requireApiWorkspaceProfile({
       requireAdmin: true,
@@ -42,6 +49,19 @@ export async function POST() {
       throw new ApiRouteError("This organization already has a Stripe subscription.", 409);
     }
 
+    const body = await request.json().catch(() => ({}));
+    const { additionalSeatPacks } = checkoutSchema.parse(body);
+    const lineItems = [{ price: FOUNDATION_STRIPE_PRICE_ID, quantity: 1 }];
+    if (additionalSeatPacks > 0 && FIRST_SEAT_PACK_STRIPE_PRICE_ID) {
+      lineItems.push({ price: FIRST_SEAT_PACK_STRIPE_PRICE_ID, quantity: 1 });
+    }
+    if (additionalSeatPacks > 1 && VOLUME_SEAT_PACK_STRIPE_PRICE_ID) {
+      lineItems.push({
+        price: VOLUME_SEAT_PACK_STRIPE_PRICE_ID,
+        quantity: additionalSeatPacks - 1,
+      });
+    }
+
     const stripe = getStripe();
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
@@ -50,7 +70,7 @@ export async function POST() {
         ? undefined
         : organization.billing_contact_email ?? context.user.email,
       client_reference_id: context.profile.organization_id,
-      line_items: [{ price: FOUNDATION_STRIPE_PRICE_ID, quantity: 1 }],
+      line_items: lineItems,
       metadata: { organization_id: context.profile.organization_id },
       subscription_data: {
         metadata: { organization_id: context.profile.organization_id },

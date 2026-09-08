@@ -9,6 +9,11 @@ import {
   type OrganizationSubscriptionState,
   type SubscriptionProduct,
 } from "@/lib/subscription";
+import {
+  FIRST_SEAT_PACK_ANNUAL_PRICE_DOLLARS,
+  FOUNDATION_PLAN,
+  VOLUME_SEAT_PACK_ANNUAL_PRICE_DOLLARS,
+} from "@/lib/billing";
 
 const productDescriptions: Record<SubscriptionProduct, string[]> = {
   leadership_continuity: [
@@ -168,13 +173,27 @@ export function SubscriptionPaywallPanel({
       <StripeBillingActions
         additionalSeatPacks={subscription.additionalSeatPacks}
         canManageBilling={canManageBilling}
+        foundationAnnualPrice={FOUNDATION_PLAN.annualPriceDollars}
         hasStripeSubscription={hasStripeSubscription}
+        includedSeats={subscription.includedSeats}
+        firstSeatPackAnnualPrice={FIRST_SEAT_PACK_ANNUAL_PRICE_DOLLARS}
         stripeConfigured={stripeConfigured}
+        volumeSeatPackAnnualPrice={VOLUME_SEAT_PACK_ANNUAL_PRICE_DOLLARS}
       />
 
-      <p className="mt-6 text-sm leading-7 text-slate-600">
-        Foundation includes 10 internal users. Additional capacity is purchased in five-person packs. Secure external 360 respondents do not need a paid account or consume an internal seat.
-      </p>
+      <div className="mt-6 flex flex-wrap items-center gap-3">
+        <p className="mr-2 text-sm leading-7 text-slate-600">
+          Most organizations see better adoption when we help shape the implementation. Secure external 360 respondents do not need a paid account or consume an internal seat.
+        </p>
+        <a
+          href="https://meet.brevo.com/cycleofbusiness"
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center justify-center rounded-full border border-teal-200 bg-teal-50 px-5 py-2.5 text-sm font-semibold text-teal-900 transition hover:bg-teal-100"
+        >
+          Contact us for implementation help
+        </a>
+      </div>
 
       <div className="mt-8 flex flex-wrap gap-3">
         <a

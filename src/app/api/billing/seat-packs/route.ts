@@ -42,6 +42,12 @@ export async function POST() {
     if (subscription.status !== "active" && subscription.status !== "trialing") {
       throw new ApiRouteError("The Stripe subscription must be active before adding seats.", 409);
     }
+    if (subscription.cancel_at_period_end) {
+      throw new ApiRouteError(
+        "This subscription is scheduled to end at the close of its current term and cannot be changed. Reactivate it before adding seats.",
+        409,
+      );
+    }
 
     const existingSeatPacks = Math.max(
       organization.additional_seat_packs ?? 0,

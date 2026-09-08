@@ -5,7 +5,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { createRequire } from "node:module";
-import { fileURLToPath } from "node:url";
 import { ApiRouteError } from "@/lib/api-route";
 import { assertAcceptedFileType, getFileExtension } from "@/lib/upload-file-utils";
 
@@ -16,7 +15,6 @@ const require = createRequire(import.meta.url);
 const execFileAsync = promisify(execFile);
 const PDF_EXTRACTOR_SCRIPT_PATH_CANDIDATES = [
   join(process.cwd(), "scripts", "extract-pdf-text.cjs"),
-  fileURLToPath(new URL("../../scripts/extract-pdf-text.cjs", import.meta.url)),
 ];
 
 function normalizeExtractedText(value: string) {

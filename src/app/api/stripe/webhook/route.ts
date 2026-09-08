@@ -165,7 +165,9 @@ async function syncSubscription(subscription: Stripe.Subscription) {
     leadership_continuity_tier: "foundation",
     stripe_customer_id: customerId,
     stripe_price_id: subscription.items.data[0]?.price.id ?? null,
-    stripe_subscription_id: subscription.id,
+    // A canceled subscription cannot be reused. Clearing the reference keeps
+    // the organization's saved data while allowing a fresh checkout to reactivate it.
+    stripe_subscription_id: status === "canceled" ? null : subscription.id,
     subscription_status: status,
     subscription_tier: "foundation",
     trial_ends_at:

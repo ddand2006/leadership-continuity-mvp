@@ -21,11 +21,11 @@ export default async function AuthPage({ searchParams }: AuthPageProps) {
           <div>
             <h1 className="font-display text-5xl leading-tight text-slate-900">
               {initialMode === "signup"
-                ? "Create your Leadership Continuity account"
+                ? "Create your Leadership Continuity organization"
                 : "Sign in to the Leader Continuity System"}
             </h1>
             <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600">
-              New organizations begin with an account request. Your team will be contacted to confirm the right plan before the workspace is activated.
+              Create your administrator account, choose your organization’s capacity, and subscribe securely through Stripe. Our team is available to help with implementation whenever you need it.
             </p>
           </div>
           <Link

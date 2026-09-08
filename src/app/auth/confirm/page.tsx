@@ -82,7 +82,7 @@ export default function AuthConfirmPage() {
         const requestResponse = await fetch("/api/account-requests", { method: "POST" });
         if (!requestResponse.ok) {
           const payload = (await requestResponse.json()) as { error?: string };
-          throw new Error(payload.error ?? "Unable to submit your account request.");
+          throw new Error(payload.error ?? "Unable to create your organization.");
         }
       }
 
@@ -92,7 +92,7 @@ export default function AuthConfirmPage() {
       }
 
       setState("redirecting");
-      window.location.assign(flowMode === "signup" ? "/account-request-received" : nextPath);
+      window.location.assign(flowMode === "signup" ? "/subscribe?setup=1" : nextPath);
     }
 
     async function hydrateSessionFromLink() {
