@@ -29,6 +29,9 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.108.2
         version: 2.108.2
+      '@swc/helpers':
+        specifier: 0.5.15
+        version: 0.5.15
       docx:
         specifier: ^9.7.1
         version: 9.7.1
