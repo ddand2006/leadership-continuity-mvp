@@ -15,3 +15,5 @@ Verify with a test candidate: save a Word export, see it appear without refreshi
 ## Local validation
 
 `node scripts/test-mentoring-documents.cjs` checks persistence, failure cleanup, exact email attachments, retry keys, recipient checks, track authorization, and invalid requests with mocked external services. No live emails are sent by the tests.
+
+Mentor Direction also saves a Word copy automatically on generation. Existing direction can be exported without AI using Save mentor direction as Word. Its section includes the same saved-document download and email controls. `node scripts/test-mentor-direction-document.cjs` verifies the document content, automatic saving, export without regeneration, and storage-failure recovery.

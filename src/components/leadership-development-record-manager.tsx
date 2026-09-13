@@ -1352,7 +1352,7 @@ export function LeadershipDevelopmentRecordManager({
     });
   }
 
-  async function handleGenerateMentorDirection() {
+  async function handleGenerateMentorDirection(action: "generate" | "save_document" = "generate") {
     if (!formState || !selectedAssignment) return;
 
     const hasProjectInformation = [
@@ -1367,15 +1367,16 @@ export function LeadershipDevelopmentRecordManager({
       setError("Add the project information in Section 2 before generating mentor direction.");
       return;
     }
-    if (formState.growthAreas.length === 0) {
+    if (action === "generate" && formState.growthAreas.length === 0) {
       setError("Select at least one growth area before generating mentor direction.");
       return;
     }
-    if (formState.selectedStrengths.length === 0) {
+    if (action === "generate" && formState.selectedStrengths.length === 0) {
       setError("Select at least one existing strength before generating mentor direction.");
       return;
     }
 
+    const selectionRevision = selectionRevisionRef.current;
     setError(null);
     setSuccess(null);
     setIsGeneratingMentorDirection(true);
@@ -1388,6 +1389,7 @@ export function LeadershipDevelopmentRecordManager({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             ...formState,
+            action,
             candidateId: selectedAssignment.candidateId,
             roleId: selectedAssignment.roleId,
             mentorId: selectedAssignment.mentorProfileId,
@@ -1397,8 +1399,10 @@ export function LeadershipDevelopmentRecordManager({
           }),
         },
       );
-      const result = (await response.json()) as { error?: string; narrative?: string };
+      const result = (await response.json()) as { error?: string; narrative?: string; documentId?: string; documentError?: string };
 
+      if (selectionRevision !== selectionRevisionRef.current) return;
+      if (result.documentId) window.dispatchEvent(new Event("mentoring-document-saved"));
       if (!response.ok || !result.narrative) {
         setError(result.error ?? "Unable to generate mentor direction.");
         return;
@@ -1410,7 +1414,7 @@ export function LeadershipDevelopmentRecordManager({
       };
       const savePayload = buildRecordSavePayload(
         generatedRecord,
-        getDraftStatus(generatedRecord),
+        generatedRecord.status,
       );
 
       if (!savePayload) {
@@ -1420,6 +1424,7 @@ export function LeadershipDevelopmentRecordManager({
       }
 
       const saved = await saveRecord(savePayload);
+      if (selectionRevision !== selectionRevisionRef.current) return;
       if (!saved.response?.ok || !saved.result.record) {
         setFormState(generatedRecord);
         setError(
@@ -1430,7 +1435,11 @@ export function LeadershipDevelopmentRecordManager({
 
       applySavedRecord(savePayload, saved.result.record);
       setOpenSections((current) => ({ ...current, "development-focus": true }));
-      setSuccess("Mentor direction generated and saved with this project.");
+      if (result.documentError) {
+        setError(`Mentor direction is saved in the record, but the Word copy could not be saved. ${result.documentError} Use Save mentor direction as Word to retry.`);
+      } else {
+        setSuccess("Mentor direction saved as a Word document. Download or email it in the Mentor Direction section.");
+      }
     } catch {
       setError("Unable to generate mentor direction.");
     } finally {
@@ -2473,7 +2482,7 @@ export function LeadershipDevelopmentRecordManager({
                         </p>
                         <button
                           type="button"
-                          onClick={handleGenerateMentorDirection}
+                          onClick={() => handleGenerateMentorDirection()}
                           disabled={isGeneratingMentorDirection}
                           className="mt-4 rounded-full bg-teal-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-300"
                         >
@@ -2483,6 +2492,13 @@ export function LeadershipDevelopmentRecordManager({
                               ? "Regenerate mentor direction"
                               : "Generate mentor direction"}
                         </button>
+                        {formState.mentorDirectionNarrative.trim() ? (
+                          <button type="button" onClick={() => handleGenerateMentorDirection("save_document")} disabled={isGeneratingMentorDirection || isPending} className="mt-4 ml-3 rounded-full border border-teal-800 bg-white px-4 py-2 text-sm font-semibold text-teal-900 disabled:opacity-50">
+                            {isGeneratingMentorDirection ? "Preparing document…" : "Save mentor direction as Word"}
+                          </button>
+                        ) : null}
+                        <p className="mt-3 text-xs text-slate-600">New directions automatically save a Word copy. Use Save mentor direction as Word for an existing direction, then download or email the saved copy below.</p>
+                        <MentoringDocumentLibrary candidateId={selectedAssignment.candidateId} />
                       </div>
                     </div>
                   </div>

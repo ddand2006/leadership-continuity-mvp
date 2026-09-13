@@ -1,3 +1,5 @@
+import { buildMentorDirectionDocumentBuffer } from "@/lib/mentor-direction-document";
+import { saveMentoringDocument } from "@/lib/mentoring-documents";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
@@ -10,6 +12,8 @@ import { hasOpenAIEnv } from "@/lib/env";
 import { isAdminAppRole, isCandidateSelfAccess } from "@/lib/mentor-access";
 
 const payloadSchema = z.object({
+  action: z.enum(["generate", "save_document"]).default("generate"),
+  mentorDirectionNarrative: z.string().trim().max(3000).default(""),
   candidateId: z.string().uuid(),
   roleId: z.string().uuid(),
   mentorId: z.string().uuid(),
@@ -26,7 +30,7 @@ const payloadSchema = z.object({
   firstStep: z.string().trim().max(1500),
   leadershipActionsRequired: z.array(z.string().trim().min(1).max(300)).max(30),
   successMeasures: z.array(z.string().trim().min(1).max(300)).max(30),
-  growthAreas: z.array(z.string().trim().min(1).max(100)).min(1).max(9),
+  growthAreas: z.array(z.string().trim().min(1).max(100)).max(9),
   selectedStrengths: z
     .array(
       z.object({
@@ -36,7 +40,6 @@ const payloadSchema = z.object({
         helpDescription: z.string().trim().min(1).max(1000),
       }),
     )
-    .min(1)
     .max(34),
 });
 
@@ -44,15 +47,17 @@ export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
-    if (!hasOpenAIEnv()) {
+    const { account, admin, profile } = await requireApiWorkspaceProfile();
+    const payload = payloadSchema.parse(await request.json());
+    if (payload.action === "generate" && !hasOpenAIEnv()) {
       throw new ApiRouteError(
         "Add OPENAI_API_KEY before generating mentor direction.",
         400,
       );
     }
 
-    const { account, admin, profile } = await requireApiWorkspaceProfile();
-    const payload = payloadSchema.parse(await request.json());
+    if (payload.action === "generate" && (!payload.growthAreas.length || !payload.selectedStrengths.length)) throw new ApiRouteError("Select a growth area and strength before generating mentor direction.", 400);
+    if (payload.action === "save_document" && !payload.mentorDirectionNarrative) throw new ApiRouteError("Generate mentor direction before saving a Word document.", 400);
 
     const assignmentResult = await admin
       .from("mentor_role_assignments")
@@ -87,7 +92,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const narrative = await generateDevelopmentRecordMentorDirection({
+    const narrative = payload.action === "save_document" ? payload.mentorDirectionNarrative : await generateDevelopmentRecordMentorDirection({
       candidateName: payload.candidateName,
       targetRole: payload.targetRole,
       mentorName: payload.primaryMentor,
@@ -105,7 +110,20 @@ export async function POST(request: Request) {
       selectedStrengths: payload.selectedStrengths,
     });
 
-    return NextResponse.json({ narrative });
+    try {
+      const buffer = await buildMentorDirectionDocumentBuffer({
+        candidateName: payload.candidateName, targetRole: payload.targetRole, mentorName: payload.primaryMentor,
+        projectTitle: payload.experienceTitle || payload.menteeTask, narrative,
+      });
+      const slug = `${payload.candidateName}-${payload.experienceTitle}`.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 160);
+      const documentId = await saveMentoringDocument({ admin, organizationId: profile.organization_id,
+        candidateId: payload.candidateId, roleId: payload.roleId, profileId: profile.id,
+        title: `${payload.experienceTitle || "Development project"} — Mentor direction`, fileName: `${slug || "project"}-mentor-direction.docx`, buffer,
+      });
+      return NextResponse.json({ narrative, documentId });
+    } catch (error) {
+      return NextResponse.json({ narrative, documentError: error instanceof Error ? error.message : "Unable to save the Word document." });
+    }
   } catch (error) {
     return createApiErrorResponse(error, "Unable to generate mentor direction.");
   }
