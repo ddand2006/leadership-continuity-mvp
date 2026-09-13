@@ -1,5 +1,8 @@
 "use client";
 
+import { MentoringDocumentLibrary } from "@/components/mentoring-document-library";
+import type { GeneratedMenteeWorksheet } from "@/lib/development-record-project-tools";
+
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -494,9 +497,6 @@ export function LeadershipDevelopmentRecordManager({
   const [isRemovingProject, setIsRemovingProject] = useState(false);
   const [isGeneratingMentorDirection, setIsGeneratingMentorDirection] = useState(false);
   const [isGeneratingProjectTool, setIsGeneratingProjectTool] = useState(false);
-  const [menteeWorksheet, setMenteeWorksheet] = useState<{
-    assignmentSummary: string; firstSteps: string[]; weeklyCheckpoints: string[]; reportBackPrompts: string[]; reflectionQuestions: string[];
-  } | null>(null);
   const [storageReady, setStorageReady] = useState(true);
   const [selectedAssignmentKey, setSelectedAssignmentKey] = useState(
     assignments.some(
@@ -1438,27 +1438,41 @@ export function LeadershipDevelopmentRecordManager({
     }
   }
 
-  async function handleProjectTool(action: "expand_project" | "generate_worksheet") {
+  async function handleProjectTool(action: "expand_project" | "generate_worksheet" | "save_worksheet") {
     if (!formState || !selectedAssignment) return;
     if (!formState.experienceTitle.trim() && !formState.menteeTask.trim()) {
       setError("Add a project title or task before generating project materials."); return;
     }
+    const selectionRevision = selectionRevisionRef.current;
     setError(null); setSuccess(null); setIsGeneratingProjectTool(true);
     try {
       const response = await fetch("/api/mentoring/leadership-development-record/project-tools", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...formState, action, candidateId: selectedAssignment.candidateId, roleId: selectedAssignment.roleId, mentorId: selectedAssignment.mentorProfileId, candidateName: selectedAssignment.candidateName, targetRole: selectedAssignment.roleTitle, primaryMentor: selectedAssignment.mentorName }),
       });
-      const payload = (await response.json()) as { error?: string; result?: Record<string, unknown> };
+      const payload = (await response.json()) as { error?: string; result?: Record<string, unknown>; documentId?: string; documentError?: string };
+      if (selectionRevision !== selectionRevisionRef.current) return;
       if (!response.ok || !payload.result) { setError(payload.error ?? "Unable to generate project materials."); return; }
       if (action === "expand_project") {
         setFormState((current) => current ? { ...current, ...(payload.result as Pick<LeadershipDevelopmentRecordPayload, "projectSummary" | "projectPurpose" | "workingGoal" | "whyItFits" | "mentorFocus" | "firstStep" | "keyPartners" | "leadershipActionsRequired" | "anticipatedChallenges" | "successMeasures" | "mentorPreparation" | "menteePreparation" | "reflectionQuestions" | "successSignals">) } : current);
         setProjectDetailsOpen(true); setSuccess("Project details expanded. Review and save the record to add this company example to your library.");
       } else {
-        const worksheet = payload.result as NonNullable<typeof menteeWorksheet>;
-        setMenteeWorksheet(worksheet);
-        setFormState((current) => current ? { ...current, menteeWorksheet: worksheet } : current);
-        setSuccess("Mentee worksheet generated. Save the record after adding any report-back notes.");
+        const worksheet = payload.result as GeneratedMenteeWorksheet;
+        const updatedRecord = { ...formState, menteeWorksheet: worksheet };
+        setFormState(updatedRecord);
+        if (payload.documentId) window.dispatchEvent(new Event("mentoring-document-saved"));
+        const savePayload = buildRecordSavePayload(updatedRecord, updatedRecord.status);
+        const saved = savePayload ? await saveRecord(savePayload) : null;
+        if (selectionRevision !== selectionRevisionRef.current) return;
+        if (saved?.response?.ok && saved.result.record && savePayload) applySavedRecord(savePayload, saved.result.record);
+        if (payload.documentError) {
+          setError(`Worksheet is available below, but the Word document could not be saved. ${payload.documentError} Use Save Word document to retry.`);
+        } else {
+          setSuccess("Mentee worksheet saved as a Word document. Download or email it below.");
+        }
+        if (!saved?.response?.ok || !saved.result.record) {
+          setError(`${payload.documentError ? "The Word document could not be saved. " : "The Word document is saved. "}The development record could not be updated. Save the draft to keep worksheet edits in the record.`);
+        }
       }
     } catch { setError("Unable to generate project materials."); } finally { setIsGeneratingProjectTool(false); }
   }
@@ -2071,7 +2085,23 @@ export function LeadershipDevelopmentRecordManager({
                     <button type="button" onClick={() => handleProjectTool("generate_worksheet")} disabled={isGeneratingProjectTool} className="mt-3 rounded-full border border-sky-200 bg-white px-4 py-2 text-sm font-semibold text-sky-900 disabled:cursor-not-allowed disabled:text-slate-400">
                       {isGeneratingProjectTool ? "Generating..." : "Generate mentee worksheet"}
                     </button>
-                    {(menteeWorksheet ?? formState.menteeWorksheet) ? <div className="mt-4 space-y-3 text-sm leading-6 text-slate-700"><p>{(menteeWorksheet ?? formState.menteeWorksheet)!.assignmentSummary}</p><ProjectDetailListCard label="First steps" values={(menteeWorksheet ?? formState.menteeWorksheet)!.firstSteps} onChange={(values) => { setMenteeWorksheet((current) => current ? { ...current, firstSteps: values } : current); updateRecord("menteeWorksheet", { ...(menteeWorksheet ?? formState.menteeWorksheet)!, firstSteps: values }); }} /><ProjectDetailListCard label="Report-back prompts" values={(menteeWorksheet ?? formState.menteeWorksheet)!.reportBackPrompts} onChange={(values) => { setMenteeWorksheet((current) => current ? { ...current, reportBackPrompts: values } : current); updateRecord("menteeWorksheet", { ...(menteeWorksheet ?? formState.menteeWorksheet)!, reportBackPrompts: values }); }} /><label className="block"><span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">Mentee report-back notes</span><textarea value={formState.menteeReportNotes} onChange={(event) => updateRecord("menteeReportNotes", event.target.value)} className="mt-2 min-h-28 w-full rounded-2xl border border-sky-200 bg-white px-4 py-3 text-sm text-slate-900" placeholder="What I completed, learned, and need from my mentor next." /></label></div> : null}
+                    <MentoringDocumentLibrary candidateId={selectedAssignment.candidateId} />
+                    {formState.menteeWorksheet ? (
+                      <div className="mt-4 space-y-3 text-sm leading-6 text-slate-700">
+                        <button type="button" onClick={() => handleProjectTool("save_worksheet")} disabled={isGeneratingProjectTool || isPending} className="rounded-full bg-sky-900 px-4 py-2 font-semibold text-white disabled:opacity-50">
+                          {isGeneratingProjectTool ? "Preparing worksheet…" : "Save Word document"}
+                        </button>
+                        <p className="text-xs text-slate-600">Generation saves a Word copy automatically. After editing, save a new Word copy before emailing it from the library below.</p>
+                        <p>{formState.menteeWorksheet.assignmentSummary}</p>
+                        {([
+                          ["First steps", "firstSteps"], ["Weekly checkpoints", "weeklyCheckpoints"],
+                          ["Report-back prompts", "reportBackPrompts"], ["Reflection questions", "reflectionQuestions"],
+                        ] as const).map(([label, field]) => (
+                          <ProjectDetailListCard key={field} label={label} values={formState.menteeWorksheet![field]} onChange={(values) => updateRecord("menteeWorksheet", { ...formState.menteeWorksheet!, [field]: values })} />
+                        ))}
+                        <label className="block"><span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">Mentee report-back notes</span><textarea value={formState.menteeReportNotes} onChange={(event) => updateRecord("menteeReportNotes", event.target.value)} className="mt-2 min-h-28 w-full rounded-2xl border border-sky-200 bg-white px-4 py-3 text-sm text-slate-900" placeholder="What I completed, learned, and need from my mentor next." /></label>
+                      </div>
+                    ) : null}
                   </div>
                 ) : null}
               </article>,

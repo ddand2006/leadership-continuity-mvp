@@ -1,6 +1,6 @@
 # Saved mentoring documents
 
-The Word export actions for individual mentoring projects, development idea sets, and candidate progress reports save a private copy before returning the download. Saved copies appear in the mentoring flow and the related report/idea views; later downloads retrieve those exact bytes. Worksheet drafts continue to use their existing saved records.
+The Word export actions for individual mentoring projects, development idea sets, and candidate progress reports save a private copy before returning the download. Saved copies appear in the mentoring flow and the related report/idea views; later downloads retrieve those exact bytes. Generating a mentee worksheet also saves a Word copy automatically. The worksheet section provides the document library and a Save Word document action for existing worksheets or subsequent edits, without another AI generation. The Word copy includes the assignment, first steps, weekly checkpoints, report-back prompts, reflection questions, and notes. Worksheet edits are also saved to the development record.
 
 The library offers each document's mentee and active assigned mentors as email recipients, showing their account email before sending. The server resolves the recipient again at send time and attaches the saved Word file through the existing Resend integration. There is no automatic email on generation. A successful response means Resend accepted the email, not confirmation of inbox delivery.
 
