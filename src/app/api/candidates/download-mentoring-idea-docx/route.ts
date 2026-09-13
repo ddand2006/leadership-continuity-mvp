@@ -1,3 +1,4 @@
+import { saveMentoringDocument } from "@/lib/mentoring-documents";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
@@ -126,8 +127,16 @@ export async function POST(request: Request) {
     });
     const fileName = `${slugify(candidateResult.data.full_name)}-${slugify(payload.idea.title)}.docx`;
 
+    const documentId = await saveMentoringDocument({
+      admin, organizationId: profile.organization_id, candidateId: payload.candidateId,
+      profileId: profile.id, title: payload.idea.title, fileName, buffer,
+      roleId: payload.roleId,
+    });
+
     return new NextResponse(new Uint8Array(buffer), {
       headers: {
+        "X-Mentoring-Document-Id": documentId,
+        "Cache-Control": "private, no-store",
         "Content-Type":
           "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "Content-Disposition": `attachment; filename="${fileName}"`,

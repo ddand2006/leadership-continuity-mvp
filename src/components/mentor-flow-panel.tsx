@@ -1,5 +1,7 @@
 "use client";
 
+import { MentoringDocumentLibrary } from "@/components/mentoring-document-library";
+
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -390,6 +392,7 @@ export function MentorFlowPanel({
           </div>
         </div>
       </div>
+      {selectedAssignment ? <MentoringDocumentLibrary key={selectedAssignment.candidateId} candidateId={selectedAssignment.candidateId} /> : null}
     </section>
   );
 }

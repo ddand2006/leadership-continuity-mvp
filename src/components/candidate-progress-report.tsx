@@ -1,5 +1,7 @@
 "use client";
 
+import { MentoringDocumentLibrary } from "@/components/mentoring-document-library";
+
 import { useState, useTransition, type ReactNode } from "react";
 
 type RoleProgress = {
@@ -239,6 +241,7 @@ export function CandidateProgressReport({
         }
 
         const file = await response.blob();
+        window.dispatchEvent(new Event("mentoring-document-saved"));
         const downloadUrl = URL.createObjectURL(file);
         const link = document.createElement("a");
         const candidateFileName = candidateName
@@ -263,6 +266,7 @@ export function CandidateProgressReport({
 
   return (
     <section className="candidate-progress-report grid gap-6">
+      <MentoringDocumentLibrary candidateId={candidateId} />
       <section className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -283,7 +287,7 @@ export function CandidateProgressReport({
             disabled={isDownloading}
             className="progress-report-controls rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
           >
-            {isDownloading ? "Preparing Word Report…" : "Download Word Report"}
+            {isDownloading ? "Preparing Word Report…" : "Save & Download Word Report"}
           </button>
         </div>
         {downloadError ? (

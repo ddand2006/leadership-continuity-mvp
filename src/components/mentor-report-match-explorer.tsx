@@ -1,5 +1,7 @@
 "use client";
 
+import { MentoringDocumentLibrary } from "@/components/mentoring-document-library";
+
 import { useEffect, useMemo, useState } from "react";
 import type { GeneratedCandidateMentoringIdea } from "@/lib/candidate-mentoring-ideas";
 import type { RankedProjectMatch } from "@/lib/fit-analysis";
@@ -86,7 +88,7 @@ function ActionButtons({
         disabled={!hasGeneratedIdeas || isDownloadingSet}
         className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
       >
-        {isDownloadingSet ? "Preparing Word Doc..." : "Download Idea Set (Word)"}
+        {isDownloadingSet ? "Preparing Word Doc..." : "Save & Download Idea Set (Word)"}
       </button>
     </div>
   );
@@ -298,6 +300,7 @@ export function MentorReportMatchExplorer({
       }
 
       const blob = await response.blob();
+      window.dispatchEvent(new Event("mentoring-document-saved"));
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -413,6 +416,7 @@ export function MentorReportMatchExplorer({
       }
 
       const blob = await response.blob();
+      window.dispatchEvent(new Event("mentoring-document-saved"));
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -438,6 +442,7 @@ export function MentorReportMatchExplorer({
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
+      <MentoringDocumentLibrary candidateId={candidateId} />
       <article className="rounded-3xl bg-slate-50 p-6">
         <h3 className="text-xl font-semibold text-slate-900">
           Role Matches Weakest to Strongest
@@ -760,7 +765,7 @@ export function MentorReportMatchExplorer({
                     >
                       {isDownloadingTitle === idea.title
                         ? "Preparing Word Doc..."
-                        : "Download Word Version"}
+                        : "Save & Download Word Version"}
                     </button>
                   </div>
                 </article>

@@ -1,5 +1,7 @@
 "use client";
 
+import { MentoringDocumentLibrary } from "@/components/mentoring-document-library";
+
 import { useEffect, useState } from "react";
 import type { GeneratedCandidateMentoringIdea } from "@/lib/candidate-mentoring-ideas";
 import type { RankedProjectMatch } from "@/lib/fit-analysis";
@@ -159,6 +161,7 @@ export function MentoringIdeasPanel({
       }
 
       const blob = await response.blob();
+      window.dispatchEvent(new Event("mentoring-document-saved"));
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -238,6 +241,7 @@ export function MentoringIdeasPanel({
 
   return (
     <div className="mt-5">
+      {candidateId ? <MentoringDocumentLibrary candidateId={candidateId} /> : null}
       <div className="flex flex-wrap gap-3">
         <button
           type="button"
@@ -437,7 +441,7 @@ export function MentoringIdeasPanel({
                     >
                       {isDownloadingTitle === idea.title
                         ? "Preparing Word Doc..."
-                        : "Download Word Version"}
+                        : "Save & Download Word Version"}
                     </button>
                   </div>
                 </article>

@@ -11,6 +11,7 @@ type SendResendEmailInput = {
   html: string;
   text: string;
   tags?: ResendTag[];
+  attachments?: { filename: string; content: string }[];
   idempotencyKey?: string;
 };
 
@@ -59,6 +60,7 @@ export async function sendResendEmail(input: SendResendEmailInput) {
       html: input.html,
       text: input.text,
       tags: input.tags,
+      attachments: input.attachments,
     }),
   });
 
