@@ -2696,7 +2696,7 @@ export default async function DashboardPage({
                         : "All visible roles currently have at least one active candidate."}
                     </p>
                   </Link>
-                  <article className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
+                  <Link href="/candidates?section=progress-report" className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-50 hover:shadow-md sm:p-5">
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       Ready Successors
                     </p>
@@ -2710,16 +2710,15 @@ export default async function DashboardPage({
                       {[...intelligence.readySuccessors.ready, ...intelligence.readySuccessors.near]
                         .slice(0, 3)
                         .map((candidate) => (
-                          <Link
+                          <span
                             key={`${candidate.candidateId}:${candidate.roleId}`}
-                            href={getCandidateHref(candidate.candidateId)}
                             className="rounded-full border border-slate-200 bg-white px-3 py-1 font-semibold text-slate-700 transition hover:border-teal-300 hover:text-teal-900"
                           >
                             {candidate.name}
-                          </Link>
+                          </span>
                         ))}
                     </div>
-                  </article>
+                  </Link>
                   <article className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       High-Risk Roles
