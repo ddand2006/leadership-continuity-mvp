@@ -3051,48 +3051,6 @@ export default async function DashboardPage({
                     </div>
                   </section>
 
-                  <section className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
-                    <p className="text-sm font-semibold tracking-[0.14em] text-slate-500 uppercase">
-                      Development Experience Impact
-                    </p>
-                    <h3 className="mt-2 font-display text-3xl text-slate-900">
-                      Which experiences are producing growth
-                    </h3>
-                    <div className="mt-5 overflow-x-auto">
-                      <table className="min-w-full divide-y divide-slate-200 text-sm text-slate-700">
-                        <thead>
-                          <tr className="text-left text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
-                            <th className="pb-3 pr-4">Experience Type</th>
-                            <th className="pb-3 pr-4">Assigned</th>
-                            <th className="pb-3 pr-4">Avg Improvement</th>
-                            <th className="pb-3 pr-4">Avg Reviewer Score</th>
-                            <th className="pb-3">Most Improved Competency</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-200">
-                          {intelligence.experienceImpact.length > 0 ? (
-                            intelligence.experienceImpact.map((row) => (
-                              <tr key={row.experienceType}>
-                                <td className="py-4 pr-4 font-semibold text-slate-900">
-                                  {row.experienceType}
-                                </td>
-                                <td className="py-4 pr-4">{row.assignedCount}</td>
-                                <td className="py-4 pr-4">{formatScore(row.averageCompetencyImprovement)}</td>
-                                <td className="py-4 pr-4">{formatScore(row.averageReviewerScore)}</td>
-                                <td className="py-4">{row.mostImprovedCompetency || "-"}</td>
-                              </tr>
-                            ))
-                          ) : (
-                            <tr>
-                              <td colSpan={5} className="py-6 text-sm text-slate-500">
-                                Development experience impact will appear once completed records begin collecting scored competencies and feedback.
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </section>
                 </div>
               </section>
             ) : null}
