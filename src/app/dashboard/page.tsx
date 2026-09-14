@@ -2955,35 +2955,7 @@ export default async function DashboardPage({
                   </div>
                 </section>
 
-                <div className="mt-8 grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-                  <section className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
-                    <p className="text-sm font-semibold tracking-[0.14em] text-slate-500 uppercase">
-                      Candidate Movement
-                    </p>
-                    <h3 className="mt-2 font-display text-3xl text-slate-900">
-                      Movement during the selected period
-                    </h3>
-                    <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-                      {[
-                        ["Improved", intelligence.candidateMovement.improved],
-                        ["No Change", intelligence.candidateMovement.noChange],
-                        ["Declined", intelligence.candidateMovement.declined],
-                        ["Completed Program", intelligence.candidateMovement.completedProgram],
-                        ["Removed from Pipeline", intelligence.candidateMovement.removedFromPipeline],
-                      ].map(([label, value]) => (
-                        <article
-                          key={label}
-                          className="flex min-h-32 flex-col rounded-2xl border border-slate-200 bg-white p-4 text-sm"
-                        >
-                          <p className="min-h-12 text-xs leading-4 font-semibold tracking-[0.14em] text-slate-500 uppercase">
-                            {label}
-                          </p>
-                          <p className="mt-auto text-3xl font-semibold text-slate-900">{value}</p>
-                        </article>
-                      ))}
-                    </div>
-                  </section>
-
+                <div className="mt-8">
                   <section className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
                     <p className="text-sm font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       Competency Growth Trends
