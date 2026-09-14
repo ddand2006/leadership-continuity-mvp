@@ -3157,7 +3157,7 @@ export default async function DashboardPage({
             </section>
 
             <section className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-              <div className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-8">
+              <div className="rounded-[1.75rem] border border-amber-200 bg-amber-50 p-5 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-8">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
@@ -3180,7 +3180,7 @@ export default async function DashboardPage({
                     snapshot.roles.map((role) => (
                       <article
                         key={role.id}
-                        className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700"
+                        className="rounded-2xl border border-amber-200 bg-white/80 px-4 py-4 text-sm text-slate-700 transition hover:-translate-y-0.5 hover:shadow-sm"
                       >
                         <p className="font-semibold text-slate-900">{role.title}</p>
                         <p className="mt-1 text-slate-600">
@@ -3197,7 +3197,7 @@ export default async function DashboardPage({
                 </div>
               </div>
 
-              <div className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-8">
+              <div className="rounded-[1.75rem] border border-emerald-200 bg-emerald-50 p-5 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-8">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
@@ -3220,7 +3220,7 @@ export default async function DashboardPage({
                     snapshot.candidates.map((candidate) => (
                       <article
                         key={candidate.id}
-                        className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700"
+                        className="rounded-2xl border border-emerald-200 bg-white/80 px-4 py-4 text-sm text-slate-700 transition hover:-translate-y-0.5 hover:shadow-sm"
                       >
                         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                           <div>
