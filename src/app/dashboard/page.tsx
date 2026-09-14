@@ -2668,6 +2668,7 @@ export default async function DashboardPage({
                     <p className="mt-2 text-3xl font-semibold text-slate-900 lg:text-[2rem]">
                       {intelligence.continuityScore.score}
                     </p>
+                    <div className="mt-3 h-2 rounded-full bg-slate-200"><div className="h-2 rounded-full bg-rose-500" style={{ width: `${intelligence.continuityScore.score}%` }} /></div>
                     <p className="mt-2 text-sm font-semibold text-teal-800">
                       {intelligence.continuityScore.label}
                     </p>
@@ -2687,6 +2688,7 @@ export default async function DashboardPage({
                     <p className="mt-2 text-sm text-slate-600">
                       {formatPercent(intelligence.criticalRolesCovered.percentage)} covered
                     </p>
+                    <div className="mx-auto mt-3 h-16 w-16 rounded-full p-2" style={{ background: `conic-gradient(#10b981 ${intelligence.criticalRolesCovered.percentage}%, #e2e8f0 0)` }}><div className="flex h-full w-full items-center justify-center rounded-full bg-slate-50 text-xs font-semibold text-slate-700">{intelligence.criticalRolesCovered.percentage}%</div></div>
                     <p className="mt-4 text-xs leading-6 text-slate-500">
                       {intelligence.criticalRolesCovered.uncoveredRoles.length > 0
                         ? `Uncovered: ${intelligence.criticalRolesCovered.uncoveredRoles
@@ -2706,6 +2708,7 @@ export default async function DashboardPage({
                     <p className="mt-2 text-sm text-slate-600">
                       {intelligence.readySuccessors.near.length} near-ready • {intelligence.readySuccessors.ready.length} role-ready
                     </p>
+                    <div className="mt-3 flex h-2 overflow-hidden rounded-full bg-slate-200"><div className="bg-blue-500" style={{ width: `${Math.min(100, intelligence.readySuccessors.near.length * 20)}%` }} /><div className="bg-emerald-500" style={{ width: `${Math.min(100, intelligence.readySuccessors.ready.length * 20)}%` }} /></div>
                     <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-600">
                       {[...intelligence.readySuccessors.ready, ...intelligence.readySuccessors.near]
                         .slice(0, 3)
@@ -2726,6 +2729,7 @@ export default async function DashboardPage({
                     <p className="mt-2 text-3xl font-semibold text-slate-900 lg:text-[2rem]">
                       {intelligence.highRiskRoles}
                     </p>
+                    <div className="mt-3 h-2 rounded-full bg-slate-200"><div className="h-2 rounded-full bg-rose-500" style={{ width: `${Math.min(100, intelligence.highRiskRoles * 20)}%` }} /></div>
                     <p className="mt-2 text-sm text-slate-600">
                       Roles needing immediate continuity attention
                     </p>
