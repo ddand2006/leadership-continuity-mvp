@@ -23,7 +23,6 @@ import {
   type OrganizationSubscriptionState,
 } from "@/lib/subscription";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { MentorDirectoryManager } from "@/components/mentor-directory-manager";
 import { WorkspaceSetupForm } from "@/components/workspace-setup-form";
 import { createWorkspaceSetupToken } from "@/lib/workspace-setup-token";
 import { isMissingLeadershipDevelopmentRecordTableError } from "@/lib/leadership-development-record";
@@ -3264,10 +3263,6 @@ export default async function DashboardPage({
                 </div>
               </div>
             </section>
-
-            {snapshot.profile.role !== "mentor" ? (
-              <MentorDirectoryManager mentors={snapshot.mentors} />
-            ) : null}
 
             <CompanyMentorRankings
               mentors={snapshot.mentorRankings}
