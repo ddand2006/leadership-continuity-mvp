@@ -194,7 +194,10 @@ export async function buildCandidateProgressReportDocumentBuffer(options: {
       ? options.developmentRecords.flatMap((record) => [
           new Paragraph({
             keepNext: true,
-            spacing: { before: 180, after: 60 },
+            border: {
+              top: { style: BorderStyle.SINGLE, size: 6, color: "808080", space: 10 },
+            },
+            spacing: { before: 240, after: 60 },
             children: [
               new TextRun({ text: record.title ?? "Development record", font: "Calibri", size: 23, bold: true, color: NAVY }),
             ],
