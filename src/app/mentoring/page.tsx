@@ -1301,10 +1301,10 @@ export default async function MentoringPage({
             <section className="grid gap-6">
               {selectedSectionId !== "overview" ? (
                 <Link
-                  href={selectedCandidateHref}
+                  href={getMentoringSectionHref("overview")}
                   className="w-fit rounded-lg text-sm font-semibold text-teal-800 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-700"
                 >
-                  ← Back to Candidate Overview
+                  ← Back to Mentoring Overview
                 </Link>
               ) : null}
               {selectedMentoringSection.content}
