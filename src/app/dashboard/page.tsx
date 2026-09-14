@@ -2669,7 +2669,8 @@ export default async function DashboardPage({
                     <p className="mt-2 text-3xl font-semibold text-slate-900 lg:text-[2rem]">
                       {intelligence.continuityScore.score}
                     </p>
-                    <div className="mt-3 h-2 rounded-full bg-slate-200"><div className="h-2 rounded-full bg-rose-500" style={{ width: `${intelligence.continuityScore.score}%` }} /></div>
+                    <div className="mx-auto mt-4 h-10 w-20 overflow-hidden rounded-t-full bg-slate-200"><div className="h-full w-1/3 bg-slate-400" /></div>
+                    <div className="mx-auto mt-4 h-12 w-24 overflow-hidden rounded-t-full bg-slate-200"><div className="h-full w-full origin-bottom bg-rose-500" style={{ transform: `rotate(${intelligence.continuityScore.score * 1.8 - 90}deg)`, transformOrigin: "50% 100%", clipPath: "polygon(50% 100%, 0 0, 100% 0)" }} /></div>
                     <p className="mt-2 text-sm font-semibold text-teal-800">
                       {intelligence.continuityScore.label}
                     </p>
@@ -2736,7 +2737,7 @@ export default async function DashboardPage({
                     <p className="mt-2 text-3xl font-semibold text-slate-900 lg:text-[2rem]">
                       {intelligence.highRiskRoles}
                     </p>
-                    <div className="mt-3 h-2 rounded-full bg-slate-200"><div className="h-2 rounded-full bg-rose-500" style={{ width: `${Math.min(100, intelligence.highRiskRoles * 20)}%` }} /></div>
+                    <div className="mx-auto mt-4 h-12 w-24 overflow-hidden rounded-t-full bg-slate-200"><div className="h-full w-full origin-bottom bg-rose-500" style={{ transform: `rotate(${Math.min(100, intelligence.highRiskRoles * 20) * 1.8 - 90}deg)`, transformOrigin: "50% 100%", clipPath: "polygon(50% 100%, 0 0, 100% 0)" }} /></div>
                     <p className="mt-2 text-sm text-slate-600">
                       Roles needing immediate continuity attention
                     </p>
