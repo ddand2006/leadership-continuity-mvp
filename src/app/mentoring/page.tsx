@@ -1299,12 +1299,14 @@ export default async function MentoringPage({
           />
           <div className="min-w-0">
             <section className="grid gap-6">
-              <nav className="flex flex-wrap gap-3 border-b border-slate-200 pb-5" aria-label="Mentoring workspace sections">
-                {["leadership-development-record", "readiness-review", "mentor-scorecard", "resources"].flatMap((sectionId) => mentoringSections.filter((section) => section.id === sectionId)).map((section) => {
-                  const isActive = section.id === selectedSectionId;
-                  return <Link key={section.id} href={getMentoringSectionHref(section.id)} prefetch={true} className={`rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition ${isActive ? "interactive-contrast border-teal-900 bg-teal-900 text-white shadow-[0_18px_40px_rgba(15,118,110,0.18)]" : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"}`}>{section.label}</Link>;
-                })}
-              </nav>
+              {selectedSectionId !== "overview" ? (
+                <Link
+                  href={selectedCandidateHref}
+                  className="w-fit rounded-lg text-sm font-semibold text-teal-800 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-700"
+                >
+                  ← Back to Candidate Overview
+                </Link>
+              ) : null}
               {selectedMentoringSection.content}
             </section>
           </div>
