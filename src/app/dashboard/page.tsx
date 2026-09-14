@@ -2719,7 +2719,7 @@ export default async function DashboardPage({
                         ))}
                     </div>
                   </Link>
-                  <Link href="/dashboard#leadership-risk-by-role" className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:border-rose-300 hover:bg-rose-50 hover:shadow-md sm:p-5">
+                  <Link href="/dashboard/high-risk-roles" className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:border-rose-300 hover:bg-rose-50 hover:shadow-md sm:p-5">
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       High-Risk Roles
                     </p>
