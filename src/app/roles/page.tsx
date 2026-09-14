@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { RoleManagementPanel } from "@/components/role-management-panel";
 import { RoleMentorDialog } from "@/components/role-mentor-dialog";
@@ -31,11 +32,12 @@ type RolesPageProps = {
   searchParams: Promise<{
     roleId?: string;
     mode?: string;
+    tool?: string;
   }>;
 };
 
 export default async function RolesPage({ searchParams }: RolesPageProps) {
-  const { roleId: requestedRoleId, mode: requestedMode } = await searchParams;
+  const { roleId: requestedRoleId, mode: requestedMode, tool: requestedTool } = await searchParams;
   const isEmailDeliveryEnabled = hasResendEnv();
   const { profile, supabase } = await requirePaidWorkspaceProfile();
   const requestedModeIsValid =
@@ -538,6 +540,13 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
         : selectedRoleId
           ? "import"
           : "create";
+  const workflowTool = selectedMode === "composite"
+    ? "composite"
+    : selectedMode === "survey"
+      ? "survey"
+      : requestedTool === "competencies" || requestedTool === "survey" || requestedTool === "composite"
+        ? requestedTool
+        : null;
   const visibleRoles = selectedRoleId
     ? roles.filter((role) => role.id === selectedRoleId)
     : roles;
@@ -652,7 +661,40 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
               selectedMode === "composite" ||
               selectedMode === "survey" ? (
               <>
-                <RoleManagementPanel
+                {workflowTool ? (
+                  <Link
+                    href={`/roles?roleId=${selectedRoleId}&mode=import`}
+                    className="w-fit rounded-lg text-sm font-semibold text-teal-800 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-700"
+                  >
+                    ← Back to Role Workflow
+                  </Link>
+                ) : (
+                  <section className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-8">
+                    <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">Role workflow</p>
+                    <h2 className="mt-3 font-display text-3xl text-slate-900">Build your role profile</h2>
+                    <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
+                      Define competencies for {selectedRole?.title ?? "this role"} by importing a file or gathering survey feedback. Then create and maintain the role composite.
+                    </p>
+                    <div className="mt-6 grid gap-4 md:grid-cols-3">
+                      {[
+                        { id: "competencies", title: "Competencies", description: "Import the talents, skills, and behaviors that define success in this role." },
+                        { id: "survey", title: "Competency Survey", description: "Gather input from others to identify and prioritize the role’s key competencies." },
+                        { id: "composite", title: "Role Composite", description: "Create, download, and update the role profile using its competencies." },
+                      ].map((tool) => (
+                        <Link
+                          key={tool.id}
+                          href={`/roles?roleId=${selectedRoleId}&mode=import&tool=${tool.id}`}
+                          className="flex flex-col rounded-2xl border border-slate-200 bg-slate-50 p-5 transition hover:-translate-y-0.5 hover:border-teal-300 hover:bg-teal-50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-700"
+                        >
+                          <h3 className="font-semibold text-slate-900">{tool.title}</h3>
+                          <p className="mt-2 flex-1 text-sm leading-6 text-slate-600">{tool.description}</p>
+                          <span className="mt-4 inline-flex text-sm font-semibold text-teal-800">Open tool<span className="sr-only">: {tool.title}</span></span>
+                        </Link>
+                      ))}
+                    </div>
+                  </section>
+                )}
+                {workflowTool === "competencies" ? <RoleManagementPanel
                   roles={roleOptionsForPanels.map((role) => ({
                     id: role.id,
                     title: role.title,
@@ -683,15 +725,8 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                   canGenerateComposite={canGenerateComposite}
                   initialSelectedRoleId={selectedRoleId}
                   mode="import"
-                />
-                <div className="flex items-center gap-4 px-2 text-slate-400 sm:px-8">
-                  <div className="h-px flex-1 bg-slate-200" />
-                  <span className="text-sm font-semibold uppercase tracking-[0.2em]">
-                    or
-                  </span>
-                  <div className="h-px flex-1 bg-slate-200" />
-                </div>
-                {surveyModuleReady ? (
+                /> : null}
+                {workflowTool === "survey" ? (surveyModuleReady ? (
                   <RoleSurveyPanel
                     roles={roleOptionsForPanels.map((role) => ({
                       id: role.id,
@@ -723,15 +758,8 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                       address, collect responses, and review recurring themes.
                     </p>
                   </section>
-                )}
-                <div className="flex items-center gap-4 px-2 text-slate-400 sm:px-8">
-                  <div className="h-px flex-1 bg-slate-200" />
-                  <span className="text-sm font-semibold uppercase tracking-[0.2em]">
-                    then
-                  </span>
-                  <div className="h-px flex-1 bg-slate-200" />
-                </div>
-                <RoleManagementPanel
+                )) : null}
+                {workflowTool === "composite" ? <RoleManagementPanel
                   roles={roleOptionsForPanels.map((role) => ({
                     id: role.id,
                     title: role.title,
@@ -762,7 +790,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                   canGenerateComposite={canGenerateComposite}
                   initialSelectedRoleId={selectedRoleId}
                   mode="composite"
-                />
+                /> : null}
               </>
             ) : selectedMode === "printables" && selectedRole ? (
               <RolePrintablesPanel
