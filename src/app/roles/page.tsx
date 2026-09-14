@@ -677,14 +677,14 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                     </p>
                     <div className="mt-6 grid gap-4 md:grid-cols-3">
                       {[
-                        { id: "competencies", title: "Competencies", description: "Import the talents, skills, and behaviors that define success in this role." },
-                        { id: "survey", title: "Competency Survey", description: "Gather input from others to identify and prioritize the role’s key competencies." },
-                        { id: "composite", title: "Role Composite", description: "Create, download, and update the role profile using its competencies." },
+                        { id: "competencies", tone: "accent-card-gold", title: "Competencies", description: "Import the talents, skills, and behaviors that define success in this role." },
+                        { id: "survey", tone: "accent-card-green", title: "Competency Survey", description: "Gather input from others to identify and prioritize the role’s key competencies." },
+                        { id: "composite", tone: "accent-card-coral", title: "Role Composite", description: "Create, download, and update the role profile using its competencies." },
                       ].map((tool) => (
                         <Link
                           key={tool.id}
                           href={`/roles?roleId=${selectedRoleId}&mode=import&tool=${tool.id}`}
-                          className="flex flex-col rounded-2xl border border-slate-200 bg-slate-50 p-5 transition hover:-translate-y-0.5 hover:border-teal-300 hover:bg-teal-50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-700"
+                          className={`flex flex-col rounded-2xl border p-5 transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-700 ${tool.tone}`}
                         >
                           <h3 className="font-semibold text-slate-900">{tool.title}</h3>
                           <p className="mt-2 flex-1 text-sm leading-6 text-slate-600">{tool.description}</p>
