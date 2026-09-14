@@ -2660,8 +2660,8 @@ export default async function DashboardPage({
                   </div>
                 ) : null}
 
-                <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                  <Link href="/dashboard/continuity-score" className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-50 hover:shadow-md sm:p-5">
+                <div className="mt-6 grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+                  <Link href="/dashboard/continuity-score" className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-6 transition hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-50 hover:shadow-md">
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       Leadership Continuity Score
                     </p>
@@ -2670,7 +2670,7 @@ export default async function DashboardPage({
                       {intelligence.continuityScore.score}
                     </p>
                     <div className="mx-auto mt-4 h-10 w-20 overflow-hidden rounded-t-full bg-slate-200"><div className="h-full w-1/3 bg-slate-400" /></div>
-                    <div className="mx-auto mt-4 h-12 w-24 overflow-hidden rounded-t-full bg-slate-200"><div className="h-full w-full origin-bottom bg-rose-500" style={{ transform: `rotate(${intelligence.continuityScore.score * 1.8 - 90}deg)`, transformOrigin: "50% 100%", clipPath: "polygon(50% 100%, 0 0, 100% 0)" }} /></div>
+                    <div className="mx-auto mt-5 h-20 w-40 overflow-hidden rounded-t-full bg-slate-200"><div className="h-full w-full origin-bottom bg-rose-500" style={{ transform: `rotate(${intelligence.continuityScore.score * 1.8 - 90}deg)`, transformOrigin: "50% 100%", clipPath: "polygon(50% 100%, 0 0, 100% 0)" }} /></div>
                     <p className="mt-2 text-sm font-semibold text-teal-800">
                       {intelligence.continuityScore.label}
                     </p>
@@ -2681,7 +2681,7 @@ export default async function DashboardPage({
                     </div>
                     <div className="mt-4 rounded-xl bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-800">Below target · Increased risk of leadership disruption.</div>
                   </Link>
-                  <Link href="/dashboard/critical-roles" className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-50 hover:shadow-md sm:p-5">
+                  <Link href="/dashboard/critical-roles" className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-6 transition hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-50 hover:shadow-md">
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       Critical Roles Covered
                     </p>
@@ -2703,7 +2703,7 @@ export default async function DashboardPage({
                     </p>
                     <div className="mt-3 rounded-xl bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">On track · All critical roles have a successor.</div>
                   </Link>
-                  <Link href="/dashboard/ready-successors" className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-50 hover:shadow-md sm:p-5">
+                  <Link href="/dashboard/ready-successors" className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-6 transition hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-50 hover:shadow-md">
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       Ready Successors
                     </p>
@@ -2729,7 +2729,7 @@ export default async function DashboardPage({
                         ))}
                     </div>
                   </Link>
-                  <Link href="/dashboard/high-risk-roles" className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:border-rose-300 hover:bg-rose-50 hover:shadow-md sm:p-5">
+                  <Link href="/dashboard/high-risk-roles" className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-6 transition hover:-translate-y-0.5 hover:border-rose-300 hover:bg-rose-50 hover:shadow-md">
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       High-Risk Roles
                     </p>
