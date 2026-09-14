@@ -1,3 +1,4 @@
+import { getRoleWorkflowNotices } from "@/lib/role-workflow-notices";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { RoleManagementPanel } from "@/components/role-management-panel";
@@ -140,7 +141,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
             .from("role_candidate_characteristics")
             .select(
               needsCharacteristicDetails
-                ? "id, role_id, category, characteristic, sort_order"
+                ? "id, role_id, category, characteristic, sort_order, created_at, updated_at"
                 : "role_id",
             )
             .eq("organization_id", profile.organization_id)
@@ -159,7 +160,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
             .from("role_composite_documents")
             .select(
               needsCompositeDocumentDetails
-                ? "id, role_id, document_source, file_name, created_at"
+                ? "id, role_id, document_source, file_name, created_at, storage_path"
                 : "role_id",
             )
             .eq("organization_id", profile.organization_id)
@@ -318,12 +319,15 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
     category?: string;
     characteristic?: string;
     sort_order?: number;
+    created_at?: string;
+    updated_at?: string;
   }>;
   const normalizedCompositeDocuments = (
     compositeDocumentsResult.data ?? []
   ) as Array<{
     id?: string;
     role_id: string;
+    storage_path?: string | null;
     document_source?: "generated" | "manual" | null;
     file_name?: string | null;
     created_at?: string;
@@ -585,6 +589,10 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
         },
       ]
     : [];
+  const workflowNotices = getRoleWorkflowNotices({
+    characteristics: selectedRoleId ? characteristicsByRole.get(selectedRoleId) ?? [] : [],
+    composite: selectedRoleId ? compositeDocumentByRole.get(selectedRoleId) : null,
+  });
   const roleOptionsForPanels = isRoleWorkspaceMode ? visibleRoles : roles;
 
   return (
@@ -677,9 +685,9 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                     </p>
                     <div className="mt-6 grid gap-4 md:grid-cols-3">
                       {[
-                        { id: "competencies", tone: "accent-card-gold", title: "Competencies", description: "Import the talents, skills, and behaviors that define success in this role." },
-                        { id: "survey", tone: "accent-card-green", title: "Competency Survey", description: "Gather input from others to identify and prioritize the role’s key competencies." },
-                        { id: "composite", tone: "accent-card-coral", title: "Role Composite", description: "Create, download, and update the role profile using its competencies." },
+                        { id: "competencies", notice: workflowNotices.competencies, tone: "accent-card-gold", title: "Competencies", description: "Import the talents, skills, and behaviors that define success in this role." },
+                        { id: "survey", notice: null, tone: "accent-card-green", title: "Competency Survey", description: "Gather input from others to identify and prioritize the role’s key competencies." },
+                        { id: "composite", notice: workflowNotices.composite, tone: "accent-card-coral", title: "Role Composite", description: "Create, download, and update the role profile using its competencies." },
                       ].map((tool) => (
                         <Link
                           key={tool.id}
@@ -688,6 +696,12 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                         >
                           <h3 className="font-semibold text-slate-900">{tool.title}</h3>
                           <p className="mt-2 flex-1 text-sm leading-6 text-slate-600">{tool.description}</p>
+                          {tool.notice ? (
+                            <span className="mt-4 block rounded-xl border border-amber-700/30 bg-white/80 px-3 py-3 text-sm leading-6 text-amber-950">
+                              <span className="block font-semibold">Action needed</span>
+                              {tool.notice}
+                            </span>
+                          ) : null}
                           <span className="mt-4 inline-flex text-sm font-semibold text-teal-800">Open tool<span className="sr-only">: {tool.title}</span></span>
                         </Link>
                       ))}
