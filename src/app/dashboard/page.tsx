@@ -2459,7 +2459,7 @@ export default async function DashboardPage({
                 </div>
 
                 {intelligence ? (
-                  <article className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
+                  <Link href="/roles" className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-50 hover:shadow-md sm:p-5">
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       Legacy Certification
                     </p>
@@ -2511,7 +2511,7 @@ export default async function DashboardPage({
                       Top-role ranking currently follows the visible role order in
                       this dashboard view.
                     </p>
-                  </article>
+                  </Link>
                 ) : null}
               </div>
             </section>
@@ -2677,7 +2677,7 @@ export default async function DashboardPage({
                       <p>Progress {formatPercent(intelligence.continuityScore.developmentProgressScore)}</p>
                     </div>
                   </article>
-                  <article className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
+                  <Link href="/roles" className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-50 hover:shadow-md sm:p-5">
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       Critical Roles Covered
                     </p>
@@ -2695,7 +2695,7 @@ export default async function DashboardPage({
                             .join(", ")}`
                         : "All visible roles currently have at least one active candidate."}
                     </p>
-                  </article>
+                  </Link>
                   <article className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       Ready Successors
