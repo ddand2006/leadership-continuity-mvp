@@ -84,6 +84,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
     dataMode === "composite" ||
     dataMode === "survey" ||
     dataMode === "view" ||
+    dataMode === "resources" ||
     dataMode === "printables";
   const needsCharacteristicPresence = needsCharacteristicDetails;
   const needsSharedLibrary =
@@ -97,6 +98,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
     dataMode === "composite" ||
     dataMode === "survey" ||
     dataMode === "view" ||
+    dataMode === "resources" ||
     dataMode === "printables";
   const needsCompositeDocumentPresence = needsCompositeDocumentDetails;
   const needsMentors = dataMode === "view";
@@ -600,7 +602,16 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
       <div className="mx-auto flex w-full max-w-[1380px] flex-col gap-8 px-6 py-12 sm:px-10 lg:px-12">
         <div className="grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)] xl:items-start">
           <RoleSelectorSidebar
-            roles={roles}
+            roles={roles.map((role) => {
+              const notices = getRoleWorkflowNotices({
+                characteristics: characteristicsByRole.get(role.id) ?? [],
+                composite: compositeDocumentByRole.get(role.id),
+              });
+              return {
+                ...role,
+                attentionMessage: [notices.competencies, notices.composite].filter(Boolean).join(" "),
+              };
+            })}
             selectedRoleId={selectedRoleId}
             isCreatingRole={!selectedRoleId && selectedMode === "create"}
             selectedWorkspaceMode={selectedWorkspaceMode}

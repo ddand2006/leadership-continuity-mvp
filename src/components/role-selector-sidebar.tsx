@@ -6,6 +6,7 @@ type RoleSelectorSidebarProps = {
     title: string;
     department: string | null;
     status: string;
+    attentionMessage?: string;
   }>;
   selectedRoleId: string | null;
   isCreatingRole: boolean;
@@ -61,11 +62,21 @@ export function RoleSelectorSidebar({
                     }`}
                   >
                     <span
-                      className={`block text-sm font-bold ${
+                      className={`flex items-start justify-between gap-2 text-sm font-bold ${
                         isSelected ? "text-white" : "text-slate-900"
                       }`}
                     >
-                      {role.title}
+                      <span>{role.title}</span>
+                      {role.attentionMessage ? (
+                        <span className="shrink-0" title={`Action needed: ${role.attentionMessage}`}>
+                          <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="#fef3c7" stroke="#92400e" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 3 2 21h20L12 3Z" />
+                            <path d="M12 9v5" />
+                            <circle cx="12" cy="17.5" r="0.7" fill="#92400e" stroke="none" />
+                          </svg>
+                          <span className="sr-only">Action needed: {role.attentionMessage}</span>
+                        </span>
+                      ) : null}
                     </span>
                     <span
                       className={`mt-1 block text-xs ${
