@@ -6,6 +6,12 @@ import { useState, useTransition } from "react";
 type MatchStatus = "match" | "not_yet" | "not_recommended";
 type HiringDecision = "hire" | "continue_mentoring" | "decline";
 
+const decisionLabels: Record<HiringDecision, string> = {
+  hire: "Ready for advancement",
+  continue_mentoring: "Continue mentoring",
+  decline: "Decline",
+};
+
 export function CandidateWorkflowStateManager({
   candidateId,
   roleId,
@@ -114,7 +120,7 @@ export function CandidateWorkflowStateManager({
         </label>
         <label className="grid gap-2 text-sm font-semibold text-slate-700">Leadership decision
           <select value={decision} onChange={(event) => setDecision(event.currentTarget.value as HiringDecision)} disabled={isPending} className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 font-normal text-slate-900">
-            <option value="continue_mentoring">Continue mentoring</option><option value="hire">Hire / advance</option><option value="decline">Decline</option>
+            <option value="continue_mentoring">Continue mentoring</option><option value="hire">{decisionLabels.hire}</option><option value="decline">Decline</option>
           </select>
         </label>
         <div className="flex items-end gap-2"><button type="button" onClick={() => save("match")} disabled={isPending} className="rounded-xl border border-teal-800 px-3 py-2.5 text-sm font-semibold text-teal-900 disabled:opacity-50">Save match</button><button type="button" onClick={() => save("decision")} disabled={isPending} className="interactive-contrast rounded-xl bg-slate-950 px-3 py-2.5 text-sm font-semibold text-white disabled:opacity-50">Save decision</button></div>
@@ -125,7 +131,7 @@ export function CandidateWorkflowStateManager({
       <p className="mt-4 text-sm text-slate-600">
         {selectedRoleId === readinessRoleId ? <>Calculated readiness: <span className="font-semibold text-slate-900">{readinessScore === null ? "Not available" : `${readinessScore}%`}</span></> : "Readiness is calculated when this potential role is opened."}
         {selectedState.match ? ` · Last match: ${selectedState.match.status.replaceAll("_", " ")}` : ""}
-        {selectedState.decision ? ` · Last decision: ${selectedState.decision.decision.replaceAll("_", " ")}` : ""}
+        {selectedState.decision ? ` · Last decision: ${decisionLabels[selectedState.decision.decision]}` : ""}
       </p>
       {message ? <p role="status" className="mt-3 text-sm font-semibold text-teal-800">{message}</p> : null}
       <section className="mt-6 border-t border-slate-200 pt-5" aria-label="Leadership decision history">
@@ -149,7 +155,7 @@ export function CandidateWorkflowStateManager({
               >
                 <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                   <p className="font-semibold text-slate-900">
-                    {entry.decision.replaceAll("_", " ")}
+                    {decisionLabels[entry.decision]}
                   </p>
                   <time className="text-sm text-slate-500" dateTime={entry.createdAt}>
                     {new Intl.DateTimeFormat("en-US", {
