@@ -1,3 +1,4 @@
+import { projectScore, projectScoreChange, projectCompletionLabel, type ProjectProgressEvidence } from "@/lib/progress-development-evidence";
 import {
   AlignmentType,
   BorderStyle,
@@ -13,13 +14,12 @@ import {
   WidthType,
 } from "docx";
 
-const NAVY = "123B70";
-const TEAL = "0F766E";
+const NAVY = "000000";
+const TEAL = "000000";
 const INK = "172033";
 const MUTED = "52637E";
-const BORDER = "D9E2F0";
+const BORDER = "D9D9D9";
 const SOFT_FILL = "F2F4F7";
-const CALLOUT_FILL = "ECFDF9";
 const TABLE_WIDTH = 9360;
 
 type ScorecardRow = {
@@ -27,7 +27,7 @@ type ScorecardRow = {
   value: string | number;
 };
 
-type DevelopmentRecord = {
+type DevelopmentRecord = ProjectProgressEvidence & {
   title: string | null;
   roleTitle: string;
   summary: string | null;
@@ -48,15 +48,16 @@ function formatDate(value: string) {
   return Number.isNaN(date.getTime())
     ? "Date not recorded"
     : new Intl.DateTimeFormat("en-US", {
+        timeZone: "UTC",
         month: "short",
         day: "numeric",
         year: "numeric",
       }).format(date);
 }
 
-function bodyParagraph(text: string, options?: { after?: number; color?: string }) {
+function bodyParagraph(text: string, options?: { before?: number; after?: number; color?: string }) {
   return new Paragraph({
-    spacing: { after: options?.after ?? 120, line: 308 },
+    spacing: { before: options?.before ?? 0, after: options?.after ?? 120, line: 308 },
     children: [
       new TextRun({
         text,
@@ -70,6 +71,7 @@ function bodyParagraph(text: string, options?: { after?: number; color?: string 
 
 function sectionHeading(text: string) {
   return new Paragraph({
+    keepNext: true,
     spacing: { before: 240, after: 120 },
     children: [
       new TextRun({
@@ -100,7 +102,7 @@ function tableCell(text: string, options?: { header?: boolean; width?: number })
             font: "Calibri",
             size: options?.header ? 19 : 21,
             bold: Boolean(options?.header),
-            color: options?.header ? MUTED : INK,
+            color: options?.header ? "000000" : INK,
           }),
         ],
       }),
@@ -135,6 +137,7 @@ export async function buildCandidateProgressReportDocumentBuffer(options: {
       ],
     }),
     new Paragraph({
+      style: "Title",
       spacing: { after: 80 },
       children: [
         new TextRun({
@@ -154,22 +157,7 @@ export async function buildCandidateProgressReportDocumentBuffer(options: {
       ],
     }),
     sectionHeading("Progress Narrative"),
-    new Table({
-      width: { size: TABLE_WIDTH, type: WidthType.DXA },
-      columnWidths: [TABLE_WIDTH],
-      rows: [
-        new TableRow({
-          children: [
-            new TableCell({
-              width: { size: TABLE_WIDTH, type: WidthType.DXA },
-              shading: { type: ShadingType.CLEAR, color: "auto", fill: CALLOUT_FILL },
-              margins: { top: 160, bottom: 160, left: 180, right: 180 },
-              children: [bodyParagraph(options.narrative, { after: 0, color: "24506D" })],
-            }),
-          ],
-        }),
-      ],
-    }),
+    bodyParagraph(options.narrative),
     sectionHeading("Progress Scorecard"),
     new Table({
       width: { size: TABLE_WIDTH, type: WidthType.DXA },
@@ -201,20 +189,39 @@ export async function buildCandidateProgressReportDocumentBuffer(options: {
         ),
       ],
     }),
-    sectionHeading("Projects & Development"),
+    sectionHeading("Projects and Development"),
     ...(options.developmentRecords.length > 0
       ? options.developmentRecords.flatMap((record) => [
           new Paragraph({
-            spacing: { before: 80, after: 60 },
+            keepNext: true,
+            spacing: { before: 180, after: 60 },
             children: [
               new TextRun({ text: record.title ?? "Development record", font: "Calibri", size: 23, bold: true, color: NAVY }),
             ],
           }),
           bodyParagraph(
-            `Role: ${record.roleTitle} | ${statusLabel(record.status)} | ${formatDate(record.occurredAt)}${record.mentorReviewed ? " | Mentor reviewed" : ""}`,
+            `Role: ${record.roleTitle} | Status: ${statusLabel(record.status)}`,
             { after: 60, color: MUTED },
           ),
           ...(record.summary ? [bodyParagraph(record.summary, { after: 120 })] : []),
+          bodyParagraph(`Assigned: ${formatDate(record.dateAssigned)} | Completion date: ${record.status === "completed" && record.completionDate ? formatDate(record.completionDate) : projectCompletionLabel(record.status, record.completionDate)}`),
+          bodyParagraph(`Mentor: ${record.mentorName ?? "Not recorded"} | Review date: ${record.mentorReviewDate ? formatDate(record.mentorReviewDate) : "Not recorded"}`),
+          bodyParagraph(`Mentor observations: ${record.mentorImprovementObserved?.trim() || "Not recorded"}`),
+          bodyParagraph(`Further development: ${record.mentorDevelopmentNeeded?.trim() || "Not recorded"}`),
+          bodyParagraph(`Recommended next experience: ${record.nextRecommendedExperience?.trim() || "Not recorded"}`),
+          ...(record.competencyScores.length > 0 ? [
+            new Paragraph({ keepNext: true, spacing: { before: 100, after: 80 }, children: [new TextRun({ text: "Competency score changes", font: "Calibri", size: 22, bold: true, color: INK })] }),
+            new Table({
+              width: { size: TABLE_WIDTH, type: WidthType.DXA },
+              columnWidths: [3120, 1500, 1500, 1740, 1500],
+              borders: Object.fromEntries(["top", "bottom", "left", "right", "insideHorizontal", "insideVertical"].map((side) => [side, { style: BorderStyle.SINGLE, size: 4, color: BORDER }])),
+              rows: [
+                new TableRow({ tableHeader: true, children: ["Competency", "Baseline", "Current", "Change", "Target"].map((label, index) => tableCell(label, { header: true, width: [3120, 1500, 1500, 1740, 1500][index] })) }),
+                ...record.competencyScores.map((score) => new TableRow({ children: [score.competency_name, projectScore(score.baseline_score), projectScore(score.current_score), projectScoreChange(score.baseline_score, score.current_score), projectScore(score.target_score)].map((value, index) => tableCell(value, { width: [3120, 1500, 1500, 1740, 1500][index] })) })),
+              ],
+            }),
+          ] : [bodyParagraph("Competency score changes: No scores recorded for this project.")]),
+          bodyParagraph(`Last updated: ${formatDate(record.occurredAt)}`, { before: 120, color: MUTED }),
         ])
       : [bodyParagraph("No development projects or records were saved for this reporting period.")]),
     sectionHeading("Recent Activity"),

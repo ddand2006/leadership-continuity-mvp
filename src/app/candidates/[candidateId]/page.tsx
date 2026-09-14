@@ -501,7 +501,7 @@ export default async function CandidateDetailPage({
     supabase
       .from("development_records")
       .select(
-        "role_id, status, experience_title, project_summary, date_assigned, updated_at, mentor_review_date",
+        "role_id, status, experience_title, project_summary, date_assigned, updated_at, mentor_review_date, completion_date, mentor_improvement_observed, mentor_development_needed, next_recommended_experience, mentor:profiles!development_records_mentor_id_fkey(full_name), development_record_competencies(competency_name, baseline_score, current_score, target_score)",
       )
       .eq("organization_id", profile.organization_id)
       .eq("candidate_id", candidate.id)
@@ -1131,6 +1131,14 @@ export default async function CandidateDetailPage({
                       status: record.status,
                       occurredAt: record.updated_at ?? record.date_assigned,
                       mentorReviewed: Boolean(record.mentor_review_date),
+        dateAssigned: record.date_assigned,
+        completionDate: record.completion_date,
+        mentorReviewDate: record.mentor_review_date,
+        mentorName: (Array.isArray(record.mentor) ? record.mentor[0]?.full_name : (record.mentor as { full_name?: string } | null)?.full_name) ?? null,
+        mentorImprovementObserved: record.mentor_improvement_observed,
+        mentorDevelopmentNeeded: record.mentor_development_needed,
+        nextRecommendedExperience: record.next_recommended_experience,
+        competencyScores: record.development_record_competencies ?? [],
                     }))}
                     mentorReportDates={(progressMentorReportsResult.data ?? []).map(
                       (report) => report.created_at,

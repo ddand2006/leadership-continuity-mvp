@@ -2170,6 +2170,17 @@ export function LeadershipDevelopmentRecordManager({
                       />
                     </label>
                     <label className="block">
+                      <span className="mb-2 block text-sm font-semibold text-slate-700">Completion Date</span>
+                      <input
+                        type="date"
+                        value={formState.completionDate ?? ""}
+                        disabled={formState.status !== "completed"}
+                        onChange={(event) => updateRecord("completionDate", event.target.value)}
+                        className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white disabled:opacity-50"
+                      />
+                      <span className="mt-2 block text-xs text-slate-600">For completed projects, enter the actual completion date.</span>
+                    </label>
+                    <label className="block">
                       <span className="mb-2 block text-sm font-semibold text-slate-700">
                         Development Record Status
                       </span>

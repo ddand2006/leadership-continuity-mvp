@@ -1,5 +1,6 @@
 "use client";
 
+import { projectScore, projectScoreChange, projectCompletionLabel, type ProjectProgressEvidence } from "@/lib/progress-development-evidence";
 import { MentoringDocumentLibrary } from "@/components/mentoring-document-library";
 
 import { useState, useTransition, type ReactNode } from "react";
@@ -18,7 +19,7 @@ type InterviewProgress = {
   averageScore: number | null;
 };
 
-type DevelopmentProgress = {
+type DevelopmentProgress = ProjectProgressEvidence & {
   roleId: string;
   roleTitle: string;
   title: string | null;
@@ -46,6 +47,7 @@ function formatDate(value: string) {
   return Number.isNaN(date.getTime())
     ? "Date not recorded"
     : new Intl.DateTimeFormat("en-US", {
+        timeZone: "UTC",
         month: "short",
         day: "numeric",
         year: "numeric",
@@ -368,7 +370,30 @@ export function CandidateProgressReport({
               <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-lg font-semibold text-slate-900">{record.title ?? "Development record"}</p><span className="rounded-full bg-white px-3 py-1 text-xs font-semibold tracking-[0.1em] text-slate-600 uppercase">{record.status.replaceAll("_", " ")}</span></div>
               <p className="mt-2 font-medium text-slate-600">Role: {record.roleTitle}</p>
               {record.summary ? <p className="mt-3 leading-7">{record.summary}</p> : null}
-              <p className="mt-3 text-xs font-semibold tracking-[0.1em] text-slate-500 uppercase">{formatDate(record.occurredAt)}{record.mentorReviewed ? " · Mentor reviewed" : ""}</p>
+              <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div><dt className="font-semibold">Assigned</dt><dd>{formatDate(record.dateAssigned)}</dd></div>
+                <div><dt className="font-semibold">Completion date</dt><dd>{record.status === "completed" && record.completionDate ? formatDate(record.completionDate) : projectCompletionLabel(record.status, record.completionDate)}</dd></div>
+                <div><dt className="font-semibold">Mentor</dt><dd>{record.mentorName ?? "Not recorded"}</dd></div>
+                <div><dt className="font-semibold">Mentor review date</dt><dd>{record.mentorReviewDate ? formatDate(record.mentorReviewDate) : "Not recorded"}</dd></div>
+              </dl>
+              <div className="mt-4 space-y-2 leading-7">
+                <p className="whitespace-pre-line"><strong>Mentor observations: </strong>{record.mentorImprovementObserved?.trim() || "Not recorded"}</p>
+                <p className="whitespace-pre-line"><strong>Further development: </strong>{record.mentorDevelopmentNeeded?.trim() || "Not recorded"}</p>
+                <p className="whitespace-pre-line"><strong>Recommended next experience: </strong>{record.nextRecommendedExperience?.trim() || "Not recorded"}</p>
+              </div>
+              {record.competencyScores.length > 0 ? (
+                <div className="mt-4 overflow-x-auto">
+                  <table className="w-full min-w-[520px] text-left text-sm">
+                    <caption className="mb-2 text-left font-semibold">Competency score changes</caption>
+                    <thead><tr>{["Competency", "Baseline", "Current", "Change", "Target"].map((label) => <th key={label} scope="col" className="border-b border-slate-300 px-3 py-2">{label}</th>)}</tr></thead>
+                    <tbody>{record.competencyScores.map((score, scoreIndex) => <tr key={`${score.competency_name}-${scoreIndex}`}>
+                      <th scope="row" className="border-b border-slate-200 px-3 py-2 font-medium">{score.competency_name}</th>
+                      {[projectScore(score.baseline_score), projectScore(score.current_score), projectScoreChange(score.baseline_score, score.current_score), projectScore(score.target_score)].map((value, cellIndex) => <td key={cellIndex} className="border-b border-slate-200 px-3 py-2">{value}</td>)}
+                    </tr>)}</tbody>
+                  </table>
+                </div>
+              ) : <p className="mt-4 leading-7">Competency score changes: No scores recorded for this project.</p>}
+              <p className="mt-3 text-xs text-slate-500">Last updated: {formatDate(record.occurredAt)}</p>
             </article>
           ))}
           {periodDevelopmentRecords.length === 0 ? <p className="text-sm leading-7 text-slate-600">No development projects or records were saved for this reporting period.</p> : null}

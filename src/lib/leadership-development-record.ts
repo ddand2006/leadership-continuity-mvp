@@ -110,6 +110,7 @@ export const leadershipDevelopmentRecordPayloadSchema = z.object({
   targetRole: z.string().trim().min(1),
   primaryMentor: z.string().trim().min(1),
   dateAssigned: z.string().trim().min(1),
+  completionDate: z.union([z.iso.date(), z.literal("")]).default(""),
   status: z.enum(LEADERSHIP_DEVELOPMENT_STATUSES),
   growthAreas: z.array(z.enum(LEADERSHIP_DEVELOPMENT_GROWTH_AREAS)).default([]),
   assignmentReason: z.string().trim().max(1000),
@@ -254,6 +255,7 @@ export function createEmptyLeadershipDevelopmentRecord(options: {
     readinessSignal: "",
     nextRecommendedExperience: "",
     mentorReviewDate: "",
+    completionDate: "",
   };
 }
 
@@ -262,6 +264,7 @@ export function normalizeLeadershipDevelopmentRecord<T extends LeadershipDevelop
 ): T {
   const normalized = {
     ...record,
+    completionDate: record.completionDate ?? "",
     selectedStrengths: record.selectedStrengths ?? [],
     mentorDirectionNarrative: record.mentorDirectionNarrative ?? "",
     menteeWorksheet: record.menteeWorksheet ?? null,
