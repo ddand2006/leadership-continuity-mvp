@@ -2459,7 +2459,7 @@ export default async function DashboardPage({
                 </div>
 
                 {intelligence ? (
-                  <Link href="/roles" className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-50 hover:shadow-md sm:p-5">
+                  <article className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       Legacy Certification
                     </p>
@@ -2511,7 +2511,7 @@ export default async function DashboardPage({
                       Top-role ranking currently follows the visible role order in
                       this dashboard view.
                     </p>
-                  </Link>
+                  </article>
                 ) : null}
               </div>
             </section>
@@ -2677,7 +2677,7 @@ export default async function DashboardPage({
                       <p>Progress {formatPercent(intelligence.continuityScore.developmentProgressScore)}</p>
                     </div>
                   </Link>
-                  <Link href="/roles" className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-50 hover:shadow-md sm:p-5">
+                  <Link href="/dashboard/critical-roles" className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-50 hover:shadow-md sm:p-5">
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       Critical Roles Covered
                     </p>
@@ -2696,7 +2696,7 @@ export default async function DashboardPage({
                         : "All visible roles currently have at least one active candidate."}
                     </p>
                   </Link>
-                  <Link href="/candidates?section=progress-report" className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-50 hover:shadow-md sm:p-5">
+                  <Link href="/dashboard/ready-successors" className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-50 hover:shadow-md sm:p-5">
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       Ready Successors
                     </p>
