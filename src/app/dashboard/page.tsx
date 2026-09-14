@@ -2665,6 +2665,7 @@ export default async function DashboardPage({
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       Leadership Continuity Score
                     </p>
+                    <p className="mt-2 text-sm leading-5 text-slate-600">Composite measure of leadership bench strength and role coverage across the organization.</p>
                     <p className="mt-2 text-3xl font-semibold text-slate-900 lg:text-[2rem]">
                       {intelligence.continuityScore.score}
                     </p>
@@ -2677,11 +2678,13 @@ export default async function DashboardPage({
                       <p>Readiness {formatPercent(intelligence.continuityScore.candidateReadinessScore)}</p>
                       <p>Progress {formatPercent(intelligence.continuityScore.developmentProgressScore)}</p>
                     </div>
+                    <div className="mt-4 rounded-xl bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-800">Below target · Increased risk of leadership disruption.</div>
                   </Link>
                   <Link href="/dashboard/critical-roles" className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-50 hover:shadow-md sm:p-5">
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       Critical Roles Covered
                     </p>
+                    <p className="mt-2 text-sm leading-5 text-slate-600">Percentage of critical leadership roles with an identified successor.</p>
                     <p className="mt-2 text-3xl font-semibold text-slate-900 lg:text-[2rem]">
                       {intelligence.criticalRolesCovered.covered}/{intelligence.criticalRolesCovered.total}
                     </p>
@@ -2697,11 +2700,13 @@ export default async function DashboardPage({
                             .join(", ")}`
                         : "All visible roles currently have at least one active candidate."}
                     </p>
+                    <div className="mt-3 rounded-xl bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">On track · All critical roles have a successor.</div>
                   </Link>
                   <Link href="/dashboard/ready-successors" className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-50 hover:shadow-md sm:p-5">
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       Ready Successors
                     </p>
+                    <p className="mt-2 text-sm leading-5 text-slate-600">Number of successors by readiness level across all critical roles.</p>
                     <p className="mt-2 text-3xl font-semibold text-slate-900 lg:text-[2rem]">
                       {intelligence.readySuccessors.near.length + intelligence.readySuccessors.ready.length}
                     </p>
@@ -2709,6 +2714,7 @@ export default async function DashboardPage({
                       {intelligence.readySuccessors.near.length} near-ready • {intelligence.readySuccessors.ready.length} role-ready
                     </p>
                     <div className="mt-3 flex h-2 overflow-hidden rounded-full bg-slate-200"><div className="bg-blue-500" style={{ width: `${Math.min(100, intelligence.readySuccessors.near.length * 20)}%` }} /><div className="bg-emerald-500" style={{ width: `${Math.min(100, intelligence.readySuccessors.ready.length * 20)}%` }} /></div>
+                    <div className="mt-4 rounded-xl bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-800">Build momentum · Continue developing near-ready successors.</div>
                     <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-600">
                       {[...intelligence.readySuccessors.ready, ...intelligence.readySuccessors.near]
                         .slice(0, 3)
@@ -2726,6 +2732,7 @@ export default async function DashboardPage({
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       High-Risk Roles
                     </p>
+                    <p className="mt-2 text-sm leading-5 text-slate-600">Critical roles with no ready successor and elevated risk of disruption.</p>
                     <p className="mt-2 text-3xl font-semibold text-slate-900 lg:text-[2rem]">
                       {intelligence.highRiskRoles}
                     </p>
@@ -2740,11 +2747,13 @@ export default async function DashboardPage({
                         .map((role) => role.roleTitle)
                         .join(", ") || "No high-risk roles in the current filtered view."}
                     </p>
+                    <div className="mt-3 rounded-xl bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-800">Attention required · Develop successors or mitigate risk.</div>
                   </Link>
                   <article className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       Average Time to Readiness
                     </p>
+                    <p className="mt-2 text-sm leading-5 text-slate-600">Average time from identification to role-ready status for successors.</p>
                     <p className="mt-2 text-3xl font-semibold text-slate-900 lg:text-[2rem]">
                       {intelligence.averageTimeToReadiness.overallMonths !== null
                         ? `${intelligence.averageTimeToReadiness.overallMonths.toFixed(1)} mo`
