@@ -175,12 +175,8 @@ export default async function MentoringPage({
   ]);
   const selectedSectionId =
     requestedSection && allowedSectionIds.has(requestedSection)
-      ? requestedSection === "overview" && canManageMentorAssignments
-        ? "leadership-development-record"
-        : requestedSection
-      : canManageMentorAssignments
-        ? "leadership-development-record"
-        : "overview";
+      ? requestedSection
+      : "overview";
 
   if (!isAdmin && !isMentor && !isCandidate) {
     redirect(
@@ -971,6 +967,25 @@ export default async function MentoringPage({
       label: "Overview",
       content: (
         <>
+          <section className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-8">
+            <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">Mentoring workspace</p>
+            <h2 className="mt-3 font-display text-3xl text-slate-900">Choose a mentoring workspace</h2>
+            <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">Open the area you need to manage a mentoring track, review readiness, recognize mentor impact, or use supporting resources.</p>
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              {[
+                { id: "leadership-development-record", tone: "accent-card-gold", title: "Leadership Development Record", description: "Define a stretch experience, target competencies, feedback, and the review cycle." },
+                { id: "readiness-review", tone: "accent-card-green", title: "Readiness Review", description: "Review evidence of growth and record the next leadership recommendation." },
+                ...(canManageMentorAssignments ? [{ id: "mentor-scorecard", tone: "accent-card-coral", title: "Mentor Scorecard", description: "Track mentor engagement, current reports, and timely reviews." }] : []),
+                { id: "resources", tone: "border-sky-200 bg-sky-50", title: "Additional Resources", description: "Open preparation worksheets and departmental project tools." },
+              ].map((workspace) => (
+                <Link key={workspace.id} href={getMentoringSectionHref(workspace.id)} className={`flex flex-col rounded-2xl border p-5 transition hover:-translate-y-0.5 hover:shadow-md ${workspace.tone}`}>
+                  <h3 className="font-semibold text-slate-900">{workspace.title}</h3>
+                  <p className="mt-2 flex-1 text-sm leading-6 text-slate-600">{workspace.description}</p>
+                  <span className="mt-4 text-sm font-semibold text-teal-800">Open workspace</span>
+                </Link>
+              ))}
+            </div>
+          </section>
           <section className="grid gap-6 md:grid-cols-3">
             <article className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
               <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
