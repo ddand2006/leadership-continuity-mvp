@@ -3129,31 +3129,31 @@ export default async function DashboardPage({
               </section>
             ) : null}
 
-            <section className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-              <article className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-6">
+            <section className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3" aria-label="Workspace shortcuts">
+              <Link href="/roles" className="rounded-[1.75rem] border border-amber-200 bg-amber-50 p-5 shadow-[0_20px_60px_rgba(15,23,42,0.06)] transition hover:-translate-y-1 hover:shadow-lg sm:p-6">
                 <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                   Current Roles
                 </p>
                 <p className="mt-2 text-3xl font-semibold text-slate-900 lg:text-[2rem]">
                   {snapshot.counts?.roles ?? 0}
                 </p>
-              </article>
-              <article className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-6">
+              </Link>
+              <Link href="/candidates" className="rounded-[1.75rem] border border-emerald-200 bg-emerald-50 p-5 shadow-[0_20px_60px_rgba(15,23,42,0.06)] transition hover:-translate-y-1 hover:shadow-lg sm:p-6">
                 <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                   Current Candidates
                 </p>
                 <p className="mt-2 text-3xl font-semibold text-slate-900 lg:text-[2rem]">
                   {snapshot.counts?.candidates ?? 0}
                 </p>
-              </article>
-              <article className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-6">
+              </Link>
+              <Link href="/mentoring" className="rounded-[1.75rem] border border-rose-200 bg-rose-50 p-5 shadow-[0_20px_60px_rgba(15,23,42,0.06)] transition hover:-translate-y-1 hover:shadow-lg sm:p-6">
                 <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                   Current Mentors
                 </p>
                 <p className="mt-2 text-3xl font-semibold text-slate-900 lg:text-[2rem]">
                   {snapshot.counts?.mentors ?? 0}
                 </p>
-              </article>
+              </Link>
             </section>
 
             <section className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
