@@ -2459,7 +2459,7 @@ export default async function DashboardPage({
                 </div>
 
                 {intelligence ? (
-                  <article className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
+                  <Link href="/dashboard/continuity-score" className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-50 hover:shadow-md sm:p-5">
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       Legacy Certification
                     </p>
@@ -2511,7 +2511,7 @@ export default async function DashboardPage({
                       Top-role ranking currently follows the visible role order in
                       this dashboard view.
                     </p>
-                  </article>
+                  </Link>
                 ) : null}
               </div>
             </section>
@@ -2661,7 +2661,7 @@ export default async function DashboardPage({
                 ) : null}
 
                 <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                  <Link href="/dashboard#leadership-risk-by-role" className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:border-rose-300 hover:bg-rose-50 hover:shadow-md sm:p-5">
+                  <Link href="/dashboard/continuity-score" className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-50 hover:shadow-md sm:p-5">
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       Leadership Continuity Score
                     </p>
