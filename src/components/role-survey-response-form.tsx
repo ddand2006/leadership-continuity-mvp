@@ -8,6 +8,7 @@ import {
 } from "@/lib/role-competency-surveys";
 
 type RoleSurveyResponseFormProps = {
+  preview?: boolean;
   token: string;
   recipientName: string;
   surveyTitle: string;
@@ -48,6 +49,7 @@ export function RoleSurveyResponseForm({
   completedAt,
   responseEndpoint,
   surveyLabel = "Role Competency Survey",
+  preview = false,
 }: RoleSurveyResponseFormProps) {
   const endpoint = responseEndpoint ?? `/api/role-surveys/respond/${token}`;
   const [answers, setAnswers] =
@@ -59,6 +61,7 @@ export function RoleSurveyResponseForm({
 
   useEffect(() => {
     if (
+      preview ||
       hasMarkedOpenRef.current ||
       surveyStatus !== "active" ||
       recipientStatus === "completed"
@@ -70,9 +73,9 @@ export function RoleSurveyResponseForm({
     void fetch(endpoint, {
       method: "PATCH",
     }).catch(() => null);
-  }, [endpoint, recipientStatus, surveyStatus, token]);
+  }, [endpoint, recipientStatus, surveyStatus, token, preview]);
 
-  if (recipientStatus === "completed") {
+  if (!preview && recipientStatus === "completed") {
     return (
       <section className="rounded-[1.75rem] border border-emerald-200 bg-emerald-50/90 p-8 text-emerald-950 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
         <p className="text-sm font-semibold tracking-[0.16em] uppercase">
@@ -90,7 +93,7 @@ export function RoleSurveyResponseForm({
     );
   }
 
-  if (surveyStatus !== "active") {
+  if (!preview && surveyStatus !== "active") {
     return (
       <section className="rounded-[1.75rem] border border-amber-200 bg-amber-50/90 p-8 text-amber-950 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
         <p className="text-sm font-semibold tracking-[0.16em] uppercase">
@@ -132,6 +135,7 @@ export function RoleSurveyResponseForm({
   }
 
   function handleSubmit() {
+    if (preview) return;
     setError(null);
 
     startTransition(async () => {
@@ -201,10 +205,10 @@ export function RoleSurveyResponseForm({
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={isPending}
+          disabled={preview || isPending}
           className="interactive-contrast rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-900 disabled:cursor-not-allowed disabled:bg-slate-300"
         >
-          {isPending ? "Submitting..." : "Submit Survey Response"}
+          {preview ? "Submission disabled in preview" : isPending ? "Submitting..." : "Submit Survey Response"}
         </button>
         {error ? <p className="text-sm text-rose-700">{error}</p> : null}
       </div>

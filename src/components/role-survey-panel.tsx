@@ -1,5 +1,6 @@
 "use client";
 
+import { RoleSurveyPreview } from "@/components/role-survey-preview";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import {
@@ -70,6 +71,7 @@ export function RoleSurveyPanel({
   sectionId,
 }: RoleSurveyPanelProps) {
   const router = useRouter();
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const initialRoleId = initialSelectedRoleId ?? roles[0]?.id ?? "";
   const initialRole = roles.find((role) => role.id === initialRoleId) ?? null;
   const initialSurveysForRole = surveys
@@ -366,6 +368,7 @@ export function RoleSurveyPanel({
 
   return (
     <section id={sectionId} className="grid gap-6">
+      {isPreviewOpen && selectedRole ? <RoleSurveyPreview title={title || createDefaultRoleSurveyTitle(selectedRole.title)} roleTitle={selectedRole.title} department={selectedRole.department} introMessage={introMessage} thankYouMessage={thankYouMessage} onClose={() => setIsPreviewOpen(false)} /> : null}
       <div className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
         <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
           Competency Survey
@@ -379,6 +382,7 @@ export function RoleSurveyPanel({
           do, and model across the organization.
         </p>
 
+        <button type="button" onClick={() => setIsPreviewOpen(true)} disabled={!selectedRole} className="mt-5 rounded-full border border-teal-800 bg-white px-5 py-3 text-sm font-semibold text-teal-900 disabled:opacity-50">Preview Survey</button>
         <div className="mt-6 rounded-[1.5rem] border border-slate-200 bg-slate-50">
           <button
             type="button"
