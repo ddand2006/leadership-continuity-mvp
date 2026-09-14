@@ -18,9 +18,11 @@ function getLevelLabel(entry: MentorScorecardEntry) {
 export function MentorScorecard({
   entries,
   isAdmin,
+  competencyGrowth = [],
 }: {
   entries: MentorScorecardEntry[];
   isAdmin: boolean;
+  competencyGrowth?: string[];
 }) {
   const currentMentor = entries.find((entry) => entry.isCurrentMentor) ?? entries[0];
 
@@ -80,6 +82,22 @@ export function MentorScorecard({
           Next best action: {currentMentor.nextAction}
         </p>
       </section>
+
+      {competencyGrowth.length > 0 ? (
+        <section className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+          <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">Competency growth trends</p>
+          <h3 className="mt-2 font-display text-3xl text-slate-900">Competencies for this candidate-role track</h3>
+          <div className="mt-5 divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white">
+            {competencyGrowth.map((competency) => (
+              <div key={competency} className="grid gap-2 px-4 py-4 sm:grid-cols-[minmax(0,1fr)_120px_120px] sm:items-center">
+                <p className="font-semibold text-slate-900">{competency}</p>
+                <p className="text-sm text-slate-500">Baseline —</p>
+                <p className="text-sm text-slate-500">Current —</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
     </section>
   );

@@ -1262,6 +1262,11 @@ export default async function MentoringPage({
               <MentorScorecard
                 entries={mentorScorecardEntries}
                 isAdmin={isAdmin}
+                competencyGrowth={
+                  selectedAssignment
+                    ? latestDevelopmentRecordByAssignment.get(selectedAssignmentKey ?? "")?.growthAreas ?? []
+                    : []
+                }
               />
             ),
           },
