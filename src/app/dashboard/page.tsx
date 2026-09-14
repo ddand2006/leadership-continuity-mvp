@@ -1,10 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SubscriptionPaywallPanel } from "@/components/subscription-paywall-panel";
-import {
-  CompanyMentorRankings,
-  type CompanyMentorRanking,
-} from "@/components/company-mentor-rankings";
+import type { CompanyMentorRanking } from "@/components/company-mentor-rankings";
 import {
   DashboardSetupJourney,
   type DashboardSetupJourneySummary,
@@ -3264,10 +3261,6 @@ export default async function DashboardPage({
               </div>
             </section>
 
-            <CompanyMentorRankings
-              mentors={snapshot.mentorRankings}
-              isCompanyView={snapshot.profile.role !== "mentor"}
-            />
           </>
         )}
       </div>

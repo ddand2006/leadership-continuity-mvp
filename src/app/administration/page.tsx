@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AdministrationPanel } from "@/components/administration-panel";
+import { CompanyMentorRankings, type CompanyMentorRanking } from "@/components/company-mentor-rankings";
 import { getCandidateDisplayName } from "@/lib/candidate-display-name";
 import { isAdminAppRole } from "@/lib/mentor-access";
 import { loadAdministrationUsers } from "@/lib/organization-user-admin";
 import { canonicalizeRoleTitle } from "@/lib/role-title";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { requireWorkspaceProfile } from "@/lib/workspace";
+import { computeMentorScorecard } from "@/lib/mentor-scorecard";
 
 type AdministrationPageProps = {
   searchParams: Promise<{
@@ -61,7 +63,7 @@ export default async function AdministrationPage({
     throw new Error("No organization could be loaded for administration.");
   }
 
-  const [users, candidatesResult, rolesResult, mentorsResult] = await Promise.all([
+  const [users, candidatesResult, rolesResult, mentorsResult, mentorAssignmentsResult, mentorReportsResult, developmentRecordsResult] = await Promise.all([
     loadAdministrationUsers({
       admin,
       organizationId: selectedOrganization.id,
@@ -81,9 +83,23 @@ export default async function AdministrationPage({
       .select("id, full_name, position_title")
       .eq("organization_id", selectedOrganization.id)
       .order("full_name", { ascending: true }),
+    admin
+      .from("mentor_role_assignments")
+      .select("candidate_id, role_id, mentor_profile_id, status")
+      .eq("organization_id", selectedOrganization.id),
+    admin
+      .from("mentor_reports")
+      .select("candidate_id, role_id, created_at")
+      .eq("organization_id", selectedOrganization.id)
+      .order("created_at", { ascending: false }),
+    admin
+      .from("development_records")
+      .select("candidate_id, role_id, mentor_id, mentor_review_date, updated_at")
+      .eq("organization_id", selectedOrganization.id)
+      .order("updated_at", { ascending: false }),
   ]);
 
-  for (const result of [candidatesResult, rolesResult, mentorsResult]) {
+  for (const result of [candidatesResult, rolesResult, mentorsResult, mentorAssignmentsResult, mentorReportsResult]) {
     if (result.error) {
       throw new Error(result.error.message);
     }
@@ -99,7 +115,7 @@ export default async function AdministrationPage({
     suspendedUsers: users.filter((user) => user.status === "suspended").length,
     pendingInvitations: users.filter((user) => user.status === "invited").length,
   };
-  const activeMentorProfileIds = new Set(
+  const activeMentorProfileIds = new Set<string>(
     users
       .filter(
         (user) =>
@@ -107,8 +123,44 @@ export default async function AdministrationPage({
           user.status === "active" &&
           user.profile_id !== null,
       )
-      .map((user) => user.profile_id),
+      .map((user) => user.profile_id)
+      .filter((id): id is string => Boolean(id)),
   );
+
+  const mentorDirectory = mentorsResult.data ?? [];
+  const rankingIds = new Set(activeMentorProfileIds);
+  for (const assignment of mentorAssignmentsResult.data ?? []) {
+    if (typeof assignment.mentor_profile_id === "string" && assignment.status !== "completed" && assignment.status !== "cancelled") {
+      rankingIds.add(assignment.mentor_profile_id);
+    }
+  }
+  const latestReportByTrack = new Map<string, string>();
+  for (const report of mentorReportsResult.data ?? []) {
+    const key = `${report.candidate_id}:${report.role_id}`;
+    if (!latestReportByTrack.has(key)) latestReportByTrack.set(key, report.created_at);
+  }
+  const latestRecordByTrack = new Map<string, { mentor_review_date: string | null }>();
+  for (const record of developmentRecordsResult.data ?? []) {
+    const key = `${record.candidate_id}:${record.role_id}:${record.mentor_id}`;
+    if (!latestRecordByTrack.has(key)) latestRecordByTrack.set(key, record);
+  }
+  const mentorRankings: CompanyMentorRanking[] = Array.from(rankingIds).map((mentorId) => {
+    const tracks = (mentorAssignmentsResult.data ?? []).filter(
+      (assignment) => assignment.mentor_profile_id === mentorId && assignment.status !== "completed" && assignment.status !== "cancelled",
+    );
+    const scorecard = computeMentorScorecard(
+      tracks.map((assignment) => {
+        const record = latestRecordByTrack.get(`${assignment.candidate_id}:${assignment.role_id}:${mentorId}`);
+        return {
+          hasDevelopmentRecord: Boolean(record),
+          latestReportAt: latestReportByTrack.get(`${assignment.candidate_id}:${assignment.role_id}`) ?? null,
+          latestReviewAt: record?.mentor_review_date ?? null,
+        };
+      }),
+    );
+    const mentor = mentorDirectory.find((entry) => entry.id === mentorId);
+    return { mentorId, mentorName: mentor?.full_name ?? "Mentor name not entered", positionTitle: mentor?.position_title ?? null, score: scorecard.score, tier: scorecard.tier, activeTrackCount: scorecard.activeTrackCount };
+  }).sort((left, right) => right.score - left.score || left.mentorName.localeCompare(right.mentorName));
 
   return (
     <main className="app-page">
@@ -213,6 +265,9 @@ export default async function AdministrationPage({
           canEditOrganizationAccess={isAdminAppRole(profile.role)}
           canCreateOrganizations={isSystemAdmin}
         />
+        {requestedSection === "assign-mentors" ? (
+          <CompanyMentorRankings mentors={mentorRankings} isCompanyView={true} />
+        ) : null}
       </div>
     </main>
   );
