@@ -120,28 +120,6 @@ export function DashboardSetupJourney({
             </div>
           </div>
 
-          {summary.primaryActionHref &&
-          summary.primaryActionLabel &&
-          summary.primaryActionTitle &&
-          summary.primaryActionDescription ? (
-            <div className="mt-5 rounded-[1.25rem] border border-teal-200 bg-white px-4 py-4">
-              <p className="text-xs font-semibold tracking-[0.14em] text-teal-800 uppercase">
-                Next Guided Step
-              </p>
-              <p className="mt-2 text-lg font-semibold text-slate-900">
-                {summary.primaryActionTitle}
-              </p>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                {summary.primaryActionDescription}
-              </p>
-              <Link
-                href={summary.primaryActionHref}
-                className="interactive-contrast mt-4 inline-flex rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-900"
-              >
-                {summary.primaryActionLabel}
-              </Link>
-            </div>
-          ) : null}
         </article>
       </div>
 
