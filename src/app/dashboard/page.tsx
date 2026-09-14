@@ -2757,7 +2757,10 @@ export default async function DashboardPage({
                   </article>
                 </div>
 
-                <div className="mt-8 grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+                <section className="mt-10 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-[0_20px_60px_rgba(15,23,42,0.05)] sm:p-7">
+                  <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">Leadership continuity signals</p>
+                  <h2 className="mt-2 font-display text-3xl text-slate-900">Risk and recommended actions</h2>
+                  <div className="mt-6 grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
                   <section className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                       <div>
@@ -2953,7 +2956,8 @@ export default async function DashboardPage({
                       </div>
                     )}
                   </section>
-                </div>
+                  </div>
+                </section>
 
                 <div className="mt-8 grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
                   <section className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
