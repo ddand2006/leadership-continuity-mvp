@@ -2661,7 +2661,7 @@ export default async function DashboardPage({
                 ) : null}
 
                 <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                  <article className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
+                  <Link href="/dashboard#leadership-risk-by-role" className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:border-rose-300 hover:bg-rose-50 hover:shadow-md sm:p-5">
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       Leadership Continuity Score
                     </p>
@@ -2676,7 +2676,7 @@ export default async function DashboardPage({
                       <p>Readiness {formatPercent(intelligence.continuityScore.candidateReadinessScore)}</p>
                       <p>Progress {formatPercent(intelligence.continuityScore.developmentProgressScore)}</p>
                     </div>
-                  </article>
+                  </Link>
                   <Link href="/roles" className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-50 hover:shadow-md sm:p-5">
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       Critical Roles Covered
@@ -2719,7 +2719,7 @@ export default async function DashboardPage({
                         ))}
                     </div>
                   </Link>
-                  <article className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
+                  <Link href="/dashboard#leadership-risk-by-role" className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:border-rose-300 hover:bg-rose-50 hover:shadow-md sm:p-5">
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       High-Risk Roles
                     </p>
@@ -2736,7 +2736,7 @@ export default async function DashboardPage({
                         .map((role) => role.roleTitle)
                         .join(", ") || "No high-risk roles in the current filtered view."}
                     </p>
-                  </article>
+                  </Link>
                   <article className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
                     <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
                       Average Time to Readiness
@@ -2756,7 +2756,7 @@ export default async function DashboardPage({
                   <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">Leadership continuity signals</p>
                   <h2 className="mt-2 font-display text-3xl text-slate-900">Risk and recommended actions</h2>
                   <div className="mt-6 grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-                  <section className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
+                  <section id="leadership-risk-by-role" className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                       <div>
                         <p className="text-sm font-semibold tracking-[0.14em] text-slate-500 uppercase">
