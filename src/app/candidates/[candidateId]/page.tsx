@@ -1049,7 +1049,7 @@ export default async function CandidateDetailPage({
             }))}
             selectedCandidateId={candidate.id}
             selectedCandidateName={candidate.full_name}
-            currentSectionId={requestedSection ?? "candidate-profile"}
+            currentSectionId={requestedSection ?? "overview"}
             canCreateCandidates={isAdmin}
           />
 

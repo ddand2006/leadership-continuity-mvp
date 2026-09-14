@@ -26,7 +26,7 @@ export function CandidateDetailSectionMenu({
   const [activeSectionId, setActiveSectionId] = useState<string>(
     sections.some((section) => section.id === initialSectionId)
       ? (initialSectionId ?? "")
-      : (sections[0]?.id ?? ""),
+      : "overview",
   );
   const [activeDetailSectionId, setActiveDetailSectionId] = useState<string>("");
 
@@ -34,7 +34,7 @@ export function CandidateDetailSectionMenu({
   const resolvedUrlSectionId =
     sections.find((section) => section.id === urlSectionId)?.parentSectionId ??
     urlSectionId;
-  const selectedSectionId = sections.some((section) => section.id === resolvedUrlSectionId)
+  const selectedSectionId = (resolvedUrlSectionId === "overview" || sections.some((section) => section.id === resolvedUrlSectionId))
     ? resolvedUrlSectionId
     : activeSectionId;
   const activeSection =
@@ -54,9 +54,6 @@ export function CandidateDetailSectionMenu({
   const activeDetailSection =
     detailSections.find((section) => section.id === selectedDetailSectionId) ?? null;
 
-  if (!activeSection) {
-    return null;
-  }
 
   function updateSectionInUrl(sectionId: string) {
     const nextParams = new URLSearchParams(searchParams.toString());
@@ -66,38 +63,48 @@ export function CandidateDetailSectionMenu({
 
   return (
     <section className="grid gap-6">
-      <nav className="flex flex-wrap gap-3 border-b border-slate-200 pb-5" aria-label="Candidate workspace sections">
-        {sections
-          .filter((section) => !section.parentSectionId)
-          .map((section, index) => ({ section, index }))
-          .sort((left, right) =>
-            (left.section.navOrder ?? left.index) -
-            (right.section.navOrder ?? right.index),
-          )
-          .map(({ section }) => {
-          const isActive = section.id === activeSection.id;
+      {selectedSectionId === "overview" ? (
+        <section className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-8">
+          <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">Candidate workspace</p>
+          <h2 className="mt-3 font-display text-3xl text-slate-900">Profile, fit, and development</h2>
+          <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">Explore the selected candidate’s profile, review their role fit, and follow their progress and mentoring priorities.</p>
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            {sections
+              .filter((section) => !section.parentSectionId)
+              .map((section, index) => ({ section, index }))
+              .sort((left, right) => (left.section.navOrder ?? left.index) - (right.section.navOrder ?? right.index))
+              .map(({ section }, index) => (
+                <button
+                  key={section.id}
+                  type="button"
+                  onClick={() => {
+                    setActiveSectionId(section.id);
+                    updateSectionInUrl(section.id);
+                  }}
+                  className={`flex cursor-pointer flex-col rounded-2xl border p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-700 ${["accent-card-gold", "accent-card-green", "accent-card-coral", "border-sky-200 bg-sky-50"][index % 4]}`}
+                >
+                  <span className="font-semibold text-slate-900">{section.label}</span>
+                  <span className="mt-2 flex-1 text-sm leading-6 text-slate-600">{section.summary}</span>
+                  <span className="mt-4 text-sm font-semibold text-teal-800">Open {section.label.toLowerCase()}</span>
+                </button>
+              ))}
+          </div>
+        </section>
+      ) : (
+        <button
+          type="button"
+          onClick={() => {
+            setActiveSectionId("overview");
+            setActiveDetailSectionId("");
+            updateSectionInUrl("overview");
+          }}
+          className="w-fit cursor-pointer rounded-lg text-sm font-semibold text-teal-800 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-700"
+        >
+          ← Back to Candidate Overview
+        </button>
+      )}
 
-          return (
-            <button
-              key={section.id}
-              type="button"
-              onClick={() => {
-                setActiveSectionId(section.id);
-                updateSectionInUrl(section.id);
-              }}
-              className={`rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition ${
-                isActive
-                  ? "interactive-contrast border-teal-900 bg-teal-900 text-white shadow-[0_18px_40px_rgba(15,118,110,0.18)]"
-                  : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
-              }`}
-            >
-              {section.label}
-            </button>
-          );
-        })}
-      </nav>
-
-      <div className="grid gap-6">
+      {selectedSectionId !== "overview" && activeSection ? <div className="grid gap-6">
         {activeSection.content}
         {activeSection.dashboardContent ? activeSection.dashboardContent : null}
         {detailSections.length > 0 ? (
@@ -131,7 +138,7 @@ export function CandidateDetailSectionMenu({
             {activeDetailSection ? activeDetailSection.content : null}
           </section>
         ) : null}
-      </div>
+      </div> : null}
     </section>
   );
 }

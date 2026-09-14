@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { CandidateManagementPanel } from "@/components/candidate-management-panel";
 import { CandidateSelectorSidebar } from "@/components/candidate-selector-sidebar";
 import { getCandidateDisplayName } from "@/lib/candidate-display-name";
@@ -12,7 +13,10 @@ import { getAccessibleCandidateIds, isAdminAppRole } from "@/lib/mentor-access";
 import { canonicalizeRoleTitle } from "@/lib/role-title";
 import { requirePaidWorkspaceProfile } from "@/lib/workspace";
 
-export default async function CandidatesPage() {
+export default async function CandidatesPage({ searchParams }: {
+  searchParams: Promise<{ mode?: string }>;
+}) {
+  const { mode } = await searchParams;
   const { account, profile, supabase } = await requirePaidWorkspaceProfile();
   const isAdmin = isAdminAppRole(profile.role);
   const accessibleCandidateIds = new Set<string>();
@@ -358,6 +362,10 @@ export default async function CandidatesPage() {
       topGap: topGap?.competencyName ?? "None",
     };
   });
+
+  if (mode !== "create" && candidateSummaries.length > 0) {
+    redirect(`/candidates/${candidateSummaries[0].id}`);
+  }
 
   const selectedMode = "create" as const;
   const canCreateCandidates = isAdmin;
