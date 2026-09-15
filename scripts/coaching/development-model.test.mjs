@@ -1,0 +1,13 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url),ts=require('typescript');
+const code=ts.transpileModule(fs.readFileSync(new URL('../../src/lib/development-intelligence.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+const module={exports:{}};new Function('module','exports',code)(module,module.exports);
+const {competencyRows,recommendedMethods}=module.exports;
+const competency={id:'c',data_type:'competencies',target_level:4};
+test('missing observations remain unassessed instead of zero performance',()=>{const [r]=competencyRows([competency]);assert.equal(r.current,null);assert.equal(r.gap,null);assert.equal(r.status,'Not assessed');});
+test('strengths context and unreviewed development scores do not establish performance',()=>{const [r]=competencyRows([competency,{id:'s',data_type:'clifton_strengths',title:'Strategic'},{id:'d',data_type:'development_plan',competency_id:'c',current_level:1,occurred_at:null}]);assert.equal(r.current,null);});
+test('latest observed source wins and panel wins a same-date tie',()=>{const [r]=competencyRows([competency,{id:'a',data_type:'assessment',competency_id:'c',current_level:4,occurred_at:'2026-09-15'},{id:'b',data_type:'development_plan',competency_id:'c',current_level:2,occurred_at:'2026-09-15'},{id:'old',data_type:'assessment',competency_id:'c',current_level:1,occurred_at:'2025-09-15'}]);assert.equal(r.current,4);assert.equal(r.gap,0);assert.equal(r.status,'Competency demonstrated');});
+test('method choices follow rule weights without inventing a coaching recommendation',()=>{assert.deepEqual(recommendedMethods({id:'r',recommendation_data:{weights:{coaching:1,training:3,experience:3,mentoring:0}}}),['training','experience']);assert.deepEqual(recommendedMethods({id:'empty'}),[]);});

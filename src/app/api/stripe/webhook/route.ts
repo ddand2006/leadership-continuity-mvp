@@ -1,3 +1,4 @@
+import { handleCoachingStripeEvent } from "@/lib/coaching/commerce-provider";
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { hasResendEnv } from "@/lib/env";
@@ -211,6 +212,7 @@ export async function POST(request: Request) {
   }
 
   try {
+    if (await handleCoachingStripeEvent(event)) return NextResponse.json({ received: true });
     if (
       event.type === "customer.subscription.created" ||
       event.type === "customer.subscription.updated" ||

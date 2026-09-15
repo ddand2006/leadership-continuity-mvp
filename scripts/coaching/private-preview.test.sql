@@ -1,0 +1,28 @@
+\set ON_ERROR_STOP on
+begin;
+create schema coaching_test;
+create function coaching_test.uid(n integer) returns uuid language sql immutable as $$ select ('00000000-0000-0000-0000-'||lpad(n::text,12,'0'))::uuid $$;
+create function coaching_test.login(n integer) returns text language sql as $$ select set_config('request.jwt.claim.sub',coaching_test.uid(n)::text,false) $$;
+create function coaching_test.assert(ok boolean,label text) returns void language plpgsql as $$ begin if ok is distinct from true then raise exception 'FAIL: %',label; end if; raise notice 'PASS: %',label; end $$;
+create function coaching_test.reject(statement text,label text) returns void language plpgsql as $$ begin begin execute statement; exception when others then raise notice 'PASS: % (%)',label,sqlerrm; return; end; raise exception 'FAIL: % unexpectedly allowed',label; end $$;
+grant usage on schema coaching_test to authenticated;
+grant execute on all functions in schema coaching_test to authenticated;
+insert into auth.users(id,email) values (coaching_test.uid(1),'david@cycleofbusiness.com'),(coaching_test.uid(2),'other@example.test');
+insert into organizations(id,name) values(coaching_test.uid(101),'Private test');
+insert into profiles(auth_user_id,organization_id,role,email) values(coaching_test.uid(1),coaching_test.uid(101),'system_admin','david@cycleofbusiness.com'),(coaching_test.uid(2),coaching_test.uid(101),'system_admin','david@cycleofbusiness.com');
+set role authenticated;
+select coaching_test.login(1);
+select coaching_test.assert(coaching_preview_allowed(),'David is allowed');
+select coaching_test.assert(coaching_identity_enabled(),'David retains coaching access');
+select coaching_test.assert(coaching_platform_admin(),'David retains platform controls');
+select coaching_test.assert((select count(*)>0 from coaching_specialties),'David can read catalog');
+select coaching_test.login(2);
+select coaching_test.assert(not coaching_preview_allowed(),'Other account denied despite matching profile email');
+select coaching_test.assert(not coaching_identity_enabled(),'Other identity denied');
+select coaching_test.assert(not coaching_platform_admin(),'System administrator cannot bypass private preview');
+select coaching_test.assert((select count(*)=0 from coaching_specialties),'Catalog hidden from other accounts');
+select coaching_test.assert(coaching_marketplace()='[]'::jsonb,'Marketplace hidden');
+select coaching_test.reject($q$select coaching_scale_read()$q$,'Scale API denied');
+select coaching_test.reject($q$select coaching_commerce_read('billing')$q$,'Commerce API denied');
+select coaching_test.reject($q$select development_intelligence_read()$q$,'Development intelligence API denied');
+rollback;

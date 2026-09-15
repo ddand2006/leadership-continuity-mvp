@@ -1,0 +1,11 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url),ts=require('typescript');
+const source=fs.readFileSync(new URL('../../src/lib/coaching/commerce-model.ts',import.meta.url),'utf8');
+const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+const module={exports:{}};new Function('module','exports',code)(module,module.exports);const {cents,financialCsv}=module.exports;
+test('exact dollar to cents conversion avoids binary rounding errors',()=>{assert.equal(cents('466.67'),46667);assert.equal(cents('0.29'),29);assert.equal(cents('100'),10000);});
+test('charge amounts reject fractions of a cent, nonfinite and unsafe values',()=>{for(const value of ['NaN','Infinity','-1','0','1.001','1e3','999999999999999999'])assert.throws(()=>cents(value));});
+test('CSV escapes formulas, quotes, newlines and object values',()=>{const csv=financialCsv([{id:'one',name:'=HYPERLINK("x")',note:'line1\nline2'}]);assert.ok(csv.includes('"\'=HYPERLINK(""x"")"'));assert.ok(csv.includes('"line1\nline2"'));});

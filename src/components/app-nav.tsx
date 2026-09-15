@@ -1,3 +1,4 @@
+import {canAccessCoachingPreview} from '@/lib/coaching/preview';
 import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
 import { AccountMenu } from "@/components/account-menu";
@@ -195,10 +196,12 @@ export async function AppNav({ pathname }: { pathname: string }) {
         { href: "/", label: "Home" },
         ...(isPaywallEnabled() ? [{ href: "/subscribe", label: "Access" }] : []),
       ];
-  const trailingNavItems =
-    user && hasLeadershipHelpAccess && hasLeadershipHelpPreviewAccess
+  const trailingNavItems = [
+    ...(user && hasLeadershipHelpAccess && hasLeadershipHelpPreviewAccess
       ? [{ href: "/personal-development", label: "Personal Development" }]
-      : [];
+      : []),
+    ...(canAccessCoachingPreview(user) ? [{ href: "/coaching", label: "Coaching" }] : []),
+  ];
   const accountLandingHref = hasContinuityAccess
     ? isAdmin || isMentor
       ? "/dashboard"

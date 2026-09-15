@@ -1,5 +1,4 @@
-import { redirect } from "next/navigation";
-
-export default function CoachingPage() {
-  redirect("/personal-development/coaching");
-}
+import { CoachingWorkspace } from '@/components/coaching/workspace';
+export default async function CoachingPage({ searchParams }: {
+    searchParams: Promise<Record<string, string>>;
+}) { return <CoachingWorkspace path={[]} filters={await searchParams}/>; }

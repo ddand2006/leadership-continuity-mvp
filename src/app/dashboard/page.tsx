@@ -1,3 +1,4 @@
+import {DevelopmentDashboardCard} from '@/components/development-intelligence/organization';
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SubscriptionPaywallPanel } from "@/components/subscription-paywall-panel";
@@ -2397,6 +2398,7 @@ export default async function DashboardPage({
   return (
     <main className="app-page">
       <div className="mx-auto flex w-full max-w-[1380px] flex-col gap-6 px-4 py-8 sm:gap-8 sm:px-6 sm:py-10 lg:px-10 lg:py-12">
+        {snapshot.profile && ["system_admin","hospital_admin"].includes(snapshot.profile.role) ? <DevelopmentDashboardCard/> : null}
         {resolvedSearchParams.message ? (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-medium text-amber-900">
             {resolvedSearchParams.message}
