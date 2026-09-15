@@ -1816,7 +1816,6 @@ export function LeadershipDevelopmentRecordManager({
 
         {selectedAssignment && formState ? (
           <>
-            <div ref={setProjectToolsMount} />
             <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-5">
               <label className="block">
                 <span className="mb-2 block text-sm font-semibold text-slate-700">
@@ -2831,7 +2830,8 @@ export function LeadershipDevelopmentRecordManager({
               const order = { "candidate-information": 1, "development-focus": 2, "development-experience": 3, "competency-scoring": 4, "leader-feedback": 5, "mentor-review": 6 } as Record<string, number>;
               return (order[left.id] ?? 99) - (order[right.id] ?? 99);
             }).map((section) => (
-              <article key={section.id} className={`rounded-[1.5rem] border ${section.id === "development-experience" ? "border-amber-200 bg-amber-50" : "border-slate-200 bg-white"}`}>
+              <div key={section.id}>
+              <article className={`rounded-[1.5rem] border ${section.id === "development-experience" ? "border-amber-200 bg-amber-50" : "border-slate-200 bg-white"}`}>
                 <button
                   type="button"
                   onClick={() => toggleSection(section.id)}
@@ -2861,6 +2861,8 @@ export function LeadershipDevelopmentRecordManager({
                   <div className="border-t border-slate-200 px-5 py-5">{section.body}</div>
                 ) : null}
               </article>
+              {section.id === "development-experience" ? <div ref={setProjectToolsMount} /> : null}
+              </div>
             ))}
 
             <div className="flex flex-wrap items-center gap-3">
