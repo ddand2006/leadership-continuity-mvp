@@ -1816,6 +1816,7 @@ export function LeadershipDevelopmentRecordManager({
 
         {selectedAssignment && formState ? (
           <>
+            <div ref={setProjectToolsMount} />
             <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-5">
               <label className="block">
                 <span className="mb-2 block text-sm font-semibold text-slate-700">
@@ -2327,7 +2328,6 @@ export function LeadershipDevelopmentRecordManager({
                         </div>
                       ) : null}
 
-                      <div ref={setProjectToolsMount} />
                     </div>
                   </div>
                 ),
