@@ -103,13 +103,13 @@ export async function generateCandidateMentoringIdeas(options: {
             instructions: {
               reading_level:
                 "Use clear seventh-grade language in every field. Prefer short sentences, common words, and direct actions. Replace jargon with plain language; for example, say 'help people feel safe to speak up' instead of 'improve psychological safety.'",
-              count: "Return exactly 3 ideas.",
+              count: "Return exactly 6 ideas.",
               project_type:
                 "Choose either departmental or cross_departmental based on the best learning experience for this candidate.",
               purpose:
                 "Write a one-sentence purpose statement that sounds like a mentoring worksheet.",
               title:
-                "Use specific, non-generic titles that sound like real mentoring assignments.",
+                "Use short, plain, one-line project titles. Keep each title under  eight words. Do not include subtitles, explanations, durations, or punctuation-heavy phrasing in the title.",
               description:
                 "Describe a practical stretch assignment or project in 1 to 2 short, plain-language sentences.",
               working_goal:

@@ -283,7 +283,7 @@ export function MentoringIdeasPanel({
           {generatedIdeas.length > 0 ? (
             <>
               <p className="text-xs font-semibold tracking-[0.16em] text-teal-700 uppercase">
-                Candidate-specific ideas
+                Choose a project title
               </p>
               {generatedIdeas.map((idea) => (
                 <article
