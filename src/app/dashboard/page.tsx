@@ -2759,14 +2759,7 @@ export default async function DashboardPage({
                       Average Time to Readiness
                     </p>
                     <p className="mt-2 text-sm leading-5 text-slate-600">Average time from identification to role-ready status for successors.</p>
-                    <p className="mt-2 text-3xl font-semibold text-slate-900 lg:text-[2rem]">
-                      {intelligence.averageTimeToReadiness.overallMonths !== null
-                        ? `${intelligence.averageTimeToReadiness.overallMonths.toFixed(1)} mo`
-                        : "-"}
-                    </p>
-                    <p className="mt-2 text-sm text-slate-600">
-                      Near-ready {intelligence.averageTimeToReadiness.nearMonths !== null ? `${intelligence.averageTimeToReadiness.nearMonths.toFixed(1)} mo` : "-"} • Role-ready {intelligence.averageTimeToReadiness.roleReadyMonths !== null ? `${intelligence.averageTimeToReadiness.roleReadyMonths.toFixed(1)} mo` : "-"}
-                    </p>
+                    <div className="mt-2 grid gap-4 sm:grid-cols-[1fr_1fr] sm:items-center"><MetricGauge value={intelligence.averageTimeToReadiness.overallMonths} max={36} color="#94a3b8" label="months" /><div className="rounded-2xl bg-slate-100 px-4 py-4"><p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">No data yet</p><p className="mt-2 text-sm leading-6 text-slate-600">Add succession plans to track time to readiness over time.</p></div></div>
                   </article>
                 </div>
 
