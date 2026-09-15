@@ -28,6 +28,12 @@ import {
   type OrganizationAward,
 } from "@/lib/organization-awards";
 import { isMissingOrganizationIndustryColumnError } from "@/lib/organization-industry";
+
+function MetricGauge({ value, max = 100, color = "#ef4444", label }: { value: number | null; max?: number; color?: string; label: string }) {
+  const ratio = value == null ? 0 : Math.max(0, Math.min(1, value / max));
+  const arc = 251.2 * ratio;
+  return <div className="relative mx-auto mt-5 h-32 w-64"><svg viewBox="0 0 200 100" className="h-full w-full" aria-hidden="true"><path d="M 20 90 A 80 80 0 0 1 180 90" fill="none" stroke="#e2e8f0" strokeWidth="14" strokeLinecap="round" /><path d="M 20 90 A 80 80 0 0 1 180 90" fill="none" stroke={color} strokeWidth="14" strokeLinecap="round" strokeDasharray={`${arc} 251.2`} /></svg><div className="absolute inset-x-0 bottom-0 text-center"><p className="text-4xl font-semibold text-slate-900">{value == null ? "—" : value}</p><p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">{label}</p></div></div>;
+}
 import { isActiveMentorAssignmentStatus } from "@/lib/mentor-access";
 import { canonicalizeRoleTitle } from "@/lib/role-title";
 import { getActivePlatformSupportOrganization } from "@/lib/platform-support";
@@ -2669,8 +2675,7 @@ export default async function DashboardPage({
                     <p className="mt-2 text-3xl font-semibold text-slate-900 lg:text-[2rem]">
                       {intelligence.continuityScore.score}
                     </p>
-                    <div className="mx-auto mt-4 h-10 w-20 overflow-hidden rounded-t-full bg-slate-200"><div className="h-full w-1/3 bg-slate-400" /></div>
-                    <div className="mx-auto mt-5 h-20 w-40 overflow-hidden rounded-t-full bg-slate-200"><div className="h-full w-full origin-bottom bg-rose-500" style={{ transform: `rotate(${intelligence.continuityScore.score * 1.8 - 90}deg)`, transformOrigin: "50% 100%", clipPath: "polygon(50% 100%, 0 0, 100% 0)" }} /></div>
+                    <MetricGauge value={intelligence.continuityScore.score} label="/ 100" />
                     <p className="mt-2 text-sm font-semibold text-teal-800">
                       {intelligence.continuityScore.label}
                     </p>
@@ -2692,7 +2697,7 @@ export default async function DashboardPage({
                     <p className="mt-2 text-sm text-slate-600">
                       {formatPercent(intelligence.criticalRolesCovered.percentage)} covered
                     </p>
-                    <div className="mx-auto mt-3 h-16 w-16 rounded-full p-2" style={{ background: `conic-gradient(#10b981 ${intelligence.criticalRolesCovered.percentage}%, #e2e8f0 0)` }}><div className="flex h-full w-full items-center justify-center rounded-full bg-slate-50 text-xs font-semibold text-slate-700">{intelligence.criticalRolesCovered.percentage}%</div></div>
+                    <MetricGauge value={intelligence.criticalRolesCovered.percentage} color="#10b981" label="covered" />
                     <p className="mt-4 text-xs leading-6 text-slate-500">
                       {intelligence.criticalRolesCovered.uncoveredRoles.length > 0
                         ? `Uncovered: ${intelligence.criticalRolesCovered.uncoveredRoles
@@ -2737,7 +2742,7 @@ export default async function DashboardPage({
                     <p className="mt-2 text-3xl font-semibold text-slate-900 lg:text-[2rem]">
                       {intelligence.highRiskRoles}
                     </p>
-                    <div className="mx-auto mt-4 h-12 w-24 overflow-hidden rounded-t-full bg-slate-200"><div className="h-full w-full origin-bottom bg-rose-500" style={{ transform: `rotate(${Math.min(100, intelligence.highRiskRoles * 20) * 1.8 - 90}deg)`, transformOrigin: "50% 100%", clipPath: "polygon(50% 100%, 0 0, 100% 0)" }} /></div>
+                    <MetricGauge value={intelligence.highRiskRoles} max={10} label="at risk" />
                     <p className="mt-2 text-sm text-slate-600">
                       Roles needing immediate continuity attention
                     </p>
