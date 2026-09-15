@@ -1963,33 +1963,6 @@ export function LeadershipDevelopmentRecordManager({
                     )}
                   </div>
 
-                  <div className="flex flex-wrap gap-2">
-                    {!linkedSourceProject ? (
-                      <button type="button" onClick={() => handleProjectTool("expand_project")} disabled={isGeneratingProjectTool} className="rounded-full bg-teal-900 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300">
-                        {isGeneratingProjectTool ? "Generating..." : "Expand project with AI"}
-                      </button>
-                    ) : null}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        selectionRevisionRef.current += 1;
-                        setProjectDetailsOpen((current) => !current);
-                      }}
-                      className="rounded-full border border-teal-200 bg-white px-4 py-2 text-sm font-semibold text-teal-900 transition hover:bg-teal-100"
-                    >
-                      {projectDetailsOpen ? "Hide Project Details" : "Show Project Details"}
-                    </button>
-                    {linkedSourceProject ? (
-                      <button
-                        type="button"
-                        onClick={handleRemoveProject}
-                        disabled={isRemovingProject}
-                        className="rounded-full border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:text-rose-300"
-                      >
-                        {isRemovingProject ? "Removing Project…" : "Remove Project"}
-                      </button>
-                    ) : null}
-                  </div>
                 </div>
 
                 {projectDetailsOpen ? (
@@ -2307,6 +2280,12 @@ export function LeadershipDevelopmentRecordManager({
                           </div>
                         </article>
                       ))}
+
+                      <div className="flex flex-wrap gap-3 border-t border-amber-200 pt-5">
+                        {!linkedSourceProject ? <button type="button" onClick={() => handleProjectTool("expand_project")} disabled={isGeneratingProjectTool} className="rounded-full bg-teal-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{isGeneratingProjectTool ? "Generating..." : "Expand project with AI"}</button> : null}
+                        <button type="button" onClick={() => { selectionRevisionRef.current += 1; setProjectDetailsOpen((current) => !current); }} className="rounded-full border border-teal-200 bg-white px-4 py-2 text-sm font-semibold text-teal-900">{projectDetailsOpen ? "Hide Project Details" : "Show Project Details"}</button>
+                        {linkedSourceProject ? <button type="button" onClick={handleRemoveProject} disabled={isRemovingProject} className="rounded-full border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-700 disabled:opacity-50">{isRemovingProject ? "Removing Project…" : "Remove Project"}</button> : null}
+                      </div>
 
                       {!formState.id ? (
                         <div className="rounded-2xl border border-sky-200 bg-sky-50/70 p-4">
