@@ -2206,7 +2206,7 @@ export function LeadershipDevelopmentRecordManager({
               },
               {
                 id: "development-experience" as const,
-                title: "2. Develop the Experience",
+                title: "3. Develop the Experience",
                 body: (
                   <div className="grid gap-5">
                     <label className="block">
@@ -2334,7 +2334,7 @@ export function LeadershipDevelopmentRecordManager({
               },
               {
                 id: "development-focus" as const,
-                title: "3. Development Focus",
+                title: "2. Development Focus",
                 body: (
                   <div className="grid gap-5">
                     <div>
@@ -2847,7 +2847,10 @@ export function LeadershipDevelopmentRecordManager({
                   </div>
                 ),
               },
-            ].map((section) => (
+            ].sort((left, right) => {
+              const order = { "candidate-information": 1, "development-focus": 2, "development-experience": 3, "competency-scoring": 4, "leader-feedback": 5, "mentor-review": 6 } as Record<string, number>;
+              return (order[left.id] ?? 99) - (order[right.id] ?? 99);
+            }).map((section) => (
               <article key={section.id} className={`rounded-[1.5rem] border ${section.id === "development-experience" ? "border-amber-200 bg-amber-50" : "border-slate-200 bg-white"}`}>
                 <button
                   type="button"
