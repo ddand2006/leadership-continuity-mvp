@@ -1930,6 +1930,7 @@ export function LeadershipDevelopmentRecordManager({
             {projectToolsMount && shouldShowTransferredProjectEditor && formState
               ? createPortal(
               <article className="mt-6 rounded-[1.5rem] border-2 border-teal-200 bg-white px-6 py-6 shadow-[0_16px_40px_rgba(15,118,110,0.08)]">
+                <p className="mb-4 text-lg font-semibold text-slate-900">4. Mentee Worksheet</p>
                 <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                   <div>
                     <p className="text-xs font-semibold tracking-[0.16em] text-teal-700 uppercase">
@@ -2468,7 +2469,7 @@ export function LeadershipDevelopmentRecordManager({
               },
               {
                 id: "competency-scoring" as const,
-                title: "4. Competency Scoring",
+                title: "5. Competency Scoring",
                 body: (
                   <div className="grid gap-5">
                     <div className="flex items-center justify-between gap-3">
@@ -2624,7 +2625,7 @@ export function LeadershipDevelopmentRecordManager({
               },
               {
                 id: "leader-feedback" as const,
-                title: "5. Leader Feedback",
+                title: "6. Leader Feedback",
                 body: (
                   <div className="grid gap-5">
                     <div className="flex items-center justify-between gap-3">
@@ -2748,7 +2749,7 @@ export function LeadershipDevelopmentRecordManager({
               },
               {
                 id: "mentor-review" as const,
-                title: "6. Mentor Review",
+                title: "7. Mentor Review",
                 body: (
                   <div className="grid gap-4 md:grid-cols-2">
                     <label className="block">
