@@ -1928,7 +1928,7 @@ export function LeadershipDevelopmentRecordManager({
 
             {projectToolsMount && shouldShowTransferredProjectEditor && formState
               ? createPortal(
-              <article className="rounded-2xl border border-teal-200 bg-teal-50/60 px-5 py-5">
+              <article className="mt-6 rounded-[1.5rem] border-2 border-teal-200 bg-white px-6 py-6 shadow-[0_16px_40px_rgba(15,118,110,0.08)]">
                 <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                   <div>
                     <p className="text-xs font-semibold tracking-[0.16em] text-teal-700 uppercase">
