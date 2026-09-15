@@ -2876,7 +2876,7 @@ export function LeadershipDevelopmentRecordManager({
                 ),
               },
             ].map((section) => (
-              <article key={section.id} className="rounded-[1.5rem] border border-slate-200 bg-white">
+              <article key={section.id} className={`rounded-[1.5rem] border ${section.id === "development-experience" ? "border-amber-200 bg-amber-50" : "border-slate-200 bg-white"}`}>
                 <button
                   type="button"
                   onClick={() => toggleSection(section.id)}
