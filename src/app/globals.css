@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
 :root {
+  --font-body: "Manrope", Arial, sans-serif;
+  --font-display: "Fraunces", Georgia, serif;
   --background: #ffffff;
   --foreground: #0b2f6b;
   --page-surface: #ffffff;

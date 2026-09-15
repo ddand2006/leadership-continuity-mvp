@@ -1,19 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { headers } from "next/headers";
-import { Fraunces, Manrope } from "next/font/google";
 import { AppNav } from "@/components/app-nav";
 import "./globals.css";
-
-const displayFont = Fraunces({
-  variable: "--font-display",
-  subsets: ["latin"],
-});
-
-const bodyFont = Manrope({
-  variable: "--font-body",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "Leader Continuity System",
@@ -87,7 +76,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={`${displayFont.variable} ${bodyFont.variable} h-full antialiased`}
+      className="h-full antialiased"
     >
       <body className="min-h-full flex flex-col">
         {navigation}
