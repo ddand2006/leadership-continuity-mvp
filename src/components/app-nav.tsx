@@ -1,3 +1,5 @@
+import {PlatformPreviewChrome} from '@/components/platform-preview/chrome';
+import {canUsePlatformPreview} from '@/lib/platform-preview/model';
 import {canAccessCoachingPreview} from '@/lib/coaching/preview';
 import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
@@ -85,6 +87,7 @@ export async function AppNav({ pathname }: { pathname: string }) {
   const user = await getCurrentUser();
   let isAdmin = false;
   let isSystemAdmin = false;
+  let canPreviewPlatform = false;
   let isMentor = false;
   let isCandidate = false;
   let isCandidateOnly = false;
@@ -100,7 +103,7 @@ export async function AppNav({ pathname }: { pathname: string }) {
     const [profileResult, accountResult] = await Promise.all([
       supabase
         .from("profiles")
-        .select("id, role, organization_id")
+        .select("id, role, organization_id, deleted_at")
         .eq("auth_user_id", user.id)
         .maybeSingle(),
       supabase
@@ -120,6 +123,7 @@ export async function AppNav({ pathname }: { pathname: string }) {
 
     isAdmin = profileResult.data ? isAdminAppRole(profileResult.data.role) : false;
     isSystemAdmin = profileResult.data?.role === "system_admin";
+    canPreviewPlatform = canUsePlatformPreview(profileResult.data,user.email);
     isMentor =
       profileResult.data && accountResult.data
         ? isMentorAppUser(profileResult.data, accountResult.data)
@@ -222,7 +226,7 @@ export async function AppNav({ pathname }: { pathname: string }) {
         ? "Open Candidates"
         : "Open Dashboard";
 
-  return (
+  const navigation = (
     <header className="relative z-10 px-5 pt-4 sm:px-8 lg:px-10">
       <div className="mx-auto w-full max-w-[1380px]">
         <div className="theme-panel-strong rounded-[2rem] px-4 py-4 sm:px-6">
@@ -276,4 +280,5 @@ export async function AppNav({ pathname }: { pathname: string }) {
       </div>
     </header>
   );
+  return canPreviewPlatform ? <PlatformPreviewChrome>{navigation}</PlatformPreviewChrome> : navigation;
 }
