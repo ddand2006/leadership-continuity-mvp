@@ -2483,34 +2483,6 @@ export function LeadershipDevelopmentRecordManager({
                         </div>
                       ) : null}
 
-                      <div className="rounded-2xl border border-sky-200 bg-sky-50/70 p-4">
-                        <p className="text-sm font-semibold text-slate-900">
-                          Mentor direction for this project
-                        </p>
-                        <p className="mt-1 text-sm leading-6 text-slate-600">
-                          Generate tailored direction from the project details in Section 2,
-                          the growth areas, and the candidate&apos;s selected strengths.
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => handleGenerateMentorDirection()}
-                          disabled={isGeneratingMentorDirection}
-                          className="mt-4 rounded-full bg-teal-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-300"
-                        >
-                          {isGeneratingMentorDirection
-                            ? "Generating direction..."
-                            : formState.mentorDirectionNarrative
-                              ? "Regenerate mentor direction"
-                              : "Generate mentor direction"}
-                        </button>
-                        {formState.mentorDirectionNarrative.trim() ? (
-                          <button type="button" onClick={() => handleGenerateMentorDirection("save_document")} disabled={isGeneratingMentorDirection || isPending} className="mt-4 ml-3 rounded-full border border-teal-800 bg-white px-4 py-2 text-sm font-semibold text-teal-900 disabled:opacity-50">
-                            {isGeneratingMentorDirection ? "Preparing document…" : "Save mentor direction as Word"}
-                          </button>
-                        ) : null}
-                        <p className="mt-3 text-xs text-slate-600">New directions automatically save a Word copy. Use Save mentor direction as Word for an existing direction, then download or email the saved copy below.</p>
-                        <MentoringDocumentLibrary candidateId={selectedAssignment.candidateId} />
-                      </div>
                     </div>
                   </div>
                 ),
