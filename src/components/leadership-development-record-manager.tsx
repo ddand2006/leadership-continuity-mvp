@@ -1816,7 +1816,7 @@ export function LeadershipDevelopmentRecordManager({
 
         {selectedAssignment && formState ? (
           <>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-5">
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-5">
               <label className="block">
                 <span className="mb-2 block text-sm font-semibold text-slate-700">
                   Review Past Record, Create New Record, or Start from Selected Project
