@@ -34,6 +34,7 @@ function MetricGauge({ value, max = 100, color = "#ef4444", label }: { value: nu
   const arc = 251.2 * ratio;
   return <div className="relative mx-auto mt-5 h-32 w-64"><svg viewBox="0 0 200 100" className="h-full w-full" aria-hidden="true"><path d="M 20 90 A 80 80 0 0 1 180 90" fill="none" stroke="#e2e8f0" strokeWidth="14" strokeLinecap="round" /><path d="M 20 90 A 80 80 0 0 1 180 90" fill="none" stroke={color} strokeWidth="14" strokeLinecap="round" strokeDasharray={`${arc} 251.2`} /></svg><div className="absolute inset-x-0 bottom-0 text-center"><p className="text-4xl font-semibold text-slate-900">{value == null ? "—" : value}</p><p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">{label}</p></div></div>;
 }
+function CoverageRing({ value }: { value: number }) { return <div className="relative mx-auto mt-5 h-36 w-36 rounded-full p-4" style={{ background: `conic-gradient(#10b981 ${value}%, #e2e8f0 0)` }}><div className="flex h-full w-full flex-col items-center justify-center rounded-full bg-slate-50"><strong className="text-3xl text-emerald-800">{value}%</strong><span className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">covered</span></div></div>; }
 import { isActiveMentorAssignmentStatus } from "@/lib/mentor-access";
 import { canonicalizeRoleTitle } from "@/lib/role-title";
 import { getActivePlatformSupportOrganization } from "@/lib/platform-support";
@@ -2672,9 +2673,6 @@ export default async function DashboardPage({
                       Leadership Continuity Score
                     </p>
                     <p className="mt-2 text-sm leading-5 text-slate-600">Composite measure of leadership bench strength and role coverage across the organization.</p>
-                    <p className="mt-2 text-3xl font-semibold text-slate-900 lg:text-[2rem]">
-                      {intelligence.continuityScore.score}
-                    </p>
                     <MetricGauge value={intelligence.continuityScore.score} label="/ 100" />
                     <p className="mt-2 text-sm font-semibold text-teal-800">
                       {intelligence.continuityScore.label}
@@ -2697,7 +2695,7 @@ export default async function DashboardPage({
                     <p className="mt-2 text-sm text-slate-600">
                       {formatPercent(intelligence.criticalRolesCovered.percentage)} covered
                     </p>
-                    <MetricGauge value={intelligence.criticalRolesCovered.percentage} color="#10b981" label="covered" />
+                    <CoverageRing value={intelligence.criticalRolesCovered.percentage} />
                     <p className="mt-4 text-xs leading-6 text-slate-500">
                       {intelligence.criticalRolesCovered.uncoveredRoles.length > 0
                         ? `Uncovered: ${intelligence.criticalRolesCovered.uncoveredRoles
@@ -2720,6 +2718,7 @@ export default async function DashboardPage({
                       {intelligence.readySuccessors.near.length} near-ready • {intelligence.readySuccessors.ready.length} role-ready
                     </p>
                     <div className="mt-3 flex h-2 overflow-hidden rounded-full bg-slate-200"><div className="bg-blue-500" style={{ width: `${Math.min(100, intelligence.readySuccessors.near.length * 20)}%` }} /><div className="bg-emerald-500" style={{ width: `${Math.min(100, intelligence.readySuccessors.ready.length * 20)}%` }} /></div>
+                    <div className="mt-4 grid gap-2 text-sm"><div className="flex items-center justify-between"><span><span className="mr-2 inline-block h-3 w-3 rounded-full bg-blue-500" />Near-ready <span className="block pl-5 text-xs text-slate-500">Ready within 6–12 months</span></span><strong>{intelligence.readySuccessors.near.length}</strong></div><div className="flex items-center justify-between"><span><span className="mr-2 inline-block h-3 w-3 rounded-full bg-slate-300" />Role-ready <span className="block pl-5 text-xs text-slate-500">Ready now</span></span><strong>{intelligence.readySuccessors.ready.length}</strong></div></div>
                     <div className="mt-4 rounded-xl bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-800">Build momentum · Continue developing near-ready successors.</div>
                     <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-600">
                       {[...intelligence.readySuccessors.ready, ...intelligence.readySuccessors.near]
