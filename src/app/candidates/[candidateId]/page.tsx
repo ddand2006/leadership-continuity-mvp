@@ -1,3 +1,4 @@
+import { latestDevelopmentScores } from '@/lib/candidate-current-scores';
 import {canViewCoachingPreview} from '@/lib/coaching/preview-server';
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -926,12 +927,14 @@ export default async function CandidateDetailPage({
       }),
     };
   });
+  const currentCompetencyScores = latestDevelopmentScores(progressDevelopmentRecords, activeRoleId);
   const assessmentDashboard = (
     <CandidateAssessmentDashboard
       candidateName={candidate.full_name}
       interviewCompetencies={(competenciesResult.data ?? []).map((competency) => ({
         name: competency.name,
         targetScore: competency.target_score,
+        currentScore: currentCompetencyScores.get(competency.name.trim().toLowerCase()) ?? null,
         interviewScore:
           latestInterviewPanel?.scores.find(
             (score) => score.competencyId === competency.id,

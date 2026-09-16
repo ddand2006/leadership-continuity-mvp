@@ -1,0 +1,18 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const ts = require('typescript');
+const compiled = ts.transpileModule(fs.readFileSync(path.join(__dirname, '../src/lib/candidate-current-scores.ts'), 'utf8'), {compilerOptions: {module: ts.ModuleKind.CommonJS}}).outputText;
+const loaded = {exports: {}};
+new Function('module', 'exports', compiled)(loaded, loaded.exports);
+const {latestDevelopmentScores} = loaded.exports;
+const record = (role, date, score, name = 'Communication') => ({role_id: role, updated_at: date, development_record_competencies: [{competency_name: name, current_score: score}]});
+const records = [record('A', '2026-01-01', 2), record('B', '2026-09-01', 5), record('A', '2026-08-01', 4, ' communication '), record('A', '2026-09-01', null), record('A', '2026-08-01', 0, 'Delegation')];
+assert.equal(latestDevelopmentScores(records, 'A').get('communication'), 4);
+assert.equal(latestDevelopmentScores(records, 'A').get('delegation'), 0);
+assert.equal(latestDevelopmentScores(records, 'B').get('communication'), 5);
+assert.equal(latestDevelopmentScores(records, null).size, 0);
+assert.equal(latestDevelopmentScores([], 'A').size, 0);
+assert.equal(latestDevelopmentScores([record('A', null, NaN)], 'A').size, 0);
+assert.equal(records[0].updated_at, '2026-01-01');
+console.log('PASS latest score, role isolation, normalized names, missing values, zero values, and stable input.');

@@ -15,6 +15,7 @@ type InterviewCompetency = {
   name: string;
   targetScore: number;
   interviewScore: number | null;
+  currentScore: number | null;
 };
 
 type Review360Role = {
@@ -79,32 +80,36 @@ export function CandidateAssessmentDashboard({
             {latestInterviewPanelName ?? "No saved interview round yet"}
           </p>
           {interviewCompetencies.length > 0 ? (
-            <div className="mt-4 overflow-hidden rounded-2xl border border-sky-100 bg-white">
-              <div className="grid grid-cols-[minmax(0,1fr)_4.5rem_4.5rem] gap-2 border-b border-sky-100 bg-sky-50 px-4 py-2 text-xs font-semibold tracking-wide text-sky-800 uppercase">
-                <span>Category</span>
-                <span>Target</span>
-                <span>Interview</span>
-              </div>
-              {interviewCompetencies.map((competency) => (
-                <div
-                  key={competency.name}
-                  className="grid grid-cols-[minmax(0,1fr)_4.5rem_4.5rem] gap-2 border-b border-sky-50 px-4 py-3 text-sm last:border-0"
-                >
-                  <span className="font-semibold text-slate-900">{competency.name}</span>
-                  <span className="text-slate-600">{competency.targetScore.toFixed(1)}</span>
-                  <span className="font-semibold text-sky-900">
-                    {competency.interviewScore === null
-                      ? "—"
-                      : competency.interviewScore.toFixed(1)}
-                  </span>
-                </div>
-              ))}
+            <div className="mt-4 overflow-x-auto rounded-2xl border border-sky-100 bg-white">
+              <table className="w-full min-w-[23rem] text-left text-sm">
+                <thead className="border-b border-sky-100 bg-sky-50 text-xs font-semibold tracking-wide text-sky-800 uppercase">
+                  <tr>
+                    <th scope="col" className="px-3 py-2">Category</th>
+                    <th scope="col" className="px-3 py-2">Target</th>
+                    <th scope="col" className="px-3 py-2">Starting Score</th>
+                    <th scope="col" className="px-3 py-2">Current Score</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {interviewCompetencies.map((competency) => (
+                    <tr key={competency.name} className="border-b border-sky-50 last:border-0">
+                      <th scope="row" className="px-3 py-3 font-semibold text-slate-900">{competency.name}</th>
+                      <td className="px-3 py-3 text-slate-600">{competency.targetScore.toFixed(1)}</td>
+                      <td className="px-3 py-3 font-semibold text-sky-900">{competency.interviewScore === null ? "—" : competency.interviewScore.toFixed(1)}</td>
+                      <td className="px-3 py-3 font-semibold text-sky-900">{competency.currentScore === null ? "—" : competency.currentScore.toFixed(1)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           ) : (
             <p className="mt-4 text-sm text-slate-600">
               Add role competencies before interview scores can be recorded.
             </p>
           )}
+          <p className="mt-3 text-xs leading-5 text-slate-600">
+            Starting Score is the interview assessment shown above. Current Score is the latest recorded development score for this role; — means no score is recorded.
+          </p>
         </article>
 
         <article className="rounded-3xl border border-teal-100 bg-teal-50/70 p-5">
