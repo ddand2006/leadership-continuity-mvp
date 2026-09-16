@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 
 type Strength = {
   themeName: string;
@@ -44,6 +44,12 @@ export function CandidateAssessmentDashboard({
   review360Roles: Review360Role[];
   strengths: Strength[];
 }) {
+  const assessmentId = useId();
+  const [assessmentTab, setAssessmentTab] = useState<'interview' | 'feedback'>('interview');
+  const assessmentTabs = [
+    { id: 'interview', label: 'Interview Competencies' },
+    { id: 'feedback', label: '360 Feedback' },
+  ] as const;
   const [selectedStrengthName, setSelectedStrengthName] = useState(
     strengths[0]?.themeName ?? "",
   );
@@ -67,15 +73,41 @@ export function CandidateAssessmentDashboard({
           {candidateName}&apos;s evidence at a glance
         </h2>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
-          Compare the interview competency categories, confidential 360 feedback, and Gallup strengths. Use the tabs below to add or manage the underlying information.
+          Compare the interview competency categories, confidential 360 feedback, and Gallup strengths. Switch between Interview Competencies and 360 Feedback below. Manage the underlying information in the candidate tabs.
         </p>
       </div>
 
-      <div className="mt-6 grid gap-4 xl:grid-cols-[1.25fr_0.75fr_1fr]">
-        <article className="rounded-3xl border border-sky-100 bg-sky-50/70 p-5">
-          <p className="text-sm font-semibold tracking-[0.14em] text-sky-800 uppercase">
-            Interview competencies
-          </p>
+      <div className="mt-6 grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <article className="min-w-0 rounded-3xl border border-sky-100 bg-sky-50/70 p-5">
+          <div role="tablist" aria-label="Assessment evidence" className="flex flex-wrap gap-2 border-b border-sky-200 pb-4">
+            {assessmentTabs.map((tab, index) => (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                id={`${assessmentId}-${tab.id}-tab`}
+                aria-controls={`${assessmentId}-${tab.id}-panel`}
+                aria-selected={assessmentTab === tab.id}
+                tabIndex={assessmentTab === tab.id ? 0 : -1}
+                onClick={() => setAssessmentTab(tab.id)}
+                onKeyDown={(event) => {
+                  let next: number;
+                  if (event.key === 'ArrowRight') next = (index + 1) % assessmentTabs.length;
+                  else if (event.key === 'ArrowLeft') next = (index + assessmentTabs.length - 1) % assessmentTabs.length;
+                  else if (event.key === 'Home') next = 0;
+                  else if (event.key === 'End') next = assessmentTabs.length - 1;
+                  else return;
+                  event.preventDefault();
+                  setAssessmentTab(assessmentTabs[next].id);
+                  event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[next]?.focus();
+                }}
+                className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${assessmentTab === tab.id ? 'interactive-contrast border-teal-900 bg-teal-900 text-white' : 'border-sky-200 bg-white text-sky-900 hover:bg-sky-100'}`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          <div role="tabpanel" id={`${assessmentId}-interview-panel`} aria-labelledby={`${assessmentId}-interview-tab`} hidden={assessmentTab !== 'interview'} tabIndex={0} className="pt-3">
           <p className="mt-2 text-sm text-slate-600">
             {latestInterviewPanelName ?? "No saved interview round yet"}
           </p>
@@ -110,12 +142,8 @@ export function CandidateAssessmentDashboard({
           <p className="mt-3 text-xs leading-5 text-slate-600">
             Starting Score is the interview assessment shown above. Current Score is the latest recorded development score for this role; — means no score is recorded.
           </p>
-        </article>
-
-        <article className="rounded-3xl border border-teal-100 bg-teal-50/70 p-5">
-          <p className="text-sm font-semibold tracking-[0.14em] text-teal-800 uppercase">
-            360 Feedback
-          </p>
+          </div>
+          <div role="tabpanel" id={`${assessmentId}-feedback-panel`} aria-labelledby={`${assessmentId}-feedback-tab`} hidden={assessmentTab !== 'feedback'} tabIndex={0} className="pt-3">
           {review360Roles.length > 0 ? (
             <>
               <div className="mt-4 flex flex-wrap gap-2">
@@ -192,9 +220,10 @@ export function CandidateAssessmentDashboard({
           <p className="mt-4 text-xs leading-5 text-teal-900">
             Open the 360 Reviews tab for group-level results by competency.
           </p>
+          </div>
         </article>
 
-        <article className="rounded-3xl border border-slate-200 bg-white p-5">
+        <article className="min-w-0 rounded-3xl border border-slate-200 bg-white p-5">
           <p className="text-sm font-semibold tracking-[0.14em] text-slate-900 uppercase">
             Strengths
           </p>
