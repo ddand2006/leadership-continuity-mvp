@@ -189,6 +189,47 @@ async function syncSubscription(subscription: Stripe.Subscription) {
   }
 }
 
+async function sendCancellationConfirmation(event: Stripe.Event) {
+  if (event.type !== "customer.subscription.updated") return;
+  const subscription = event.data.object as Stripe.Subscription;
+  const previous = event.data.previous_attributes as Partial<Stripe.Subscription> | undefined;
+  // Only the transition into scheduled cancellation sends a confirmation.
+  if (!subscription.cancel_at_period_end || previous?.cancel_at_period_end !== false) return;
+
+  const admin = createSupabaseAdminClient();
+  const organizationId = getOrganizationIdFromStripeSubscription(subscription);
+  const query = admin.from("organizations").select("name, billing_contact_email");
+  const result = await (organizationId
+    ? query.eq("id", organizationId)
+    : query.eq("stripe_subscription_id", subscription.id)).maybeSingle();
+  if (result.error) throw new Error(result.error.message);
+  if (!result.data) return; // Subscription belongs to a different product.
+  if (!hasResendEnv()) throw new Error("Cancellation email is not configured.");
+
+  let recipient = result.data.billing_contact_email?.trim();
+  if (!recipient) {
+    const customerId = typeof subscription.customer === "string"
+      ? subscription.customer : subscription.customer.id;
+    const customer = await getStripe().customers.retrieve(customerId);
+    if (!customer.deleted) recipient = customer.email?.trim();
+  }
+  if (!recipient) throw new Error("Cancellation confirmation has no billing email.");
+
+  const end = subscription.cancel_at ?? Math.max(
+    ...subscription.items.data.map(item => item.current_period_end),
+  );
+  const date = Number.isFinite(end) ? formatDate(end) : null;
+  if (!date) throw new Error("Cancellation confirmation has no access end date.");
+  const text = `Cancellation is confirmed for ${result.data.name}. Your Leadership Continuity subscription will end on ${date} and will not renew. Your team will keep access until that date. Saved data will remain securely retained for reactivation. This confirmation does not issue a refund or cancel any outstanding invoices.`;
+  await sendResendEmail({
+    to: recipient,
+    subject: "Your Leadership Continuity cancellation is confirmed",
+    text,
+    html: `<p>${escapeHtml(text)}</p>`,
+    idempotencyKey: `stripe-cancellation-${event.id}`,
+  });
+}
+
 export async function POST(request: Request) {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!webhookSecret || !process.env.STRIPE_SECRET_KEY) {
@@ -219,6 +260,8 @@ export async function POST(request: Request) {
       event.type === "customer.subscription.deleted"
     ) {
       await syncSubscription(event.data.object as Stripe.Subscription);
+      // Return a failure on delivery errors so Stripe retries the confirmation.
+      await sendCancellationConfirmation(event);
     }
 
     if (event.type === "checkout.session.completed") {
