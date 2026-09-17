@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { headers } from "next/headers";
+import { SiteNavigation } from "@/components/site-navigation";
 import { AppNav } from "@/components/app-nav";
 import "./globals.css";
 
@@ -81,7 +82,7 @@ export default async function RootLayout({
       className="h-full antialiased"
     >
       <body className="min-h-full flex flex-col">
-        {navigation}
+        <SiteNavigation>{navigation}</SiteNavigation>
         {children}
       </body>
     </html>
