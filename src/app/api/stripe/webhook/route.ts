@@ -1,3 +1,4 @@
+import { handleAffiliateStripeEvent } from "@/lib/affiliate-commerce";
 import { handleCoachingStripeEvent } from "@/lib/coaching/commerce-provider";
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
@@ -298,6 +299,7 @@ export async function POST(request: Request) {
       }
     }
 
+    await handleAffiliateStripeEvent(event);
     return NextResponse.json({ received: true });
   } catch (error) {
     return NextResponse.json(

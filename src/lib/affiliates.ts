@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const affiliateSlug = z.string().min(2).max(80).regex(/^[a-z0-9]+(-[a-z0-9]+)*$/);
+export const affiliateSlug = z.string().min(2).max(80).regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, "Permanent page address: use lowercase letters, numbers and hyphens, such as miller-enterprises (no spaces or full URL)");
 export const affiliateBranding = z.object({
   displayName: z.string().trim().min(2).max(120),
   headline: z.string().trim().min(5).max(180),

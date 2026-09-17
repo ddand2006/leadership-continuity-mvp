@@ -12,6 +12,7 @@ function setup({ previous = false, scheduled = true, fail = false, email = 'bill
   const query = { select: () => query, update: () => query, eq: () => query,
     maybeSingle: async () => ({ data: { name: 'Miller <Enterprises>', billing_contact_email: email } }) };
   const imports = {
+    '@/lib/affiliate-commerce': { handleAffiliateStripeEvent: async () => {} },
     '@/lib/coaching/commerce-provider': { handleCoachingStripeEvent: async () => false },
     'next/server': { NextResponse: { json: (body, options) => ({ body, status: options?.status || 200 }) } },
     '@/lib/env': { hasResendEnv: () => true },
