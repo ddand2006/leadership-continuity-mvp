@@ -39,3 +39,11 @@ Commission basis currently records subscription revenue after discounts, excludi
 Database migration executed on a disposable PostgreSQL 16 instance with minimal organizations table and Supabase roles. `scripts/affiliates/foundation.sql` verifies spoofed terms overwritten, immutable attribution, preserved old rates/new terms version, role grants and unpublished referral rejection. Never run this fixture against production.
 
 Latest local verification: 13 API/billing tests pass; TypeScript passes; changed files lint with only the existing auth navigation warning; Webpack production build succeeds. Turbopack build is blocked by a local CSS-worker port permission error. The migration has not been applied to hosted Supabase, changes have not been deployed, and browser/end-to-end referral enrollment has not yet been verified.
+
+## Hosted rollout — September 17, 2026
+
+Migration applied and recorded in hosted Supabase. Application commit d952128 and navigation correction 7f41930 deployed. Live administrator editor successfully saved a draft without changing published copy, published the approved sample, and unpublished it (public page returned 404). The sample referral link opened signup with the affiliate code intact. Temporary partner removed; hosted database term verification used a rolled-back transaction and retained no test customer.
+
+16 automated tests now pass, including enrollment attribution from signup metadata, existing customer non-reassignment, unpublished referral rejection and server-only Stripe affiliate metadata. Hosted snapshot test confirmed original 20%/10% terms survive an affiliate rate change to 25%/15%, with payouts disabled.
+
+Remaining acceptance check: a real new-user email confirmation and checkout session for an affiliate referral. Waiting for user-provided test email. No test payment submitted. This is not evidence of a completed end-to-end customer purchase or affiliate payout.
