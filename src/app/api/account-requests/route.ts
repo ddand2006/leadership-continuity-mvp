@@ -49,11 +49,21 @@ export async function POST() {
       );
     }
 
+    // Resolve public referral codes on the server; rates never come from signup metadata.
+    const referralSlug = user.user_metadata?.affiliate_slug;
+    let affiliateId: string | null = null;
+    if (typeof referralSlug === "string" && referralSlug) {
+      const referral = await admin.from("affiliates").select("id").eq("slug", referralSlug).not("published_branding", "is", null).maybeSingle();
+      if (referral.error) throw referral.error;
+      if (!referral.data) return NextResponse.json({ error: "This partner page is no longer accepting referrals. Contact Leadership Continuity for help." }, { status: 409 });
+      affiliateId = referral.data.id;
+    }
     const normalizedEmail = user.email.trim().toLowerCase();
     const organizationResult = await admin
       .from("organizations")
       .insert({
         name: metadata.companyName,
+        ...(affiliateId ? { affiliate_id: affiliateId } : {}),
         billing_contact_email: normalizedEmail,
         subscription_status: "canceled",
         leadership_continuity_enabled: false,

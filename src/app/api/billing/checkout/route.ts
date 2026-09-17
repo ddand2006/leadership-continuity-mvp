@@ -33,7 +33,7 @@ export async function POST(request: Request) {
 
     const organizationResult = await context.admin
       .from("organizations")
-      .select("name, billing_contact_email, hide_billing_controls, stripe_customer_id, stripe_subscription_id")
+      .select("name, billing_contact_email, hide_billing_controls, stripe_customer_id, stripe_subscription_id, affiliate_id")
       .eq("id", context.profile.organization_id)
       .single();
 
@@ -91,9 +91,9 @@ export async function POST(request: Request) {
         : organization.billing_contact_email ?? context.user.email,
       client_reference_id: context.profile.organization_id,
       line_items: lineItems,
-      metadata: { organization_id: context.profile.organization_id },
+      metadata: { organization_id: context.profile.organization_id, ...(organization.affiliate_id ? { affiliate_id: organization.affiliate_id } : {}) },
       subscription_data: {
-        metadata: { organization_id: context.profile.organization_id },
+        metadata: { organization_id: context.profile.organization_id, ...(organization.affiliate_id ? { affiliate_id: organization.affiliate_id } : {}) },
       },
       success_url: getStripeBillingReturnUrl("/subscribe?checkout=success"),
       cancel_url: getStripeBillingReturnUrl("/subscribe?checkout=canceled"),

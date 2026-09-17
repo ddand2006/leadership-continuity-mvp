@@ -6,11 +6,12 @@ type AuthPageProps = {
   searchParams: Promise<{
     message?: string;
     mode?: string;
+    affiliate?: string;
   }>;
 };
 
 export default async function AuthPage({ searchParams }: AuthPageProps) {
-  const { message, mode } = await searchParams;
+  const { message, mode, affiliate } = await searchParams;
   const requestedMode = mode === "signup" ? "signup" : "signin";
   const initialMode = requestedMode;
 
@@ -53,7 +54,7 @@ export default async function AuthPage({ searchParams }: AuthPageProps) {
           </div>
         ) : null}
 
-        <AuthForms initialMode={initialMode} />
+        <AuthForms initialMode={initialMode} affiliateSlug={affiliate} />
       </div>
     </main>
   );

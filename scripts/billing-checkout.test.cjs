@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const ts = require('typescript');
 
-function setup({ organizationId = 'private-org', coupon = {}, total = 0 } = {}) {
+function setup({ organizationId = 'private-org', coupon = {}, total = 0, affiliateId }  = {}) {
   const calls = [];
   class ApiRouteError extends Error {
     constructor(message, status) { super(message); this.status = status; }
@@ -28,7 +28,7 @@ function setup({ organizationId = 'private-org', coupon = {}, total = 0 } = {}) 
       createApiErrorResponse: error => ({ status: error.status || 500, body: { error: error.message } }),
       requireApiWorkspaceProfile: async () => ({
         user: { email: 'verification@example.com' }, profile: { organization_id: organizationId },
-        admin: { from: () => ({ select: () => ({ eq: () => ({ single: async () => ({ data: {}, error: null }) }) }) }) },
+        admin: { from: () => ({ select: () => ({ eq: () => ({ single: async () => ({ data: { affiliate_id: affiliateId }, error: null }) }) }) }) },
       }),
     },
     '@/lib/stripe-billing': {
@@ -85,4 +85,13 @@ test('a nonzero or unknown verification total expires the session and never retu
     assert.equal(response.body.url, undefined);
     assert.ok(t.calls.some(c => c.expired === 'cs_verification'));
   }
+});
+
+ test('checkout uses only the stored affiliate for session and renewal metadata', async () => {
+  const t = setup({ organizationId: 'paying-org', total: 300000, affiliateId: 'trusted-affiliate' });
+  assert.equal((await t.run({ affiliate_id: 'spoofed-affiliate' })).status, 200);
+  const checkout = t.calls.find(c => c.checkout).checkout;
+  assert.equal(checkout.metadata.affiliate_id, 'trusted-affiliate');
+  assert.equal(checkout.subscription_data.metadata.affiliate_id, 'trusted-affiliate');
+  assert.equal(checkout.subscription_data.transfer_data, undefined);
 });

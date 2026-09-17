@@ -34,7 +34,9 @@ export default async function RootLayout({
   );
   let navigation: React.ReactNode;
 
-  if (pathname.startsWith("/auth")) {
+  if (pathname.startsWith("/partners/")) {
+    navigation = null;
+  } else if (pathname.startsWith("/auth")) {
     navigation = (
       <header className="relative z-10 px-5 pt-4 sm:px-8 lg:px-10">
         <div className="mx-auto w-full max-w-[1380px]">

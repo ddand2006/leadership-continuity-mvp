@@ -25,7 +25,7 @@ async function syncSessionToServer(session: Session) {
   }
 }
 
-export function AuthForms(props: { initialMode?: "signin" | "signup" }) {
+export function AuthForms(props: { initialMode?: "signin" | "signup"; affiliateSlug?: string }) {
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [isSigningIn, setIsSigningIn] = useState(false);
@@ -59,7 +59,7 @@ export function AuthForms(props: { initialMode?: "signin" | "signup" }) {
         email: signUp.email.trim(), password: signUp.password,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/confirm?mode=signup&next=/account-request-received`,
-          data: { account_request: { fullName: signUp.fullName.trim(), companyName: signUp.companyName.trim(), phone: signUp.phone.trim(), roleTitle: signUp.roleTitle.trim() } },
+          data: { affiliate_slug: props.affiliateSlug, account_request: { fullName: signUp.fullName.trim(), companyName: signUp.companyName.trim(), phone: signUp.phone.trim(), roleTitle: signUp.roleTitle.trim() } },
         },
       });
       if (error) throw error;

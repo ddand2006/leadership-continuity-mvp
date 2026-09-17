@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PlatformOperationsPanel } from "@/components/platform-operations-panel";
 import {
@@ -93,6 +94,7 @@ export default async function PlatformOperationsPage() {
           <h1 className="mt-3 font-display text-5xl">Platform operations</h1>
           <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600">Monitor customer adoption, seat utilization, subscription posture, and succession-award progress across every organization.</p>
         </section>
+        <Link href="/platform-operations/affiliates" className="mb-6 inline-block rounded-full bg-slate-950 px-5 py-3 font-semibold text-white">Manage affiliate partners</Link>
         <PlatformOperationsPanel
           requests={requests.data ?? []}
           organizations={organizationsByAccessAndName.map(({ id, name, manual_access_status, manual_access_note }) => ({ id, name, manual_access_status, manual_access_note }))}
