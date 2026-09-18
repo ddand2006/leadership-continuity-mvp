@@ -253,6 +253,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid Stripe webhook signature." }, { status: 400 });
   }
 
+  // The dedicated affiliate sandbox endpoint never synchronizes live access.
+  if (event.livemode === false && /^(sk|rk)_live_/.test(process.env.STRIPE_SECRET_KEY ?? "")) {
+    return NextResponse.json({ error: "Test events belong on the sandbox endpoint." }, { status: 400 });
+  }
   try {
     if (await handleCoachingStripeEvent(event)) return NextResponse.json({ received: true });
     if (

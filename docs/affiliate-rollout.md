@@ -59,3 +59,15 @@ The administrator can review the latest 20 paid invoices per customer and query 
 25 automated tests pass, production Webpack build passes, TypeScript passes, and isolated PostgreSQL tests verify replay safety, duplicate annual holds and payout-contact locking. Real Stripe account onboarding, bank verification and real renewal/refund events have not been exercised. Waiting for the first affiliate's company, payout email and country; do not represent account or payout verification as complete. Hosted migration 202609170002 is applied before code rollout.
 
 Production commit 74f35f6 deployed successfully. Stripe destination we_1UGhp5BbS6Ievc9tvYkGNmo5 now retains all seven billing events and adds charge.refunded, charge.dispute.created and charge.dispute.closed (10 events total). Live editor shows payment controls for the user-created Rural Health Experts draft. No connected account has been created by this rollout; payout contact and country still require user input.
+
+## Isolated affiliate sandbox (2026-09-17)
+
+Migration `202609170003` marks the user-identified fake Rural Health Experts affiliate as sandbox-only. Its public enrollment page is unavailable; admin draft preview remains available. Sandbox checkout creates a simulated annual $3,000 subscription and stores client/invoice records in private sandbox tables, never in organizations or live earnings. Commission estimates remain review-only; no transfers are implemented.
+
+Hostinger requires two additional secrets from **LeaderContinuity sandbox** (`acct_1UGhA8AwCxMs8Znx`):
+- `STRIPE_AFFILIATE_TEST_SECRET_KEY`: sandbox secret key. The application rejects live keys and does not fall back to `STRIPE_SECRET_KEY`.
+- `STRIPE_AFFILIATE_TEST_WEBHOOK_SECRET`: signing secret for `https://leadercontinuity.com/api/affiliates/sandbox/webhook`. Subscribe to `invoice.payment_succeeded`, `charge.refunded`, `charge.dispute.created`, and `charge.dispute.closed`.
+
+Leave live Stripe environment variables unchanged. After adding secrets, redeploy and use Platform operations → Affiliate partners → Rural Health Experts (Sandbox only). Test Connect setup and sandbox checkout with Stripe's simulated details/payment methods. Verify invoice commission estimates, refund holds, and event replay. End-to-end verification is pending until these credentials are installed.
+
+Validation: sandbox credential-mode guards, webhook live-event rejection, admin checkout authorization, onboarding mode selection, and database publication/enrollment/mode-lock tests. Build verified with `next build --webpack`.

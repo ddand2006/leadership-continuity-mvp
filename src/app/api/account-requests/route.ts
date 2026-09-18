@@ -53,7 +53,7 @@ export async function POST() {
     const referralSlug = user.user_metadata?.affiliate_slug;
     let affiliateId: string | null = null;
     if (typeof referralSlug === "string" && referralSlug) {
-      const referral = await admin.from("affiliates").select("id").eq("slug", referralSlug).not("published_branding", "is", null).maybeSingle();
+      const referral = await admin.from("affiliates").select("id").eq("slug", referralSlug).eq("is_sandbox", false).not("published_branding", "is", null).maybeSingle();
       if (referral.error) throw referral.error;
       if (!referral.data) return NextResponse.json({ error: "This partner page is no longer accepting referrals. Contact Leadership Continuity for help." }, { status: 409 });
       affiliateId = referral.data.id;

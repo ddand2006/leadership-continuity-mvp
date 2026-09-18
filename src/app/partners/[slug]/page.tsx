@@ -6,8 +6,9 @@ export const dynamic = "force-dynamic";
 export default async function PartnerPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   if (!affiliateSlug.safeParse(slug).success) notFound();
-  const { data, error } = await createSupabaseAdminClient().from("affiliates").select("published_branding").eq("slug", slug).maybeSingle();
+  const { data, error } = await createSupabaseAdminClient().from("affiliates").select("published_branding,is_sandbox").eq("slug", slug).maybeSingle();
   if (error) throw new Error("Unable to load partner page.");
+  if (data?.is_sandbox) notFound();
   const branding = affiliateBranding.safeParse(data?.published_branding);
   if (!branding.success) notFound();
   return <AffiliateLanding branding={branding.data} slug={slug} />;

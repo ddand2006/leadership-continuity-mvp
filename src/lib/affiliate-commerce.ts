@@ -9,6 +9,7 @@ export async function recordAffiliateInvoice(invoiceId: string) {
  const ref = invoice.parent?.subscription_details?.subscription;
  const subscriptionId = typeof ref === "string" ? ref : ref?.id;
  if (!subscriptionId) return;
+ if (!invoice.livemode) throw new Error("Test invoices cannot enter the live affiliate ledger.");
  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
  const orgId = subscription.metadata.organization_id;
  if (!orgId) return;
