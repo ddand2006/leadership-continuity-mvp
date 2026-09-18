@@ -18,7 +18,7 @@ export function AffiliatePayments({ affiliateId, admin = false, sandbox = false 
   try {
    const {error}=await createSupabaseBrowserClient().auth.signInWithOtp({email,options:{emailRedirectTo:`${window.location.origin}/auth/confirm?next=${encodeURIComponent(`/affiliate-payments?id=${affiliateId}`)}`}});
    if(error) throw error;
-   setResult({message:"Check your email for the secure sign-in link, then return here and check your Stripe status."});
+   setResult({message:"Open the newest sign-in email in this same browser and browser profile. If your email opens links elsewhere, copy the link and paste it into this browser. Then continue to Stripe setup."});
   } catch(e){setResult({error:e instanceof Error ? e.message : "Unable to send sign-in link."});}finally{setBusy(false);}
  }
  return <section className="space-y-4 rounded-2xl border bg-white p-6"><h2 className="text-2xl font-semibold">Affiliate payments</h2><p>Stripe collects the affiliate’s business and bank details securely. Commission transfers are disabled while this integration is being verified.</p>

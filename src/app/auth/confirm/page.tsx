@@ -50,7 +50,9 @@ export default function AuthConfirmPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSavingPassword, setIsSavingPassword] = useState(false);
 
-  const nextPath = searchParams.get("next") ?? "/";
+  const requestedNext = searchParams.get("next") ?? "/";
+  const nextPath = requestedNext.startsWith("/") && !requestedNext.startsWith("//") && !requestedNext.includes("\\") ? requestedNext : "/";
+  const isPartnerSignIn = nextPath.startsWith("/affiliate-payments?");
   const requestedMode = searchParams.get("mode");
   const tokenHash = searchParams.get("token_hash");
   const code = searchParams.get("code");
@@ -205,7 +207,9 @@ export default function AuthConfirmPage() {
         setState("error");
         setErrorMessage(
           error instanceof Error
-            ? error.message
+            ? /code verifier|pkce/i.test(error.message)
+              ? "This sign-in link cannot be verified in this browser. Request a new link, then open the newest email link in the same browser and browser profile where you requested it. Avoid private browsing."
+              : error.message
             : "We could not complete the email link.",
         );
       }
@@ -357,6 +361,7 @@ export default function AuthConfirmPage() {
           {state === "error" || errorMessage ? (
             <div className="mt-8 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-medium text-amber-900">
               {errorMessage}
+              {state === "error" && isPartnerSignIn && <p className="mt-4"><a className="underline" href={nextPath}>Return to partner setup and request a new sign-in link</a></p>}
             </div>
           ) : null}
         </section>
