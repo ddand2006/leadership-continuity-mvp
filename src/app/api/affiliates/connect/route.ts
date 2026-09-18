@@ -58,7 +58,7 @@ export async function POST(request: Request) {
   let accountId = accountRow.data?.account_id as string | undefined;
   if (p.action === "onboard") {
    // A platform administrator may configure the contact but may not impersonate it.
-   if (!isOwner && !(affiliate.is_sandbox && isPlatformAdmin)) throw new ApiRouteError("The named payout contact must sign in and complete Stripe setup themselves.", 403);
+   if (!isOwner && !(affiliate.is_sandbox && isPlatformAdmin)) throw new ApiRouteError(`You are signed in as ${user.email}. Sign in using the designated payout email before continuing to Stripe.`, 403);
    if (!affiliate.is_sandbox && !affiliate.payout_country) throw new ApiRouteError("Your business country must be configured first.", 409);
    if (!accountId) {
     const reserved = await admin.from("affiliate_connect_accounts").upsert({ affiliate_id: affiliate.id, livemode }, { onConflict: "affiliate_id,livemode", ignoreDuplicates: true });
