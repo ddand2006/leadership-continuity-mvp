@@ -19,7 +19,7 @@ export async function POST(request:Request) {
   if(customer.livemode) throw new Error('Live customer rejected by sandbox.');
   const saved=await admin.from('affiliate_sandbox_clients').update({customer_id:customer.id}).eq('id',id);
   if(saved.error) throw new Error(saved.error.message);
-  const session=await stripe.checkout.sessions.create({mode:'subscription',customer:customer.id,metadata,subscription_data:{metadata},line_items:[{quantity:1,price_data:{currency:'usd',unit_amount:300000,recurring:{interval:'year'},product_data:{name:'SANDBOX ONLY — Leadership Continuity Foundation'}}}],success_url:getStripeBillingReturnUrl('/platform-operations/affiliates?sandbox=paid'),cancel_url:getStripeBillingReturnUrl('/platform-operations/affiliates?sandbox=canceled')},{idempotencyKey:`affiliate-sandbox-checkout-${id}`});
+  const session=await stripe.checkout.sessions.create({mode:'subscription',managed_payments:{enabled:false},customer:customer.id,metadata,subscription_data:{metadata},line_items:[{quantity:1,price_data:{currency:'usd',unit_amount:300000,recurring:{interval:'year'},product_data:{name:'SANDBOX ONLY — Leadership Continuity Foundation'}}}],success_url:getStripeBillingReturnUrl('/platform-operations/affiliates?sandbox=paid'),cancel_url:getStripeBillingReturnUrl('/platform-operations/affiliates?sandbox=canceled')},{idempotencyKey:`affiliate-sandbox-checkout-${id}`});
   if(session.livemode || !session.url) throw new Error('Invalid sandbox checkout.');
   return NextResponse.json({url:session.url});
  }catch(error){return createApiErrorResponse(error,'Unable to start sandbox checkout.');}
