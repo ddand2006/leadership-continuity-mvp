@@ -1,7 +1,7 @@
 const test=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const ts=require('typescript');
-function setup({email='owner@example.invalid',role='hospital_admin',old=false,sandbox=false}={}){
+function setup({email='owner@example.invalid',role='hospital_admin',old=false,sandbox=false,retryKey=null}={}){
  const calls=[]; const affiliate={id:'11111111-1111-4111-8111-111111111111',name:'Partner',is_sandbox:sandbox,payout_email:'owner@example.invalid',payout_country:'US'};
- const account={account_id:null,requested_at:new Date(Date.now()-(old?25*3600000:0)).toISOString()};
+ const account={creation_retry_key:retryKey,account_id:null,requested_at:new Date(Date.now()-(old?25*3600000:0)).toISOString()};
  const admin={from(table){const q={select:()=>q,eq:()=>q,limit:()=>q,update:v=>{calls.push({update:v});return q;},upsert:()=>q,maybeSingle:async()=>({data:table==='affiliates'?affiliate:account}),single:async()=>({data:table==='affiliates'?affiliate:account})};return q;}};
  class ApiRouteError extends Error{constructor(m,s){super(m);this.status=s;}}
  const stripe={accounts:{create:async(params,options)=>{calls.push({create:params,key:options.idempotencyKey});return{id:'acct_test'};}},accountLinks:{create:async params=>{calls.push({link:params});return{url:'https://connect.stripe.com/setup/test'};}}};
@@ -15,3 +15,5 @@ test('owner onboarding uses stable idempotency and fixed return paths',async()=>
 test('uncertain account creation older than Stripe idempotency window cannot retry',async()=>{const t=setup({old:true});assert.equal((await t.run()).status,409);assert.equal(t.calls.some(c=>c.create),false);});
 
 test('sandbox onboarding requires a platform admin and explicitly chooses test mode',async()=>{const denied=setup({sandbox:true});assert.equal((await denied.run()).status,403);assert.equal(denied.calls.some(c=>c.create),false);const allowed=setup({sandbox:true,role:'system_admin',email:'admin@example.invalid'});assert.equal((await allowed.run()).status,200);assert.equal(allowed.calls.find(c=>'sandbox' in c).sandbox,true);assert.equal(allowed.calls.find(c=>c.create).create.email,undefined);assert.match(allowed.calls.find(c=>c.create).key,/-false$/);});
+
+test('administrator-reconciled retry retains the same stored key across attempts',async()=>{const t=setup({retryKey:'affiliate-verified-retry-123'});assert.equal((await t.run()).status,200);assert.equal((await t.run()).status,200);assert.deepEqual(t.calls.filter(c=>c.create).map(c=>c.key),['affiliate-verified-retry-123','affiliate-verified-retry-123']);});

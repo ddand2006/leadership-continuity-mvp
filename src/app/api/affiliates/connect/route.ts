@@ -63,7 +63,7 @@ export async function POST(request: Request) {
    if (!accountId) {
     const reserved = await admin.from("affiliate_connect_accounts").upsert({ affiliate_id: affiliate.id, livemode }, { onConflict: "affiliate_id,livemode", ignoreDuplicates: true });
     if (reserved.error) throw new Error(reserved.error.message);
-    const row = await admin.from("affiliate_connect_accounts").select("account_id,requested_at").eq("affiliate_id", affiliate.id).eq("livemode", livemode).single();
+    const row = await admin.from("affiliate_connect_accounts").select("account_id,requested_at,creation_retry_key").eq("affiliate_id", affiliate.id).eq("livemode", livemode).single();
     if (row.error) throw new Error(row.error.message);
     const current = await admin.from("affiliates").select("payout_email,payout_country").eq("id", affiliate.id).single();
     if (current.error) throw new Error(current.error.message);
@@ -73,7 +73,7 @@ export async function POST(request: Request) {
     accountId = row.data.account_id;
     if (!accountId) {
      if (Date.now() - Date.parse(row.data.requested_at) > 23 * 3600000) throw new ApiRouteError("Stripe setup needs administrator reconciliation before retrying.", 409);
-     const account = await stripe.accounts.create({ type: "express", country: affiliate.is_sandbox ? "US" : affiliate.payout_country!, ...(affiliate.is_sandbox ? {} : { email: affiliate.payout_email! }), capabilities: { transfers: { requested: true } }, metadata: { affiliate_id: affiliate.id } }, { idempotencyKey: `affiliate-connect-${affiliate.id}-${livemode}` });
+     const account = await stripe.accounts.create({ type: "express", country: affiliate.is_sandbox ? "US" : affiliate.payout_country!, ...(affiliate.is_sandbox ? {} : { email: affiliate.payout_email! }), capabilities: { transfers: { requested: true } }, metadata: { affiliate_id: affiliate.id } }, { idempotencyKey: row.data.creation_retry_key ?? `affiliate-connect-${affiliate.id}-${livemode}` });
      accountId = account.id;
      const saved = await admin.from("affiliate_connect_accounts").update({ account_id: accountId }).eq("affiliate_id", affiliate.id).eq("livemode", livemode);
      if (saved.error) throw new Error(saved.error.message);
