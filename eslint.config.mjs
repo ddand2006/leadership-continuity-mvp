@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Test fixtures use CommonJS and are run directly by Node.
+    "scripts/**/*.cjs",
   ]),
 ]);
 

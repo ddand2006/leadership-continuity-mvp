@@ -23,7 +23,7 @@
     "dev:turbo": "next dev",
     "build": "next build",
     "start": "next start -H 0.0.0.0 -p ${PORT:-3000}",
-    "lint": "eslint",
+    "lint": "eslint src",
     "typecheck": "tsc --noEmit",
     "db:push": "npx supabase db push",
     "db:seed": "npx supabase db reset"
