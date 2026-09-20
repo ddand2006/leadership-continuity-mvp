@@ -8,6 +8,12 @@ import type { AffiliateBranding } from "@/lib/affiliates";
 type Affiliate = { is_sandbox?: boolean; id: string; name: string; slug: string; draft_branding: AffiliateBranding; published_branding: AffiliateBranding | null; initial_bps: number; renewal_bps: number; renewal_years: number | null };
 const empty = { name: "", slug: "", initialPercent: 0, renewalPercent: 0, renewalYears: null as number | null,
  branding: { displayName: "", headline: "Build your next generation of leaders", description: "Prepare your organization for leadership transitions with a structured approach to development, mentoring, and succession.", contactName: "", contactEmail: "", phone: "", address: "", color: "#0f766e", logoUrl: "" } };
+function formatPhone(value: string) {
+ const digits = value.replace(/\D/g, "").slice(0, 10);
+ if (digits.length <= 3) return digits ? `(${digits}` : "";
+ if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+ return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+}
 export function AffiliateManager({ affiliates, referrals }: { affiliates: Affiliate[]; referrals: { id: string; name: string; affiliate_id: string; subscription_status: string; affiliate_terms: { initial_bps: number; renewal_bps: number } }[] }) {
  const router = useRouter();
  const [form, setForm] = useState<typeof empty & { id?: string }>(empty);
@@ -32,7 +38,7 @@ export function AffiliateManager({ affiliates, referrals }: { affiliates: Affili
  <form className="grid gap-5 rounded-2xl border bg-white p-6 md:grid-cols-2" onSubmit={event => { event.preventDefault(); void save("save"); }} onChangeCapture={() => setApproved(false)}>
  <label>Company name<input required className={input} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}/></label>
  <label>Permanent page address<input required disabled={!!form.id} className={input} placeholder="company-name" value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value })}/><small>/partners/{form.slug || "company-name"}</small></label>
- {([['displayName','Public company name'],['headline','Headline'],['contactName','Contact name'],['contactEmail','Contact email'],['phone','Phone'],['logoUrl','Logo URL (HTTPS)'],['color','Accent color']] as const).map(([key,label]) => <label key={key}>{label}<input className={input} type={key === 'color' ? 'color' : key === 'contactEmail' ? 'email' : 'text'} value={form.branding[key]} onChange={e => setForm({ ...form, branding: { ...form.branding, [key]: e.target.value } })}/></label>)}
+ {([['displayName','Public company name'],['headline','Headline'],['contactName','Contact name'],['contactEmail','Contact email'],['phone','Phone'],['logoUrl','Logo URL (HTTPS)'],['color','Accent color']] as const).map(([key,label]) => <label key={key}>{label}<input className={input} type={key === 'color' ? 'color' : key === 'contactEmail' ? 'email' : 'text'} placeholder={key === 'phone' ? '(555) 123-4567' : undefined} value={key === 'phone' ? formatPhone(form.branding.phone) : form.branding[key]} onChange={e => setForm({ ...form, branding: { ...form.branding, [key]: key === 'phone' ? formatPhone(e.target.value) : e.target.value } })}/></label>)}
  <label className="md:col-span-2">Business address<textarea className={input} rows={3} placeholder="Street, city, state, ZIP" value={form.branding.address} onChange={e => setForm({ ...form, branding: { ...form.branding, address: e.target.value } })}/></label>
  <label className="md:col-span-2">Introduction<textarea className={input} rows={5} value={form.branding.description} onChange={e => setForm({ ...form, branding: { ...form.branding, description: e.target.value } })}/></label>
  {([['initialPercent','Initial sale commission (%)'],['renewalPercent','Renewal commission (%)']] as const).map(([key,label]) => <label key={key}>{label}<input required type="number" min="0" max="100" step="0.01" className={input} value={form[key]} onChange={e => setForm({ ...form, [key]: Number(e.target.value) })}/></label>)}

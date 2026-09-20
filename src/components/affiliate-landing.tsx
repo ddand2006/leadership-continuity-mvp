@@ -7,7 +7,7 @@ export function AffiliateLanding({ branding: b, slug, preview = false }: { brand
     {preview && <p className="bg-amber-100 p-4 text-center font-semibold">Draft preview · Not published · Enrollment disabled</p>}
     <div className="mx-auto max-w-5xl px-6 py-12">
       <header className="flex items-center justify-between gap-6 border-b border-slate-200 pb-6">
-        <div className="flex items-center gap-4">{b.logoUrl && <img src={b.logoUrl} alt="" className="h-14 max-w-48 object-contain" referrerPolicy="no-referrer" />}<strong className="text-xl">{b.displayName}</strong></div>
+        <div className="flex items-center gap-4">{b.logoUrl && <img src={b.logoUrl} alt="" className="h-14 max-w-48 object-contain" referrerPolicy="no-referrer" />}<div><strong className="block text-xl">{b.displayName}</strong>{b.phone && <p className="mt-1 text-sm text-slate-500"><a className="underline" href={`tel:${b.phone}`}>{b.phone}</a></p>}</div></div>
         <Link href="/auth" className="underline">Client sign in</Link>
       </header>
       <section className="py-20"><p className="mb-5 text-sm font-bold uppercase tracking-widest" style={{ color: b.color }}>Leadership Continuity · Partner program</p>
