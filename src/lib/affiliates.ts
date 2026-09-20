@@ -6,6 +6,9 @@ export const affiliateBranding = z.object({
   headline: z.string().trim().min(5).max(180),
   description: z.string().trim().min(20).max(2000),
   contactEmail: z.string().trim().email().max(320),
+  contactName: z.string().trim().max(120).optional().default(""),
+  phone: z.string().trim().max(40).optional().default(""),
+  address: z.string().trim().max(500).optional().default(""),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   logoUrl: z.union([z.literal(""), z.string().url().refine(value => new URL(value).protocol === "https:", "Use an HTTPS logo URL")]),
 });
