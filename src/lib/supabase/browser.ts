@@ -7,5 +7,8 @@ export function createSupabaseBrowserClient() {
   return createBrowserClient(
     env.NEXT_PUBLIC_SUPABASE_URL,
     env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+    // /auth/confirm explicitly exchanges email codes and handles invite/recovery.
+    // Automatic URL handling would consume the one-use code/verifier first.
+    { auth: { detectSessionInUrl: false } },
   );
 }
