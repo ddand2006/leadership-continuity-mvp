@@ -1,4 +1,5 @@
 "use client";
+import { ShareAffiliateLink } from "@/components/share-affiliate-link";
 import { AffiliatePayments } from "@/components/affiliate-payments";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -40,6 +41,7 @@ export function AffiliateManager({ affiliates, referrals }: { affiliates: Affili
  <div className="flex flex-wrap gap-3 md:col-span-2"><button disabled={busy} className="rounded-lg bg-slate-900 p-3 text-white">Save draft & terms</button><button disabled={busy || !approved || selectedSandbox} type="button" className="rounded-lg border p-3 disabled:opacity-40" onClick={() => void save("publish")}>Publish approved page</button><button type="button" className="rounded-lg border p-3" onClick={() => setPreview(!preview)}>Preview draft</button>{form.id && <button type="button" disabled={busy} className="rounded-lg border p-3" onClick={() => void save("unpublish")}>Unpublish</button>}</div>
  {message && <p role="status" className="md:col-span-2">{message}</p>}
  </form>
+ {form.id && !selectedSandbox && <section className="space-y-4"><h2 className="text-2xl font-semibold">Invite and share</h2><p>Send the partner setup link to the saved payout contact. They sign in themselves for free. Share the client page with prospective customers after publishing it.</p><ShareAffiliateLink path={`/affiliate-payments?id=${form.id}`} title="Affiliate invitation — free partner portal"/>{affiliates.find(a => a.id === form.id)?.published_branding ? <ShareAffiliateLink path={`/partners/${form.slug}`} title="Client referral page"/> : <p>Publish the approved page to enable the client referral link.</p>}</section>}
  {form.id && <AffiliatePayments key={form.id} affiliateId={form.id} sandbox={selectedSandbox} admin/>}
  {preview && <AffiliateLanding branding={form.branding} slug={form.slug} preview/>}
  <section><h2 className="text-2xl font-semibold">Referred clients</h2><p className="mt-2 text-sm text-slate-600">Paid clients are ready for your implementation outreach. Commission estimates are available in each affiliate’s payment section. Transfers remain disabled.</p><div className="mt-4 overflow-auto"><table className="w-full text-left"><thead><tr>{['Client','Affiliate','Subscription','Agreed initial / renewal'].map(v => <th key={v} className="p-3">{v}</th>)}</tr></thead><tbody>{referrals.map(r => <tr key={r.id} className="border-t"><td className="p-3">{r.name}</td><td className="p-3">{affiliates.find(a => a.id === r.affiliate_id)?.name}</td><td className="p-3">{r.subscription_status}</td><td className="p-3">{r.affiliate_terms.initial_bps / 100}% / {r.affiliate_terms.renewal_bps / 100}%</td></tr>)}</tbody></table>{!referrals.length && <p className="p-3">No referred clients yet.</p>}</div></section>

@@ -1,3 +1,4 @@
+import { getOwnedAffiliates } from "./affiliate-access";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { requireUser } from "./auth";
@@ -40,6 +41,8 @@ export const getWorkspaceContext = cache(async () => {
   if (profileResult.error) {
     throw new Error(profileResult.error.message);
   }
+
+  if (!profileResult.data && (await getOwnedAffiliates(user)).length) redirect("/affiliate-payments");
 
   const account = await syncOrganizationUserAccessOnLogin({
     admin,

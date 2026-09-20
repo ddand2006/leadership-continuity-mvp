@@ -1,3 +1,4 @@
+import { getOwnedAffiliates } from "@/lib/affiliate-access";
 import {PlatformPreviewChrome} from '@/components/platform-preview/chrome';
 import {canUsePlatformPreview} from '@/lib/platform-preview/model';
 import {canAccessCoachingPreview} from '@/lib/coaching/preview';
@@ -121,6 +122,11 @@ export async function AppNav({ pathname }: { pathname: string }) {
       throw new Error(accountResult.error.message);
     }
 
+    const affiliates = !profileResult.data ? await getOwnedAffiliates(user) : [];
+    if (affiliates.length || pathname === "/affiliate-payments") {
+      return <header className="mx-auto flex w-full max-w-4xl items-center justify-between gap-4 p-6"><Link className="font-semibold" href="/affiliate-payments">Affiliate portal · Free partner access</Link><AccountMenu initials={getInitials(user)} displayName={getDisplayName(user)} email={user.email ?? null} accountLandingHref="/affiliate-payments" accountLandingLabel="Open affiliate portal"/></header>;
+    }
+
     isAdmin = profileResult.data ? isAdminAppRole(profileResult.data.role) : false;
     isSystemAdmin = profileResult.data?.role === "system_admin";
     canPreviewPlatform = canUsePlatformPreview(profileResult.data,user.email);
@@ -174,6 +180,8 @@ export async function AppNav({ pathname }: { pathname: string }) {
       });
     }
   }
+
+  if (pathname === "/affiliate-payments") return <header className="mx-auto w-full max-w-4xl p-6"><Link className="font-semibold" href="/affiliate-payments">Affiliate portal · Free partner access</Link><p>Use the email sign-in form below.</p></header>;
 
   const navItems = user
     ? [

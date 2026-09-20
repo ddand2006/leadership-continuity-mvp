@@ -1,3 +1,4 @@
+import { getOwnedAffiliates } from "@/lib/affiliate-access";
 import {DevelopmentDashboardCard} from '@/components/development-intelligence/organization';
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -2384,6 +2385,7 @@ export default async function DashboardPage({
     email: user.email ?? "",
   });
   const snapshot = await getDashboardSnapshot(user.id, filters);
+  if (!snapshot.profile && (await getOwnedAffiliates(user)).length) redirect("/affiliate-payments");
   const intelligence = snapshot.intelligence;
   const organizationAwardAsset = intelligence?.organizationAward.tier
     ? getLegacyCertificationAsset(intelligence.organizationAward.tier)

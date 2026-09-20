@@ -1,3 +1,4 @@
+import { getOwnedAffiliates } from "@/lib/affiliate-access";
 import {
   demoCandidateRanking,
   demoInterviewQuestions,
@@ -60,6 +61,12 @@ export async function initializeWorkspaceForUser(options: {
 
   if (existingProfileResult.data) {
     throw new Error("Workspace is already initialized for this user.");
+  }
+
+  const identity = await admin.auth.admin.getUserById(userId);
+  if (identity.error) throw identity.error;
+  if ((await getOwnedAffiliates(identity.data.user)).length) {
+    throw new Error("Affiliate accounts use the free affiliate portal. Program access must be assigned separately by an administrator.");
   }
 
   let supportsOrganizationIndustry = true;

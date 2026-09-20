@@ -1,3 +1,4 @@
+import { getOwnedAffiliates } from "@/lib/affiliate-access";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { hasResendEnv } from "@/lib/env";
@@ -31,6 +32,8 @@ export async function POST() {
         workspaceCreated: true,
       });
     }
+
+    if ((await getOwnedAffiliates(user)).length) return NextResponse.json({ error: "Use your free affiliate portal. Program access must be assigned separately by an administrator." }, { status: 403 });
 
     const existing = await admin.from("platform_account_requests").select("id, status").eq("auth_user_id", user.id).maybeSingle();
     if (existing.error) throw existing.error;
