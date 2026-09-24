@@ -32,6 +32,9 @@ importers:
       '@swc/helpers':
         specifier: 0.5.15
         version: 0.5.15
+      bluebird:
+        specifier: ~3.4.0
+        version: 3.4.7
       docx:
         specifier: ^9.7.1
         version: 9.7.1
