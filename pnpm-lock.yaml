@@ -80,6 +80,9 @@ importers:
       semver:
         specifier: ^7.8.5
         version: 7.8.5
+      setimmediate:
+        specifier: ^1.0.5
+        version: 1.0.5
       stripe:
         specifier: ^22.5.0
         version: 22.5.0(@types/node@20.19.43)
