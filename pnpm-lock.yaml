@@ -59,6 +59,9 @@ importers:
       stripe:
         specifier: ^22.5.0
         version: 22.5.0(@types/node@20.19.43)
+      underscore:
+        specifier: ^1.13.8
+        version: 1.13.8
       zod:
         specifier: ^4.4.3
         version: 4.4.3
