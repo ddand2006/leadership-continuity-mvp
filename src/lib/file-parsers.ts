@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { createRequire } from "node:module";
+import "pako";
 import { ApiRouteError } from "@/lib/api-route";
 import { assertAcceptedFileType, getFileExtension } from "@/lib/upload-file-utils";
 
@@ -104,9 +105,6 @@ export async function extractTextFromUploadedFile(
 
   if (extension === "docx") {
     const fileBuffer = Buffer.from(await file.arrayBuffer());
-    // JSZip resolves pako dynamically; keep its CommonJS entry in the
-    // standalone server bundle used by production deployments.
-    require("pako");
     const mammoth = require("mammoth") as typeof import("mammoth");
     const result = await mammoth.extractRawText({
       buffer: fileBuffer,
