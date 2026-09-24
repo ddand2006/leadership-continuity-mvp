@@ -50,6 +50,12 @@ importers:
       exceljs:
         specifier: ^4.4.0
         version: 4.4.0
+      jszip:
+        specifier: ^3.10.1
+        version: 3.10.1
+      lop:
+        specifier: ^0.4.2
+        version: 0.4.2
       mammoth:
         specifier: ^1.12.0
         version: 1.12.0
@@ -71,6 +77,9 @@ importers:
       react-dom:
         specifier: 19.2.4
         version: 19.2.4(react@19.2.4)
+      semver:
+        specifier: ^7.8.5
+        version: 7.8.5
       stripe:
         specifier: ^22.5.0
         version: 22.5.0(@types/node@20.19.43)
@@ -80,12 +89,6 @@ importers:
       xmlbuilder:
         specifier: ^10.1.1
         version: 10.1.1
-      jszip:
-        specifier: ^3.10.1
-        version: 3.10.1
-      lop:
-        specifier: ^0.4.2
-        version: 0.4.2
       zod:
         specifier: ^4.4.3
         version: 4.4.3
