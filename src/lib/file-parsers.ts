@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { createRequire } from "node:module";
+import * as mammoth from "mammoth";
 import "pako";
 import { ApiRouteError } from "@/lib/api-route";
 import { assertAcceptedFileType, getFileExtension } from "@/lib/upload-file-utils";
@@ -105,7 +106,6 @@ export async function extractTextFromUploadedFile(
 
   if (extension === "docx") {
     const fileBuffer = Buffer.from(await file.arrayBuffer());
-    const mammoth = require("mammoth") as typeof import("mammoth");
     const result = await mammoth.extractRawText({
       buffer: fileBuffer,
     });
