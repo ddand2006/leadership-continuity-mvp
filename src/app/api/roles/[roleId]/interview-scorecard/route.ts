@@ -23,7 +23,7 @@ export async function GET(_request: Request, context: RouteContext) {
     });
     const { roleId } = await context.params;
 
-    const [organizationResult, roleResult, characteristicsResult, competenciesResult] =
+    const [organizationResult, roleResult, characteristicsResult, competenciesResult, jobDescriptionResult] =
       await Promise.all([
         admin
           .from("organizations")
@@ -49,6 +49,12 @@ export async function GET(_request: Request, context: RouteContext) {
           .eq("organization_id", profile.organization_id)
           .eq("role_id", roleId)
           .order("created_at", { ascending: true }),
+        admin
+          .from("role_job_descriptions")
+          .select("extracted_text")
+          .eq("organization_id", profile.organization_id)
+          .eq("role_id", roleId)
+          .maybeSingle(),
       ]);
 
     for (const result of [
@@ -56,6 +62,7 @@ export async function GET(_request: Request, context: RouteContext) {
       roleResult,
       characteristicsResult,
       competenciesResult,
+      jobDescriptionResult,
     ]) {
       if (result.error) {
         throw new ApiRouteError(result.error.message, 500);
@@ -93,6 +100,7 @@ export async function GET(_request: Request, context: RouteContext) {
       roleId,
       roleTitle,
       roleDescription: roleResult.data.description ?? "",
+      jobDescription: jobDescriptionResult.data?.extracted_text ?? null,
       generatedByProfileId: profile.id,
       idealCompetencies,
       roleCompetencies,

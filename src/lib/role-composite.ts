@@ -378,6 +378,7 @@ export async function generateRoleCompositeFromIdealCompetencies(options: {
   talents: string[];
   skills: string[];
   behaviors: string[];
+  jobDescription?: string | null;
 }) {
   const lockedCompetencies = getLockedRoleCompetencies(options.title);
 
@@ -398,7 +399,7 @@ export async function generateRoleCompositeFromIdealCompetencies(options: {
       {
         role: "system",
         content:
-          "You are an expert organizational leadership architect. Generate a practical role composite from the supplied role description and ideal candidate competencies. Create 4 to 7 role competencies. Each competency must include a strong definition, a positive weight, a target_score between 1 and 5, 3 to 6 behavioral indicators, and 3 to 6 red flags. Use the supplied ideal talents, skills, and behaviors as evidence for what success should look like.",
+          "You are an expert organizational leadership architect. Generate a practical role composite from the supplied job description and ideal candidate competencies. The job description defines responsibilities and outcomes; competencies are the primary framework for how a person develops to perform them. Map competencies to the work without inventing unsupported requirements. Create 4 to 7 role competencies. Each competency must include a strong definition, a positive weight, a target_score between 1 and 5, 3 to 6 behavioral indicators, and 3 to 6 red flags.",
       },
         {
           role: "user",
@@ -407,6 +408,7 @@ export async function generateRoleCompositeFromIdealCompetencies(options: {
               title: options.title,
               department: options.department,
               description: options.description,
+              job_description: options.jobDescription ?? null,
             },
             ideal_candidate_competencies: {
               talents: options.talents,
@@ -418,7 +420,7 @@ export async function generateRoleCompositeFromIdealCompetencies(options: {
               department: "Use the supplied department when available.",
               description: "Keep the description grounded in the supplied role information.",
               competencies:
-                "Infer the strongest 4 to 7 role competencies from the supplied ideal competencies and role description.",
+                "Infer the strongest 4 to 7 leadership competencies from the supplied ideal competencies, using the job description to ground responsibilities, outcomes, and development priorities.",
             },
           }),
         },

@@ -283,6 +283,7 @@ export async function generateRoleInterviewScorecardContent(options: {
   organizationName: string;
   roleTitle: string;
   roleDescription: string;
+  jobDescription?: string | null;
   idealCompetencies: {
     talents: string[];
     skills: string[];
@@ -307,7 +308,7 @@ export async function generateRoleInterviewScorecardContent(options: {
       {
         role: "system",
         content:
-          "You create executive behavioral interview scorecards for organizational leadership roles. Use a practical Word-ready structure modeled after an interview scorecard: a short purpose statement, titled sections, and 2 to 4 behavioral interview questions in each section. Every question must include a concise 'what this validates' explanation. Build sections directly from the role's competencies, behavioral indicators, red flags, and ideal candidate competencies. Keep the questions behavioral, evidence-seeking, and senior-leadership appropriate. Use the exact supplied role competency names as the section titles and in the final evaluation summary.",
+          "You create executive behavioral interview scorecards for organizational leadership roles. Use the job description to understand the work and outcomes being hired for, while using the supplied competencies as the primary framework for how a person develops to perform that work. Use a practical Word-ready structure modeled after an interview scorecard: a short purpose statement, titled sections, and 2 to 4 behavioral interview questions in each section. Every question must include a concise 'what this validates' explanation. Build sections directly from the role's competencies, behavioral indicators, red flags, and ideal candidate competencies, with job-description responsibilities used to make questions concrete. Keep the questions behavioral, evidence-seeking, and senior-leadership appropriate. Use the exact supplied role competency names as the section titles and in the final evaluation summary.",
       },
         {
           role: "user",
@@ -317,6 +318,7 @@ export async function generateRoleInterviewScorecardContent(options: {
               title: options.roleTitle,
               description: options.roleDescription,
             },
+            job_description: options.jobDescription ?? null,
             ideal_candidate_competencies: options.idealCompetencies,
             structured_role_competencies: options.roleCompetencies,
             format_reference: {

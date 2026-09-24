@@ -29,10 +29,12 @@ function normalizeTextArray(values: string[]) {
 export function createRoleInterviewScorecardSignature(options: {
   idealCompetencies: ScorecardIdealCompetencies;
   roleCompetencies: ScorecardRoleCompetency[];
+  jobDescription?: string | null;
 }) {
   return createHash("sha256")
     .update(
       JSON.stringify({
+        job_description: options.jobDescription?.trim() ?? null,
         idealCompetencies: {
           talents: normalizeTextArray(options.idealCompetencies.talents),
           skills: normalizeTextArray(options.idealCompetencies.skills),
@@ -79,6 +81,7 @@ export async function getOrCreateRoleInterviewScorecard(options: {
   roleId: string;
   roleTitle: string;
   roleDescription: string;
+  jobDescription?: string | null;
   generatedByProfileId: string;
   idealCompetencies: ScorecardIdealCompetencies;
   roleCompetencies: ScorecardRoleCompetency[];
@@ -86,6 +89,7 @@ export async function getOrCreateRoleInterviewScorecard(options: {
   const competencySignature = createRoleInterviewScorecardSignature({
     idealCompetencies: options.idealCompetencies,
     roleCompetencies: options.roleCompetencies,
+    jobDescription: options.jobDescription,
   });
 
   const existingScorecardResult = await options.admin
@@ -121,6 +125,7 @@ export async function getOrCreateRoleInterviewScorecard(options: {
     organizationName: options.organizationName,
     roleTitle: options.roleTitle,
     roleDescription: options.roleDescription,
+    jobDescription: options.jobDescription,
     idealCompetencies: options.idealCompetencies,
     roleCompetencies: options.roleCompetencies,
   });

@@ -169,6 +169,7 @@ export async function generateRoleCompositeDocumentContent(options: {
   roleTitle: string;
   roleDepartment: string | null;
   roleDescription: string;
+  jobDescription?: string | null;
   idealCompetencies: {
     talents: string[];
     skills: string[];
@@ -191,7 +192,7 @@ export async function generateRoleCompositeDocumentContent(options: {
       {
         role: "system",
         content:
-          "You create organizational leadership role composite documents in a structured narrative format. The format should mirror an executive hiring composite: success composite, professional identity, non-negotiable requirements, required knowledge base, disqualifiers, and one-sentence summary. Write with clear business language, concise bullets, and strong judgment. Use only the supplied role description, ideal candidate competencies, and structured role competencies. Do not mention AI or the generation process.",
+          "You create organizational leadership role composite documents in a structured narrative format. The job description defines the work and outcomes; structured competencies define how the person develops to perform that work. The format should mirror an executive hiring composite: success composite, professional identity, non-negotiable requirements, required knowledge base, disqualifiers, and one-sentence summary. Use only supplied information and do not mention AI or the generation process.",
       },
         {
           role: "user",
@@ -201,6 +202,7 @@ export async function generateRoleCompositeDocumentContent(options: {
               title: options.roleTitle,
               department: options.roleDepartment,
               description: options.roleDescription,
+              job_description: options.jobDescription ?? null,
             },
             ideal_candidate_competencies: options.idealCompetencies,
             structured_role_competencies: options.roleCompetencies,
@@ -238,6 +240,7 @@ export async function generateCondensedRoleCompositeDocumentContent(options: {
   roleTitle: string;
   roleDepartment: string | null;
   roleDescription: string;
+  jobDescription?: string | null;
   idealCompetencies: {
     talents: string[];
     skills: string[];
@@ -258,17 +261,18 @@ export async function generateCondensedRoleCompositeDocumentContent(options: {
       {
         role: "system",
         content:
-          "Create a concise leadership role profile for hiring and succession use. Use clear business language and only the supplied role data. Make it much shorter than a full role composite. State minimum requirements as practical requirements, preferred knowledge as helpful but nonessential knowledge, and disqualifiers as observable concerns. Do not invent credentials, laws, years of experience, or technical requirements that are not supported by the role data. Do not mention AI or the generation process.",
+          "Create a concise leadership role profile for hiring and succession use. Use the job description to define the work and outcomes, while treating the structured competencies as the primary framework for how a person develops to perform that work. Use clear business language and only the supplied role data. Make it much shorter than a full role composite. State minimum requirements as practical requirements, preferred knowledge as helpful but nonessential knowledge, and disqualifiers as observable concerns. Do not invent credentials, laws, years of experience, or technical requirements that are not supported by the role data. Do not mention AI or the generation process.",
       },
       {
         role: "user",
         content: serializeModelInput({
           organization_name: options.organizationName,
-          role: {
+            role: {
             title: options.roleTitle,
             department: options.roleDepartment,
             description: options.roleDescription,
-          },
+            },
+          job_description: options.jobDescription ?? null,
           ideal_candidate_competencies: options.idealCompetencies,
           structured_role_competencies: options.roleCompetencies,
           document_format: {

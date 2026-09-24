@@ -41,6 +41,7 @@ export async function POST(request: Request) {
       roleResult,
       idealCompetenciesResult,
       existingCompetenciesResult,
+      jobDescriptionResult,
       existingDocumentResult,
     ] = await Promise.all([
       admin
@@ -70,6 +71,12 @@ export async function POST(request: Request) {
         .eq("role_id", payload.roleId)
         .order("created_at", { ascending: true }),
       admin
+        .from("role_job_descriptions")
+        .select("extracted_text,file_name,updated_at")
+        .eq("organization_id", profile.organization_id)
+        .eq("role_id", payload.roleId)
+        .maybeSingle(),
+      admin
         .from("role_composite_documents")
         .select("id, document_source, storage_bucket, storage_path")
         .eq("organization_id", profile.organization_id)
@@ -82,6 +89,7 @@ export async function POST(request: Request) {
       roleResult,
       idealCompetenciesResult,
       existingCompetenciesResult,
+      jobDescriptionResult,
       existingDocumentResult,
     ]) {
       if (result.error) {
@@ -150,6 +158,7 @@ export async function POST(request: Request) {
         talents: idealCompetencies.talents,
         skills: idealCompetencies.skills,
         behaviors: idealCompetencies.behaviors,
+        jobDescription: jobDescriptionResult.data?.extracted_text ?? null,
       });
 
       const insertCompetenciesResult = await admin
@@ -180,6 +189,7 @@ export async function POST(request: Request) {
       roleTitle,
       roleDepartment: roleResult.data.department,
       roleDescription: roleResult.data.description,
+      jobDescription: jobDescriptionResult.data?.extracted_text ?? null,
       idealCompetencies,
       roleCompetencies: roleCompetencies.map((competency) => ({
         name: competency.name,

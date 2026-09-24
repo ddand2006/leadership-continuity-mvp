@@ -786,6 +786,26 @@ export function RoleManagementPanel({
     });
   }
 
+  function handleUploadJobDescription(formData: FormData) {
+    setUploadRoleDocumentError(null);
+    setUploadRoleDocumentSuccess(null);
+    startUploadRoleDocumentTransition(async () => {
+      try {
+        const response = await fetch("/api/roles/upload-job-description", { method: "POST", body: formData });
+        const result = await readApiResult(response);
+        if (!response.ok) {
+          setUploadRoleDocumentError(result.error ?? "Unable to upload the job description.");
+          return;
+        }
+        setUploadRoleDocumentResetKey((current) => current + 1);
+        setUploadRoleDocumentSuccess(result.message ?? "Job description uploaded and extracted.");
+        router.refresh();
+      } catch (error) {
+        setUploadRoleDocumentError(error instanceof Error ? error.message : "Unable to upload the job description.");
+      }
+    });
+  }
+
   function handleEditCompetencies(formData: FormData) {
     if (!selectedCompetencyRoleId) {
       return;
@@ -1713,6 +1733,17 @@ export function RoleManagementPanel({
                   Back to Competencies
                 </button>
               </div>
+            ) : null}
+
+            {selectedCompetencyRole ? (
+              <form className="rounded-2xl border border-teal-200 bg-teal-50 p-5" onSubmit={(event) => { event.preventDefault(); handleUploadJobDescription(new FormData(event.currentTarget)); }}>
+                <input type="hidden" name="roleId" value={selectedCompetencyRole.id} />
+                <p className="text-xs font-semibold tracking-[0.14em] text-teal-700 uppercase">Role input</p>
+                <h3 className="mt-1 text-lg font-semibold text-slate-900">Job description</h3>
+                <p className="mt-1 text-sm leading-6 text-slate-600">Upload the job description so the composite and development work stay anchored to what this role must accomplish. Competencies remain the primary development framework.</p>
+                <div className="mt-4"><FileDropInput key={`job-description-${selectedCompetencyRole.id}-${uploadRoleDocumentResetKey}`} label="Job description file" name="file" accept=".docx,.pdf,.txt" required helperText="Accepted formats: DOCX, PDF, or TXT." /></div>
+                <button className="mt-4 rounded-full bg-teal-800 px-5 py-3 text-sm font-semibold text-white disabled:opacity-50" type="submit" disabled={isUploadRoleDocumentPending}>{isUploadRoleDocumentPending ? "Uploading job description..." : "Upload job description"}</button>
+              </form>
             ) : null}
 
             {selectedCompetencyRole ? (
