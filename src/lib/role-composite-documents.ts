@@ -1,7 +1,6 @@
-import { createRequire } from "node:module";
+import * as mammoth from "mammoth";
 
 const ROLE_COMPOSITE_DOCUMENTS_BUCKET = "role-composite-documents";
-const require = createRequire(import.meta.url);
 
 function slugifyFileNameSegment(value: string) {
   return value
@@ -47,7 +46,6 @@ export async function extractRoleCompositeDocumentText(options: {
   }
 
   if (extension === "docx") {
-    const mammoth = require("mammoth") as typeof import("mammoth");
     const result = await mammoth.extractRawText({
       buffer: options.buffer,
     });
