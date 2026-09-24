@@ -268,9 +268,11 @@ export function rankDevelopmentProjects(
   leverageStrengths: string[],
   readiness: number,
   industry?: string | null,
+  jobDescription?: string | null,
 ) {
   const preferredDifficulties = getPreferredDifficulties(readiness);
   const normalizedRoleTitle = canonicalizeRoleTitle(roleTitle);
+  const jobDescriptionTokens = new Set(tokenize(jobDescription ?? ""));
 
   return projects
     .map((project) => {
@@ -285,6 +287,9 @@ export function rankDevelopmentProjects(
           canonicalizeRoleTitle(applicableRole) === normalizedRoleTitle,
       );
       const industryMatch = matchesIndustry(project.industry, industry);
+      const projectText = [project.title, project.description, ...(project.expected_outcomes ?? [])].join(" ");
+      const jobDescriptionMatches = tokenize(projectText).filter((token) => jobDescriptionTokens.has(token));
+      const jobDescriptionScore = Math.min(3, new Set(jobDescriptionMatches).size);
       const difficultyScore = Math.max(
         0,
         preferredDifficulties.length - preferredDifficulties.indexOf(project.difficulty),
@@ -294,6 +299,7 @@ export function rankDevelopmentProjects(
         strengthMatches.length * 3 +
         (roleMatch ? 3 : 0) +
         (industryMatch ? 4 : 0) +
+        jobDescriptionScore +
         difficultyScore;
 
       return {

@@ -124,6 +124,7 @@ export async function POST(request: Request) {
 
     const [
       roleResult,
+      jobDescriptionResult,
       organizationResult,
       competenciesResult,
       strengthsResult,
@@ -139,6 +140,12 @@ export async function POST(request: Request) {
         .eq("organization_id", profile.organization_id)
         .eq("id", roleId)
         .single(),
+      admin
+        .from("role_job_descriptions")
+        .select("extracted_text")
+        .eq("organization_id", profile.organization_id)
+        .eq("role_id", roleId)
+        .maybeSingle(),
       admin
         .from("organizations")
         .select("industry")
@@ -192,6 +199,7 @@ export async function POST(request: Request) {
 
     for (const result of [
       roleResult,
+      jobDescriptionResult,
       organizationResult,
       competenciesResult,
       strengthsResult,
@@ -300,6 +308,7 @@ export async function POST(request: Request) {
       leverageStrengths,
       readiness,
       organizationResult.data?.industry ?? null,
+      jobDescriptionResult.data?.extracted_text ?? null,
     ).slice(0, 5);
 
     const openai = createOpenAIClient();
