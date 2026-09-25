@@ -98,10 +98,11 @@ export async function AppNav({ pathname }: { pathname: string }) {
   let hideBillingControls = false;
   let organizationName: string | null = null;
   let supportOrganizationName: string | null = null;
+  let isApprovedPartner = false;
 
   if (user) {
     const supabase = await createSupabaseServerClient();
-    const [profileResult, accountResult] = await Promise.all([
+    const [profileResult, accountResult, partnerResult] = await Promise.all([
       supabase
         .from("profiles")
         .select("id, role, organization_id, deleted_at")
@@ -112,6 +113,12 @@ export async function AppNav({ pathname }: { pathname: string }) {
         .select("candidate_id, is_candidate, is_mentor, admin_role, status")
         .eq("auth_user_id", user.id)
         .maybeSingle(),
+      supabase
+        .from("partner_applications")
+        .select("status")
+        .eq("auth_user_id", user.id)
+        .eq("status", "approved")
+        .maybeSingle(),
     ]);
 
     if (profileResult.error) {
@@ -121,6 +128,7 @@ export async function AppNav({ pathname }: { pathname: string }) {
     if (accountResult.error) {
       throw new Error(accountResult.error.message);
     }
+    isApprovedPartner = Boolean(partnerResult.data);
 
     const affiliates = !profileResult.data ? await getOwnedAffiliates(user) : [];
     if (affiliates.length || pathname === "/affiliate-payments") {
@@ -200,6 +208,7 @@ export async function AppNav({ pathname }: { pathname: string }) {
         ...((hasContinuityAccess && isAdmin) || isSystemAdmin
           ? [{ href: "/administration", label: "Administration" }]
           : []),
+        ...(isApprovedPartner ? [{ href: "/partner-account/administration", label: "Partner Administration" }] : []),
         ...(isPaywallEnabled() && !hideBillingControls
           ? [{ href: "/subscribe", label: "Access" }]
           : []),
