@@ -13,6 +13,7 @@ import type { ReactNode } from 'react';
 import { coachingContext, rpc } from '@/lib/coaching/server';
 import { availabilityLabels, consentTemplates, filterLog, logMetrics, type Coach, type LogRow, type Filters } from '@/lib/coaching/model';
 import { CoachingForm, UnlockCoaching, ExportLog } from './form';
+import { CoachOnboarding } from './coach-onboarding';
 import { Panel, Field, Select, Metrics } from './ui';
 type Context = Awaited<ReturnType<typeof coachingContext>>;
 type RecordRow = {
@@ -57,6 +58,8 @@ export async function CoachingWorkspace({ path, filters }: {
         content = await CoachingLog({ ctx, filters });
     else if (section === 'profile')
         content = ctx.coach ? await ProfileEditor({ ctx, profile: ctx.coach }) : <Panel>No coach profile is assigned to this account. Contact your platform administrator.</Panel>;
+    else if (section === 'onboarding')
+        content = ctx.coach ? <CoachOnboarding summary={await rpc(ctx.db, 'coach_portal_summary')} /> : <Panel>No coach profile is assigned to this account. Contact your platform administrator.</Panel>;
     else if (section === 'admin' && ctx.platformAdmin)
         content = await Administration({ ctx, section: path[1] });
     else if (['overview', 'engagements', 'coach', 'clients', 'my', 'sessions'].includes(section))

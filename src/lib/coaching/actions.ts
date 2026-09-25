@@ -51,3 +51,19 @@ export async function mutateCoaching(_previous: {
         return { error: 'Unable to save. Check your session and try again.' };
     }
 }
+
+export async function mutateCoachPortal(_previous: { error?: string; success?: string }, form: FormData) {
+    try {
+        const { db } = await coachingContext();
+        const operation = String(form.get('operation') ?? '');
+        const payload: Record<string, unknown> = {};
+        for (const [key, value] of form.entries()) {
+            if (key !== 'operation' && typeof value === 'string') payload[key] = value;
+        }
+        const fn = operation === 'credential' ? 'coach_portal_add_credential' : 'coach_portal_save_profile';
+        const { error } = await db.rpc(fn, { payload });
+        if (error) return { error: error.message };
+        revalidatePath('/coaching', 'layout');
+        return { success: operation === 'credential' ? 'Credential submitted for verification.' : 'Coach profile saved.' };
+    } catch { return { error: 'Unable to save coach compliance information.' }; }
+}
