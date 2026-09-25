@@ -31,7 +31,10 @@ export async function mutateCoaching(_previous: {
             if (operation === 'save_profile' && !payload[key])
                 payload[key] = [];
         if(operation==='weights') payload.weights=Object.fromEntries(Object.entries(payload).filter(([key])=>key.startsWith('weight_')).map(([key,value])=>[key.slice(7),Number(value)]));
-        const { data, error } = await db.rpc('coaching_mutate', { operation, payload });
+        const templateOperation = operation === 'template_save';
+        const { data, error } = templateOperation
+            ? await db.rpc('coaching_template_mutate', { operation, payload: { ...payload, data: Object.fromEntries(Object.entries(payload).filter(([key]) => !['engagement_id', 'template'].includes(key))) } })
+            : await db.rpc('coaching_mutate', { operation, payload });
         if (error)
             return { error: error.message };
         try{await deliverCoachingNotifications(user.id);}catch{console.warn('Coaching email delivery deferred.');}

@@ -16,6 +16,7 @@ import { CoachingForm, UnlockCoaching, ExportLog } from './form';
 import { CoachOnboarding } from './coach-onboarding';
 import { CoachReviewForm } from './coach-review-form';
 import { Panel, Field, Select, Metrics } from './ui';
+import { CoachingTemplates } from './templates';
 type Context = Awaited<ReturnType<typeof coachingContext>>;
 type RecordRow = {
     id: string;
@@ -142,7 +143,7 @@ async function ClientDetail({ ctx, id, tab, filters }: {
     const client = e.coachee_user_id === ctx.user.id;
     const participant = coach || client;
     const hidden = { engagement_id: id };
-    const sections = participant ? ['Overview', 'Development', 'Goals', 'Actions', 'Sessions', 'Schedule', 'Notes', 'Consent', 'Closeout'] : ['Overview', 'Goals', 'Actions', 'Notes', 'Closeout'];
+    const sections = participant ? ['Overview', 'Development', 'Templates', 'Goals', 'Actions', 'Sessions', 'Schedule', 'Notes', 'Consent', 'Closeout'] : ['Overview', 'Templates', 'Goals', 'Actions', 'Notes', 'Closeout'];
     if(ctx.platformAdmin) sections.push('Commercial');
     if (!sections.includes(tab))
         notFound();
@@ -150,6 +151,7 @@ async function ClientDetail({ ctx, id, tab, filters }: {
     let body: ReactNode;
     if(tab==='Commercial') body=await CommercialSummary({ctx,id});
     else if (tab==='Schedule'||tab==='Closeout') body=await EngagementWorkflow({ctx,id,tab,filters});
+    else if (tab === 'Templates') body = <CoachingTemplates ctx={ctx} engagementId={id}/>;
     else if (tab === 'Consent') {
         const consents = await records(ctx, 'coaching_consents', 'engagement_id', id);
         body = <Panel title="Consent & Privacy"><p className="mb-5">{Number(e.consent_policy_version)===2?'This engagement requires the four listed consents before activation. Each can be revoked separately.':'Record retention is required to activate coaching. Other permissions are optional and can be revoked separately.'} Organization administrators can see participation metadata and coaching-hour totals; private notes remain restricted.</p><div className="grid gap-5 md:grid-cols-2">{Object.entries(consentTemplates).map(([kind, text]) => {
