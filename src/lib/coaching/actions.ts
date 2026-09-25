@@ -67,3 +67,13 @@ export async function mutateCoachPortal(_previous: { error?: string; success?: s
         return { success: operation === 'credential' ? 'Credential submitted for verification.' : 'Coach profile saved.' };
     } catch { return { error: 'Unable to save coach compliance information.' }; }
 }
+
+export async function reviewCoachPortal(_previous: { error?: string; success?: string }, form: FormData) {
+    try {
+        const { db } = await coachingContext();
+        const { error } = await db.rpc('coach_portal_review', { coach_id: String(form.get('coach_id')), decision: String(form.get('decision')), note: String(form.get('note') ?? '') });
+        if (error) return { error: error.message };
+        revalidatePath('/admin/coaching', 'layout');
+        return { success: 'Review decision saved and eligibility recalculated.' };
+    } catch { return { error: 'Unable to save the review decision.' }; }
+}
