@@ -54,7 +54,7 @@ export default async function AuthPage({ searchParams }: AuthPageProps) {
           </div>
         ) : null}
 
-        <AuthForms initialMode={initialMode} affiliateSlug={affiliate} />
+        <AuthForms initialMode={initialMode} affiliateSlug={affiliate} partnerMode={mode === 'partner'} />
       </div>
     </main>
   );

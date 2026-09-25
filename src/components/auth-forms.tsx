@@ -26,7 +26,7 @@ async function syncSessionToServer(session: Session) {
   }
 }
 
-export function AuthForms(props: { initialMode?: "signin" | "signup"; affiliateSlug?: string }) {
+export function AuthForms(props: { initialMode?: "signin" | "signup"; affiliateSlug?: string; partnerMode?: boolean }) {
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [isSigningIn, setIsSigningIn] = useState(false);
@@ -47,7 +47,7 @@ export function AuthForms(props: { initialMode?: "signin" | "signup"; affiliateS
       await syncSessionToServer(data.session);
       const request = await fetch("/api/account-requests/current");
       const requestData = request.ok ? await request.json() as { pending?: boolean } : {};
-      window.location.assign(requestData.pending ? "/account-request-received" : "/");
+      window.location.assign(props.partnerMode ? "/partner-account/dashboard" : requestData.pending ? "/account-request-received" : "/");
     } catch (error) { setErrorMessage(error instanceof Error ? error.message : "Unable to sign in right now."); }
     finally { setIsSigningIn(false); }
   }
