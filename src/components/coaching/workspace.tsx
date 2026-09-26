@@ -188,7 +188,7 @@ async function CoachingLog({ ctx, filters }: {
     filters: Filters;
 }) {
     if (!ctx.coach)
-        notFound();
+        return <Panel title="Coaching Log requires a coach profile"><p className="mb-4">This workspace is available after a coach profile is assigned to your account.</p><Link className="font-semibold underline" href="/coaching/onboarding">Open Marketplace Readiness</Link></Panel>;
     const all = await rpc<LogRow[]>(ctx.db, 'coaching_credential_log');
     const rows = filterLog(all, filters);
     const unique = (key: 'client_id' | 'organization_id' | 'engagement_id', label: 'client_name' | 'organization' | 'engagement_id') => [...new Map(all.map(r => [r[key], { value: r[key], label: r[label] }])).values()];

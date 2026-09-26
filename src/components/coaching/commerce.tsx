@@ -35,7 +35,7 @@ export async function Commerce({ ctx, path, filters = {} }: {
     if (['billing', 'checkout'].includes(section) && !ctx.admin)
         notFound();
     if (section === 'earnings' && !ctx.coach)
-        notFound();
+        return <Panel title="Earnings requires a coach profile"><p className="mb-4">This workspace is available after a coach profile is assigned to your account.</p><Link className="font-semibold underline" href="/coaching/onboarding">Open Marketplace Readiness</Link></Panel>;
     const d = await rpc<CommerceData>(ctx.db, 'coaching_commerce_read', { section: path[0] === 'admin' ? 'admin' : section, engagement: section === 'checkout' ? path[1] : null });
     if (section === 'packages')
         return <Packages data={d}/>;
