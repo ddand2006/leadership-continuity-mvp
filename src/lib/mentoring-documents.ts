@@ -16,19 +16,39 @@ export async function saveMentoringDocument(input: {
   fileName: string;
   buffer: Buffer;
 }) {
-  const id = randomUUID();
-  const storagePath = `${input.organizationId}/${input.candidateId}/${id}.docx`;
   const bucket = input.admin.storage.from(MENTORING_DOCUMENTS_BUCKET);
-  const upload = await bucket.upload(storagePath, input.buffer, { contentType: WORD_DOCUMENT_MIME });
+  let existingQuery = input.admin
+    .from("mentoring_documents")
+    .select("id, storage_path")
+    .eq("organization_id", input.organizationId)
+    .eq("candidate_id", input.candidateId)
+    .eq("title", input.title)
+    .order("created_at", { ascending: true });
+  existingQuery = input.roleId
+    ? existingQuery.eq("role_id", input.roleId)
+    : existingQuery.is("role_id", null);
+  const existingResult = await existingQuery;
+  if (existingResult.error) throw new ApiRouteError("Unable to check for an existing saved document.", 500);
+
+  const existing = existingResult.data?.[0];
+  const id = existing?.id ?? randomUUID();
+  const storagePath = existing?.storage_path ?? `${input.organizationId}/${input.candidateId}/${id}.docx`;
+  const upload = await bucket.upload(storagePath, input.buffer, { contentType: WORD_DOCUMENT_MIME, upsert: true });
   if (upload.error) throw new ApiRouteError("Unable to save the document. Please try again or contact your administrator.", 500);
-  const result = await input.admin.from("mentoring_documents").insert({
-    id, organization_id: input.organizationId, candidate_id: input.candidateId,
-    role_id: input.roleId ?? null, created_by_profile_id: input.profileId,
-    title: input.title, file_name: input.fileName, storage_path: storagePath,
-  });
+  const result = existing
+    ? await input.admin.from("mentoring_documents").update({ file_name: input.fileName, storage_path: storagePath, created_by_profile_id: input.profileId }).eq("id", id)
+    : await input.admin.from("mentoring_documents").insert({
+        id, organization_id: input.organizationId, candidate_id: input.candidateId,
+        role_id: input.roleId ?? null, created_by_profile_id: input.profileId,
+        title: input.title, file_name: input.fileName, storage_path: storagePath,
+      });
   if (result.error) {
-    await bucket.remove([storagePath]);
     throw new ApiRouteError("Unable to save the document record. Please try again or contact your administrator.", 500);
+  }
+  const duplicateRows = (existingResult.data ?? []).slice(1);
+  if (duplicateRows.length > 0) {
+    await bucket.remove(duplicateRows.map((row) => row.storage_path));
+    await input.admin.from("mentoring_documents").delete().in("id", duplicateRows.map((row) => row.id));
   }
   return id;
 }
