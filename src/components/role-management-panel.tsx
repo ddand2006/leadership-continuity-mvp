@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { FileDropInput } from "@/components/file-drop-input";
 import { parseCharacteristicsTextarea } from "@/lib/role-characteristics";
@@ -177,6 +177,21 @@ export function RoleManagementPanel({
   const [isEditCompetenciesPending, startEditCompetenciesTransition] = useTransition();
   const [isAddLibraryCompetencyPending, startAddLibraryCompetencyTransition] =
     useTransition();
+
+  useEffect(() => {
+    const nextRole = roles.find((role) => role.id === initialSelectedRoleId) ?? null;
+    const nextRoleId = nextRole?.id ?? "";
+    setEditorRoleId(nextRoleId);
+    setTitle(nextRole?.title ?? "");
+    setDepartment(nextRole?.department ?? "");
+    setDescription(nextRole?.description ?? "");
+    setStatus(nextRole?.status ?? "draft");
+    setMentorProfileId(nextRole?.primaryMentorProfileId ?? "");
+    setTalentsValue(nextRole?.talents.join("\n") ?? "");
+    setSkillsValue(nextRole?.skills.join("\n") ?? "");
+    setBehaviorsValue(nextRole?.behaviors.join("\n") ?? "");
+    setSelectedCompetencyRoleId(nextRoleId);
+  }, [initialSelectedRoleId, roles]);
   const [isGenerateCompositePending, startGenerateCompositeTransition] = useTransition();
   const [isDownloadCompositePending, startDownloadCompositeTransition] = useTransition();
   const [isDownloadCondensedCompositePending, startDownloadCondensedCompositeTransition] =
