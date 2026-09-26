@@ -238,13 +238,6 @@ export function RoleManagementPanel({
     filteredSharedLibraryByCategory.talents.length +
     filteredSharedLibraryByCategory.skills.length +
     filteredSharedLibraryByCategory.behaviors.length;
-  const saveRoleButtonLabel = isCreatePending
-    ? selectedEditorRole
-      ? "Saving role..."
-      : "Creating role..."
-    : selectedEditorRole
-      ? "Save Role Changes"
-      : "Create Role";
   const currentTalents = parseCharacteristicsTextarea("talent", talentsValue).map(
     (item) => item.characteristic,
   );
@@ -1460,13 +1453,6 @@ export function RoleManagementPanel({
 
               <div className="flex flex-wrap gap-3">
                 <button
-                  className="interactive-contrast rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-900 disabled:cursor-not-allowed disabled:bg-slate-300"
-                  type="submit"
-                  disabled={isCreatePending || isSaveAndGeneratePending}
-                >
-                  {saveRoleButtonLabel}
-                </button>
-                <button
                   type="button"
                   onClick={handleSaveAndGenerateComposite}
                   disabled={
@@ -1480,7 +1466,7 @@ export function RoleManagementPanel({
                 >
                   {isSaveAndGeneratePending
                     ? "Saving and generating role composite..."
-                    : "Save and Re-Generate Role Composite"}
+                    : "Save and Regenerate Composite"}
                 </button>
               </div>
               {!canGenerateComposite ? (
