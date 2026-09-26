@@ -7,7 +7,10 @@ export default async function ViewAsPage({params,searchParams}:{params:Promise<{
  await requirePlatformPreviewAdministrator();
  const {role,section=[]}=await params;
  if(!isPreviewRole(role)||section.length>1)notFound();
- if(role==='candidate'||role==='mentor') return <LiveRoleWorkspace role={role} section={section[0] ?? 'home'}/>;
+ if(role==='candidate'||role==='mentor') {
+  const query=await searchParams;
+  return <LiveRoleWorkspace role={role} section={section[0] ?? 'home'} candidateId={typeof query.candidateId==='string'?query.candidateId:undefined}/>;
+ }
  const page=section[0]??'home';
  if(!rolePages[role].some(p=>p.id===page))notFound();
  const query=await searchParams;
