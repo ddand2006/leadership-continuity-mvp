@@ -31,6 +31,7 @@ type MentoringPageProps = {
     recordId?: string;
     roleId?: string;
     mentorProfileId?: string;
+    viewAs?: string;
   }>;
 };
 
@@ -151,6 +152,7 @@ export default async function MentoringPage({
   const {
     candidateId: requestedCandidateId,
     mentorProfileId: requestedMentorProfileId,
+    viewAs,
     projectId: requestedProjectId,
     recordId: requestedRecordId,
     roleId: requestedRoleId,
@@ -159,7 +161,8 @@ export default async function MentoringPage({
   const { account, profile, supabase } = await requirePaidWorkspaceProfile();
   const isAdmin = isAdminAppRole(profile.role);
   const isMentor = isMentorAppUser(profile, account);
-  const isMentorOnly = isMentor && !isAdmin;
+  const isMentorPreview = viewAs === "mentor";
+  const isMentorOnly = (isMentor && !isAdmin) || isMentorPreview;
   const isCandidate = isCandidateAppUser(account);
   const candidateIdForSelfAccess = account?.candidate_id ?? null;
   const canManageMentorAssignments = isAdmin || isMentor;
@@ -305,11 +308,12 @@ export default async function MentoringPage({
     (reportsResult.data ?? []).map((report) => `${report.candidate_id}:${report.role_id}`),
   );
 
-  const visibleAssignments = isAdmin
+  const visibleAssignments = isAdmin && !isMentorPreview
     ? mentorAssignmentsResult.data ?? []
     : (mentorAssignmentsResult.data ?? []).filter((assignment) =>
-        isMentor
-          ? assignment.mentor_profile_id === profile.id &&
+        isMentor || isMentorPreview
+          ? assignment.mentor_profile_id ===
+              (isMentorPreview ? requestedMentorProfileId : profile.id) &&
             isActiveMentorAssignmentStatus(assignment.status)
           : candidateIdForSelfAccess !== null &&
             assignment.candidate_id === candidateIdForSelfAccess,
