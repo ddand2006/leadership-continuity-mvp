@@ -1,2 +1,2 @@
 import {DevelopmentWorkspace} from '@/components/development-intelligence/workspace';
-export default async function Page({params}:{params:Promise<{candidateId:string}>}){return <DevelopmentWorkspace candidate={(await params).candidateId} view='priorities'/>;}
+export default async function Page({params,searchParams}:{params:Promise<{candidateId:string}>;searchParams:Promise<{roleId?:string}>}){return <DevelopmentWorkspace candidate={(await params).candidateId} view='priorities' roleId={(await searchParams).roleId}/>;}

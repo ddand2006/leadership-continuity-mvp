@@ -1058,7 +1058,7 @@ export default async function CandidateDetailPage({
           />
 
           <div className="min-w-0">
-            {await canViewCoachingPreview() && (<nav aria-label="Development intelligence" className="mb-5 flex flex-wrap gap-4 rounded-2xl bg-white p-4 text-sm font-semibold"><Link href={`/candidates/${candidate.id}/development-intelligence`} className="text-teal-800 underline">Development priorities</Link><Link href={`/candidates/${candidate.id}/development`} className="text-teal-800 underline">My development</Link><Link href={`/candidates/${candidate.id}/readiness-review`} className="text-teal-800 underline">Readiness review</Link></nav>)}
+            {await canViewCoachingPreview() && (<nav aria-label="Development intelligence" className="mb-5 flex flex-wrap gap-4 rounded-2xl bg-white p-4 text-sm font-semibold"><Link href={`/candidates/${candidate.id}/development-intelligence?roleId=${activeRoleId ?? ""}`} className="text-teal-800 underline">Development priorities</Link><Link href={`/candidates/${candidate.id}/development?roleId=${activeRoleId ?? ""}`} className="text-teal-800 underline">My development</Link><Link href={`/candidates/${candidate.id}/readiness-review?roleId=${activeRoleId ?? ""}`} className="text-teal-800 underline">Readiness review</Link></nav>)}
             <CandidateDetailSectionMenu
               initialSectionId={requestedSection}
               sections={[
@@ -1185,6 +1185,7 @@ export default async function CandidateDetailPage({
             },
             {
               id: "interview-scores",
+              hidden: canViewOwnCandidate,
               label: "Interview Scores",
               summary:
                 "Enter interviewer feedback, save decimal scores, and adjust target scores for each competency.",

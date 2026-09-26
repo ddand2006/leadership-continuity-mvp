@@ -11,19 +11,34 @@ const list = (data: DevelopmentData, key: keyof DevelopmentData) => Array.isArra
 function EvidenceChoices({ evidence }: {
     evidence: DevelopmentRow[];
 }) { return <fieldset className="grid gap-2"><legend className="mb-2 font-medium">Supporting evidence</legend>{evidence.map(e => <label key={e.id} className="text-sm"><input type="checkbox" name="evidence_ids" value={e.id} className="mr-2"/>{text(e, 'title')} · {text(e, 'verification_status').replaceAll('_', ' ')}</label>)}</fieldset>; }
-export async function DevelopmentWorkspace({ candidate, view = 'priorities', competency }: {
+export async function DevelopmentWorkspace({ candidate, view = 'priorities', competency, roleId }: {
     candidate: string;
     view?: string;
     competency?: string;
-}) { return <main className="app-page"><div className="mx-auto flex max-w-[1380px] flex-col gap-6 px-5 py-10 sm:px-10"><header><p className="text-sm font-semibold uppercase tracking-widest text-teal-700">Leader Continuity</p><h1 className="mt-2 text-3xl font-semibold text-teal-950">Development Intelligence</h1></header>{await DevelopmentBody({ candidate, view, competency })}</div></main>; }
-export async function DevelopmentBody({ candidate, engagement, view = 'priorities', competency }: {
+    roleId?: string;
+}) { return <main className="app-page"><div className="mx-auto flex max-w-[1380px] flex-col gap-6 px-5 py-10 sm:px-10"><header><p className="text-sm font-semibold uppercase tracking-widest text-teal-700">Leader Continuity</p><h1 className="mt-2 text-3xl font-semibold text-teal-950">Development Intelligence</h1></header>{await DevelopmentBody({ candidate, view, competency, roleId })}</div></main>; }
+export async function DevelopmentBody({ candidate, engagement, view = 'priorities', competency, roleId }: {
     candidate?: string;
     engagement?: string;
     view?: string;
     competency?: string;
+    roleId?: string;
 }) {
     const ctx = await coachingContext();
-    const d = await rpc<DevelopmentData>(ctx.db, 'development_intelligence_read', { candidate: candidate ?? null, engagement: engagement ?? null });
+    const base = await rpc<DevelopmentData>(ctx.db, 'development_intelligence_read', { candidate: candidate ?? null, engagement: engagement ?? null });
+    let d = base;
+    if (candidate && roleId) {
+        const roleResult = await ctx.db.from('roles').select('id,title').eq('id', roleId).maybeSingle();
+        const competencyResult = await ctx.db.from('role_competencies').select('id,name,definition,target_score').eq('role_id', roleId).is('deleted_at', null).order('created_at', { ascending: true });
+        if (roleResult.error || competencyResult.error) throw new Error(roleResult.error?.message ?? competencyResult.error?.message);
+        if (roleResult.data) {
+            const competencyIds = new Set((competencyResult.data ?? []).map((item) => item.id));
+            const roleSources = (base.sources ?? []).filter((source) => source.data_type !== 'competencies' && source.data_type !== 'assessment' && source.data_type !== 'development_plan' && source.data_type !== '360_review' && source.data_type !== 'readiness');
+            const roleCompetencies = (competencyResult.data ?? []).map((item) => ({ id: item.id, data_type: 'competencies', title: item.name, description: item.definition, competency_id: item.id, current_level: null, target_level: item.target_score, occurred_at: null, status: 'current' }));
+            const roleEvidence = (base.sources ?? []).filter((source) => source.competency_id && competencyIds.has(String(source.competency_id)));
+            d = { ...base, candidate: base.candidate ? { ...base.candidate, target_role_id: roleId, target_role: roleResult.data.title } : base.candidate, sources: [...roleSources, ...roleCompetencies, ...roleEvidence] };
+        }
+    }
     const cid = d.candidate!.id;
     const hidden = { candidate_id: cid, ...(engagement ? { engagement_id: engagement } : {}) };
     const needs = list(d, 'needs'), sources = list(d, 'sources'), evidence = list(d, 'evidence').filter(e => !competency || e.competency_id === competency);
