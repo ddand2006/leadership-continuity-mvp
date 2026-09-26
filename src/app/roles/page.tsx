@@ -7,7 +7,6 @@ import { RoleResourcesPanel } from "@/components/role-resources-panel";
 import { RolePrintablesPanel } from "@/components/role-printables-panel";
 import { RoleSelectorSidebar } from "@/components/role-selector-sidebar";
 import { RoleSurveyPanel } from "@/components/role-survey-panel";
-import { RoleWorkspaceMenu } from "@/components/role-workspace-menu";
 import { hasOpenAIEnv, hasResendEnv } from "@/lib/env";
 import {
   isMissingRoleCharacteristicLibraryTableError,
@@ -572,20 +571,6 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
       : activeWorkspaceSectionId === "create"
         ? "create"
         : "import";
-  const roleWorkspaceSections = selectedRoleId
-    ? [
-        {
-          id: "workflow",
-          label: "Role Workflow",
-          href: `/roles?roleId=${selectedRoleId}&mode=import`,
-        },
-        {
-          id: "create",
-          label: "Role Modification",
-          href: `/roles?roleId=${selectedRoleId}&mode=create`,
-        },
-      ]
-    : [];
   const workflowNotices = getRoleWorkflowNotices({
     characteristics: selectedRoleId ? characteristicsByRole.get(selectedRoleId) ?? [] : [],
     composite: selectedRoleId ? compositeDocumentByRole.get(selectedRoleId) : null,
@@ -612,12 +597,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
             selectedWorkspaceMode={selectedWorkspaceMode}
           />
           <div className="grid min-w-0 gap-6">
-        {isRoleWorkspaceMode && selectedRole ? (
-              <RoleWorkspaceMenu
-                sections={roleWorkspaceSections}
-                activeSectionId={activeWorkspaceSectionId}
-              />
-        ) : (
+        {!isRoleWorkspaceMode || !selectedRole ? (
           <section className="theme-panel-strong rounded-[2rem] p-8">
             <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">
               Role Composite Builder
@@ -634,7 +614,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
               organization.
             </p>
           </section>
-        )}
+        ) : null}
 
         <section className="grid gap-6">
           <div className="grid gap-6">
