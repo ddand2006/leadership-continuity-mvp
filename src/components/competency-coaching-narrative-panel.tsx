@@ -17,6 +17,7 @@ export function CompetencyCoachingNarrativePanel({
   const [narrative, setNarrative] =
     useState<GeneratedCandidateCoachingNarrative | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleGenerateNarrative() {
@@ -61,6 +62,35 @@ export function CompetencyCoachingNarrativePanel({
     }
   }
 
+  async function handleDownloadNarrative() {
+    if (!narrative || !candidateId || !roleId || !competencyId) return;
+    try {
+      setIsDownloading(true);
+      setError(null);
+      const response = await fetch("/api/candidates/coaching-narrative-docx", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ candidateId, roleId, competencyId, narrative }),
+      });
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => ({}))) as { error?: string };
+        throw new Error(payload.error ?? "Unable to save the coaching narrative.");
+      }
+      const blob = await response.blob();
+      window.dispatchEvent(new Event("mentoring-document-saved"));
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "coaching-narrative.docx";
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (downloadError) {
+      setError(downloadError instanceof Error ? downloadError.message : "Unable to save the coaching narrative.");
+    } finally {
+      setIsDownloading(false);
+    }
+  }
+
   if (!canGenerate) {
     return null;
   }
@@ -100,6 +130,9 @@ export function CompetencyCoachingNarrativePanel({
 
       {narrative ? (
         <div className="mt-5 grid gap-4">
+          <button type="button" onClick={handleDownloadNarrative} disabled={isDownloading} className="w-fit rounded-full border border-teal-200 bg-white px-4 py-2 text-sm font-semibold text-teal-900 disabled:opacity-50">
+            {isDownloading ? "Preparing Word document..." : "Save & Download Word Version"}
+          </button>
           <article className="rounded-2xl border border-teal-200 bg-white/90 px-4 py-4">
             <p className="text-xs font-semibold tracking-[0.14em] text-teal-700 uppercase">
               Progress Over Time
