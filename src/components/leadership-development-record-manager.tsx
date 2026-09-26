@@ -2908,18 +2908,6 @@ export function LeadershipDevelopmentRecordManager({
                   !storageReady ||
                   !isLeadershipDevelopmentMentorReviewComplete(formState)
                 }
-                className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
-              >
-                {isPending ? "Saving..." : "Complete Mentor Review"}
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSave("completed")}
-                disabled={
-                  isPending ||
-                  !storageReady ||
-                  !isLeadershipDevelopmentMentorReviewComplete(formState)
-                }
                 className="rounded-full border border-teal-200 bg-teal-50 px-5 py-3 text-sm font-semibold text-teal-950 transition hover:bg-teal-100 disabled:cursor-not-allowed disabled:bg-teal-100 disabled:text-teal-700/60"
               >
                 {isPending ? "Saving..." : "Mark Completed"}

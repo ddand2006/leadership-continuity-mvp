@@ -37,6 +37,8 @@ import {
 } from "@/lib/mentoring-source-project";
 import { canonicalizeRoleTitle } from "@/lib/role-title";
 import { hasOpenAIEnv } from "@/lib/env";
+import { getAppUrl, hasResendEnv } from "@/lib/env";
+import { sendResendEmail } from "@/lib/resend";
 import { anonymizeProjectForIndustryBenchmark } from "@/lib/project-benchmark";
 
 const leadershipDevelopmentQuerySchema = z.object({
@@ -1172,6 +1174,39 @@ export async function POST(request: Request) {
       );
       if (benchmarkResult.error) {
         throw new ApiRouteError(benchmarkResult.error.message, 500);
+      }
+    }
+
+    if (payload.status === "ready_for_review" && hasResendEnv()) {
+      const candidateNameResult = await admin
+        .from("candidates")
+        .select("full_name")
+        .eq("organization_id", profile.organization_id)
+        .eq("id", payload.candidateId)
+        .maybeSingle();
+      const notifiedCandidateName = candidateNameResult.data?.full_name ?? "your development record";
+      const recipientResult = await admin
+        .from("organization_users")
+        .select("email")
+        .eq("organization_id", profile.organization_id)
+        .eq("candidate_id", payload.candidateId)
+        .eq("status", "active")
+        .not("email", "is", null)
+        .limit(1)
+        .maybeSingle();
+      if (recipientResult.data?.email) {
+        const url = `${getAppUrl()}/mentoring?section=leadership-development-record&candidateId=${payload.candidateId}&roleId=${payload.roleId}&mentorProfileId=${payload.mentorId}`;
+        try {
+          await sendResendEmail({
+            to: recipientResult.data.email,
+            subject: `Mentor feedback submitted for ${notifiedCandidateName}`,
+            text: `Mentor feedback has been submitted for ${notifiedCandidateName}. Open the leadership development record: ${url}`,
+            html: `<p>Mentor feedback has been submitted for <strong>${notifiedCandidateName}</strong>.</p><p><a href="${url}">Open the leadership development record</a></p>`,
+            idempotencyKey: `mentor-feedback-${recordId}-submitted`,
+          });
+        } catch {
+          console.warn("Mentor feedback email notification deferred; the feedback remains saved.");
+        }
       }
     }
 
