@@ -222,6 +222,12 @@ a {
   color: #0b2f6b;
 }
 
+.accent-card-blue {
+  border-color: #addcf0;
+  background-color: #e8f5fb;
+  color: #0b2f6b;
+}
+
 /* Shared card treatment: bright enough to create hierarchy, but quiet enough for long-form work. */
 .app-page :is(section, article, aside, div)[class~="bg-white"][class*="rounded-"] {
   border-color: rgba(174, 207, 224, 0.86);
@@ -245,6 +251,16 @@ a {
 
 .interactive-contrast[class*="bg-teal"] {
   box-shadow: 0 12px 24px rgba(29, 78, 216, 0.28);
+}
+
+/* Keep light lettering on every dark primary control, including links whose
+   inherited page color would otherwise override the utility class. */
+.app-page :is(a, button)[class*="bg-teal-950"][class*="text-white"],
+.app-page :is(a, button)[class*="bg-teal-900"][class*="text-white"],
+.app-page :is(a, button)[class*="bg-blue-700"][class*="text-white"],
+.app-page :is(a, button)[class*="bg-blue-800"][class*="text-white"] {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff;
 }
 
 /* Navigation and workspace tabs share one clear selected state. */
@@ -300,6 +316,8 @@ nav :is(a, button)[class*="bg-teal-900"][class*="text-white"]:hover {
 
 a[href="/coaching/request"].bg-teal-950 {
   background-color: #1d4ed8;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff;
   box-shadow: 0 8px 18px rgb(30 64 175 / 0.28);
   font-size: 1rem;
   font-weight: 700;
