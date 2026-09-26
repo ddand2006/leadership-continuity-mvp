@@ -574,10 +574,9 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
   const selectedCompetencies = selectedRoleId ? competenciesByRole.get(selectedRoleId) ?? [] : [];
   const selectedCompetencySignature = createRolePrintableCompetencySignature(selectedCompetencies);
   const selectedPrintablesStale = selectedRoleId
-    ? ["condensed_profile", "printable_narrative", "interview_scorecard"].some((type) => {
-        const generated = printableGenerationByRoleAndType.get(`${selectedRoleId}:${type}`);
-        return Boolean(generated && generated !== selectedCompetencySignature);
-      })
+    ? Array.from(printableGenerationByRoleAndType.entries()).some(([key, generated]) =>
+        key.startsWith(`${selectedRoleId}:`) && generated !== selectedCompetencySignature,
+      )
     : false;
   const workflowNotices = getRoleWorkflowNotices({
     characteristics: selectedRoleId ? characteristicsByRole.get(selectedRoleId) ?? [] : [],

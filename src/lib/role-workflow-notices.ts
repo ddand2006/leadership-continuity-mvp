@@ -5,7 +5,6 @@ type WorkflowNoticeInput = {
 };
 
 export function getRoleWorkflowNotices({ characteristics, composite, printablesStale = false }: WorkflowNoticeInput) {
-  const missingCompetencies = characteristics.length === 0;
   const uploadTimestamp = Number(composite?.storage_path?.split("/").at(-1)?.match(/^(\d{13})-/)?.[1]) || 0;
   const compositeTimestamp = Math.max(uploadTimestamp, Date.parse(composite?.created_at ?? "") || 0);
   const competenciesChanged = Boolean(composite) && characteristics.some((item) =>
@@ -16,7 +15,7 @@ export function getRoleWorkflowNotices({ characteristics, composite, printablesS
     competencies: null,
     composite: competenciesChanged
       ? "Competencies changed. Update the role composite before generating new printables."
-      : "Upload a job description to improve mentoring focus.",
+      : null,
     printables: printablesStale
       ? "Update the role composite, then generate new printables."
       : null,
