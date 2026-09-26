@@ -1268,7 +1268,7 @@ export async function PATCH(request: Request) {
       .eq("candidate_id", payload.candidateId)
       .eq("role_id", payload.roleId)
       .eq("mentor_id", payload.mentorId)
-      .select("id, status")
+      .select("id")
       .maybeSingle();
 
     if (updateResult.error) {
@@ -1351,10 +1351,6 @@ export async function DELETE(request: Request) {
       }
 
       throw new ApiRouteError(linkedRecordsResult.error.message, 500);
-    }
-
-    if ((linkedRecordsResult.data ?? []).some((record) => record.status === "completed")) {
-      throw new ApiRouteError("Completed projects cannot be removed.", 409);
     }
 
     const linkedRecordIds = (linkedRecordsResult.data ?? []).map((record) => record.id);
