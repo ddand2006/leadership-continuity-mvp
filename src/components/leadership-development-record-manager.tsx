@@ -2226,7 +2226,7 @@ export function LeadershipDevelopmentRecordManager({
                           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[1fr_1fr_1.4fr_auto_auto] xl:items-end">
                             <label className="block">
                               <span className="mb-2 block text-sm font-semibold text-slate-700">
-                                Leader Name
+                                Leader Title
                               </span>
                               <input
                                 value={leader.leaderName}
@@ -2238,7 +2238,7 @@ export function LeadershipDevelopmentRecordManager({
                             </label>
                             <label className="block">
                               <span className="mb-2 block text-sm font-semibold text-slate-700">
-                                Department
+                                Leader Name
                               </span>
                               <input
                                 value={leader.department}
