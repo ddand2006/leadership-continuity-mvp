@@ -9,22 +9,23 @@ export function PlatformPreviewChrome({children}:{children:ReactNode}) {
  const pathname=usePathname(),query=useSearchParams(),router=useRouter();
  const [pending,startTransition]=useTransition();
  const parts=pathname.split('/').filter(Boolean);
- const role=parts[0]==='view-as'&&isPreviewRole(parts[1])?parts[1]:null;
+ const role=parts[0]==='view-as'&&isPreviewRole(parts[1])?parts[1]:isPreviewRole(query.get('viewAs')??'')?query.get('viewAs') as import('@/lib/platform-preview/model').PreviewRole:null;
  const liveRole=role==='candidate'||role==='mentor';
- const section=parts[2]??'home';
+ const section=parts[0]==='view-as'?parts[2]??'home':parts[0]==='candidates'?(parts.includes('development')?'development':parts.includes('projects')?'projects':'candidates'):parts[0]==='mentoring'?'mentoring':parts[0]==='dashboard'?'notifications':'home';
  const returnTo=role?safeReturnPath(query.get('returnTo')):safeReturnPath(pathname+(query.size?'?'+query.toString():''));
  const sample=sampleIdentity(role??'candidate',query.get('company'),query.get('person'));
  const values={company:sample.company.id,person:sample.person?'second':'first',returnTo};
  const liveMentorCandidateId=query.get('candidateId');
  const liveMentorHref=(pageId:string)=>{
   const candidate=liveMentorCandidateId?`/${liveMentorCandidateId}`:'';
-  if(pageId==='candidates') return candidate?`/candidates${candidate}`:'/candidates';
-  if(pageId==='mentoring') return `/mentoring?candidateId=${encodeURIComponent(liveMentorCandidateId??'')}`;
-  if(pageId==='development') return candidate?`/candidates${candidate}/development`:'/candidates';
-  if(pageId==='projects') return `/mentoring?section=departmental-project&candidateId=${encodeURIComponent(liveMentorCandidateId??'')}`;
-  if(pageId==='resources') return `/mentoring?section=resources&candidateId=${encodeURIComponent(liveMentorCandidateId??'')}`;
-  if(pageId==='notifications') return '/dashboard';
-  return `/view-as/mentor/home${liveMentorCandidateId?`?candidateId=${encodeURIComponent(liveMentorCandidateId)}`:''}`;
+  const marker=`viewAs=mentor${liveMentorCandidateId?`&candidateId=${encodeURIComponent(liveMentorCandidateId)}`:''}`;
+  if(pageId==='candidates') return `${candidate?`/candidates${candidate}`:'/candidates'}?${marker}`;
+  if(pageId==='mentoring') return `/mentoring?candidateId=${encodeURIComponent(liveMentorCandidateId??'')}&${marker}`;
+  if(pageId==='development') return candidate?`/candidates${candidate}/development?${marker}`:'/candidates';
+  if(pageId==='projects') return `/mentoring?section=departmental-project&candidateId=${encodeURIComponent(liveMentorCandidateId??'')}&${marker}`;
+  if(pageId==='resources') return `/mentoring?section=resources&candidateId=${encodeURIComponent(liveMentorCandidateId??'')}&${marker}`;
+  if(pageId==='notifications') return `/dashboard?${marker}`;
+  return `/view-as/mentor/home?${marker}`;
  };
  function navigate(href:string){startTransition(()=>router.push(href));}
  const selector=<label className="flex flex-wrap items-center gap-2 text-sm font-semibold text-teal-950">View as
