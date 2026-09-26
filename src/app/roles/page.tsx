@@ -571,9 +571,18 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
       : activeWorkspaceSectionId === "create"
         ? "create"
         : "import";
+  const selectedCompetencies = selectedRoleId ? competenciesByRole.get(selectedRoleId) ?? [] : [];
+  const selectedCompetencySignature = createRolePrintableCompetencySignature(selectedCompetencies);
+  const selectedPrintablesStale = selectedRoleId
+    ? ["condensed_profile", "printable_narrative", "interview_scorecard"].some((type) => {
+        const generated = printableGenerationByRoleAndType.get(`${selectedRoleId}:${type}`);
+        return Boolean(generated && generated !== selectedCompetencySignature);
+      })
+    : false;
   const workflowNotices = getRoleWorkflowNotices({
     characteristics: selectedRoleId ? characteristicsByRole.get(selectedRoleId) ?? [] : [],
     composite: selectedRoleId ? compositeDocumentByRole.get(selectedRoleId) : null,
+    printablesStale: selectedPrintablesStale,
   });
   const roleOptionsForPanels = isRoleWorkspaceMode ? visibleRoles : roles;
 
@@ -672,7 +681,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                     <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                       {[
                         { id: "competencies", notice: workflowNotices.competencies, tone: "accent-card-gold", title: "Upload Competencies", description: "Import the talents, skills, and behaviors that define success in this role." },
-                        { id: "printables", notice: null, tone: "accent-card-green", title: "Role Printables", description: "Create and download role profile documents for sharing, review, and ongoing use." },
+                        { id: "printables", notice: workflowNotices.printables, tone: "accent-card-green", title: "Role Printables", description: "Create and download role profile documents for sharing, review, and ongoing use." },
                         { id: "composite", notice: workflowNotices.composite, tone: "accent-card-coral", title: "Update Role Composite", description: "Create, download, and update the role profile using its competencies." },
                         { id: "modification", notice: null, tone: "accent-card-blue", title: "Role Modification", description: "Update the role profile, competencies, and supporting details as the role evolves." },
                       ].map((tool) => (
