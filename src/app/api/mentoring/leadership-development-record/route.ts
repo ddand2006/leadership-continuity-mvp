@@ -805,7 +805,7 @@ export async function POST(request: Request) {
           ),
           collaboration_score: assertScore(
             feedback.collaborationScore,
-            `Reviewer feedback #${index + 1} collaboration score`,
+            `Reviewer feedback #${index + 1} Worked well with others`,
           ),
           feedback_application_score: assertScore(
             feedback.feedbackApplicationScore,

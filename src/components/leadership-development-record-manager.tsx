@@ -1520,13 +1520,30 @@ export function LeadershipDevelopmentRecordManager({
     startTransition(async () => {
       const saved = await saveRecord(payload);
       if (!saved.response?.ok || !saved.result.record) {
-        setError(saved.result.error ?? "Unable to save the leadership development record.");
+        showValidationError(saved.result.error ?? "Unable to save the leadership development record.");
         return;
       }
 
       applySavedRecord(payload, saved.result.record);
       setSuccess(saved.result.message ?? "Leadership development record saved.");
     });
+  }
+
+  function showValidationError(message: string) {
+    setError(message);
+    const match = message.match(/Reviewer feedback #(\d+) (.+?)(?:\.|$)/i);
+    if (!match) return;
+    const fieldLabels: Record<string, string> = {
+      "worked well with others": "collaborationScore",
+      "demonstrated growth": "growthScore",
+      "communicated effectively": "communicationScore",
+      "applied feedback": "feedbackApplicationScore",
+      "readiness for responsibility": "readinessScore",
+    };
+    const field = fieldLabels[match[2].trim().toLowerCase()] ?? match[2].trim().replaceAll(" ", "");
+    const target = document.getElementById(`reviewer-feedback-${Number(match[1]) - 1}-${field}`);
+    target?.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (target instanceof HTMLElement) target.focus();
   }
 
   async function handleInitialSaveAndProceed() {
@@ -2708,6 +2725,7 @@ export function LeadershipDevelopmentRecordManager({
                                   )
                                 }
                                 className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500"
+                                id={`reviewer-feedback-${index}-${field}`}
                               >
                                 <option value="">Select</option>
                                 {[1, 2, 3, 4, 5].map((score) => (
