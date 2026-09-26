@@ -2301,7 +2301,7 @@ export function LeadershipDevelopmentRecordManager({
                       <div className="flex flex-wrap gap-3 border-t border-amber-200 pt-5">
                         {!linkedSourceProject ? <button type="button" onClick={() => handleProjectTool("expand_project")} disabled={isGeneratingProjectTool} className="rounded-full bg-teal-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{isGeneratingProjectTool ? "Generating..." : "Expand project with AI"}</button> : null}
                         <button type="button" onClick={() => { selectionRevisionRef.current += 1; setProjectDetailsOpen((current) => !current); }} className="rounded-full border border-teal-200 bg-white px-4 py-2 text-sm font-semibold text-teal-900">{projectDetailsOpen ? "Hide Project Details" : "Show Project Details"}</button>
-                        {linkedSourceProject ? <button type="button" onClick={handleRemoveProject} disabled={isRemovingProject} className="rounded-full border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-700 disabled:opacity-50">{isRemovingProject ? "Removing Project…" : "Remove Project"}</button> : null}
+                        {linkedSourceProject ? <button type="button" onClick={handleRemoveProject} disabled={isRemovingProject || formState.status === "completed"} className={`rounded-full border px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60 ${formState.status === "completed" ? "border-slate-200 bg-slate-100 text-slate-400" : "border-rose-200 bg-white text-rose-700"}`}>{formState.status === "completed" ? "Project Completed" : isRemovingProject ? "Removing Project…" : "Remove Project"}</button> : null}
                       </div>
 
                       {!formState.id ? (
