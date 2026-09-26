@@ -297,6 +297,20 @@ nav :is(a, button)[class*="bg-teal-900"][class*="text-white"]:hover {
   background: #2d6e95;
   color: #ffffff;
 }
+
+a[href="/coaching/request"].bg-teal-950 {
+  background-color: #1d4ed8;
+  box-shadow: 0 8px 18px rgb(30 64 175 / 0.28);
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 0.75rem 1.5rem;
+}
+
+a[href="/coaching/request"].bg-teal-950:hover,
+a[href="/coaching/request"].bg-teal-950:focus-visible {
+  background-color: #1e40af;
+  box-shadow: 0 10px 22px rgb(30 64 175 / 0.35);
+}
 @media print {
   header {
     display: none !important;
