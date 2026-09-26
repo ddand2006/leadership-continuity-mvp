@@ -15,6 +15,17 @@ export function PlatformPreviewChrome({children}:{children:ReactNode}) {
  const returnTo=role?safeReturnPath(query.get('returnTo')):safeReturnPath(pathname+(query.size?'?'+query.toString():''));
  const sample=sampleIdentity(role??'candidate',query.get('company'),query.get('person'));
  const values={company:sample.company.id,person:sample.person?'second':'first',returnTo};
+ const liveMentorCandidateId=query.get('candidateId');
+ const liveMentorHref=(pageId:string)=>{
+  const candidate=liveMentorCandidateId?`/${liveMentorCandidateId}`:'';
+  if(pageId==='candidates') return candidate?`/candidates${candidate}`:'/candidates';
+  if(pageId==='mentoring') return `/mentoring?candidateId=${encodeURIComponent(liveMentorCandidateId??'')}`;
+  if(pageId==='development') return candidate?`/candidates${candidate}/development`:'/candidates';
+  if(pageId==='projects') return `/mentoring?section=departmental-project&candidateId=${encodeURIComponent(liveMentorCandidateId??'')}`;
+  if(pageId==='resources') return `/mentoring?section=resources&candidateId=${encodeURIComponent(liveMentorCandidateId??'')}`;
+  if(pageId==='notifications') return '/dashboard';
+  return `/view-as/mentor/home${liveMentorCandidateId?`?candidateId=${encodeURIComponent(liveMentorCandidateId)}`:''}`;
+ };
  function navigate(href:string){startTransition(()=>router.push(href));}
  const selector=<label className="flex flex-wrap items-center gap-2 text-sm font-semibold text-teal-950">View as
   <select aria-label="View as" value={role??'platform'} disabled={pending} onChange={event=>{const next=event.target.value;navigate(isPreviewRole(next)?previewHref(next,role?section:'home',values):returnTo);}} className="max-w-full rounded-xl border border-teal-800/25 bg-white px-3 py-2 text-sm">
@@ -35,7 +46,7 @@ export function PlatformPreviewChrome({children}:{children:ReactNode}) {
      <p className="pb-2 text-sm text-slate-600">{sample.name} · {roleLabels[role]}</p>
      <span role="status" className="pb-2 text-sm text-slate-500">{pending?'Opening workspace…':''}</span>
     </div>}
-    <nav aria-label={`${roleLabels[role]} platform navigation`} className="mt-4 flex flex-wrap gap-1">{rolePages[role].map(page=><Link key={page.id} href={previewHref(role,page.id,values)} aria-current={section===page.id?'page':undefined} className={`rounded-lg px-3 py-2 text-sm font-semibold ${section===page.id?'interactive-contrast bg-teal-950 text-white':'text-teal-950 hover:bg-teal-50'}`}>{page.label}</Link>)}</nav>
+    <nav aria-label={`${roleLabels[role]} platform navigation`} className="mt-4 flex flex-wrap gap-1">{rolePages[role].map(page=><Link key={page.id} href={liveRole&&role==='mentor'?liveMentorHref(page.id):previewHref(role,page.id,values)} aria-current={section===page.id?'page':undefined} className={`rounded-lg px-3 py-2 text-sm font-semibold ${section===page.id?'interactive-contrast bg-teal-950 text-white':'text-teal-950 hover:bg-teal-50'}`}>{page.label}</Link>)}</nav>
    </div>
   </div>
  </header>;
