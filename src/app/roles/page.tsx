@@ -753,7 +753,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                   initialSelectedRoleId={selectedRoleId}
                   mode="import"
                 /> : null}
-                {workflowTool === "survey" ? (surveyModuleReady ? (
+                {(workflowTool === "survey" || workflowTool === "competencies") ? (surveyModuleReady ? (
                   <RoleSurveyPanel
                     roles={roleOptionsForPanels.map((role) => ({
                       id: role.id,
