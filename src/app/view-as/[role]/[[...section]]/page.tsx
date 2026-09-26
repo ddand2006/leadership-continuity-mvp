@@ -1,4 +1,4 @@
-import {notFound} from 'next/navigation';
+import {notFound, redirect} from 'next/navigation';
 import {requirePlatformPreviewAdministrator} from '@/lib/platform-preview/server';
 import {isPreviewRole,rolePages,resolveSample} from '@/lib/platform-preview/model';
 import {PreviewWorkspace} from '@/components/platform-preview/workspace';
@@ -6,6 +6,8 @@ export default async function ViewAsPage({params,searchParams}:{params:Promise<{
  await requirePlatformPreviewAdministrator();
  const {role,section=[]}=await params;
  if(!isPreviewRole(role)||section.length>1)notFound();
+ if(role==='candidate') redirect('/candidates');
+ if(role==='mentor') redirect('/mentoring');
  const page=section[0]??'home';
  if(!rolePages[role].some(p=>p.id===page))notFound();
  const query=await searchParams;
