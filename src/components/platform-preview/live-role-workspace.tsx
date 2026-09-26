@@ -33,7 +33,7 @@ export async function LiveRoleWorkspace({ role }: { role: LiveRole }) {
     : `/mentoring?candidateId=${candidate?.id ?? ""}&roleId=${roleResult.data?.id ?? ""}`;
   const cards = role === "candidate"
     ? [
-        ["My Role Profile", `Your target role is ${title}. Review the competencies that define success.`, `/candidates/${candidate?.id ?? ""}?roleId=${roleResult.data?.id ?? ""}`],
+        ["My Role Profile", `Your target role is ${title}. Review readiness, role considerations, assessments, strengths, and the competencies that define success.`, `/candidates/${candidate?.id ?? ""}?roleId=${roleResult.data?.id ?? ""}&section=candidate-profile`],
         ["Development Plan", "Work through mentoring assignments, evidence, and next actions connected to your role.", `/candidates/${candidate?.id ?? ""}/development?roleId=${roleResult.data?.id ?? ""}`],
         ["Mentoring Track", assignment ? "Open your assigned preparation worksheet and complete the mentoring track." : "No mentor assignment is attached yet.", preparationHref],
       ]
