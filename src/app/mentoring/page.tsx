@@ -163,6 +163,8 @@ export default async function MentoringPage({
   const isMentor = isMentorAppUser(profile, account);
   const isMentorPreview = viewAs === "mentor";
   const isMentorOnly = (isMentor && !isAdmin) || isMentorPreview;
+  const scopedMentorProfileId =
+    requestedMentorProfileId ?? (isAdmin ? profile.id : null);
   const isCandidate = isCandidateAppUser(account);
   const candidateIdForSelfAccess = account?.candidate_id ?? null;
   const canManageMentorAssignments = isAdmin || isMentor;
@@ -308,12 +310,12 @@ export default async function MentoringPage({
     (reportsResult.data ?? []).map((report) => `${report.candidate_id}:${report.role_id}`),
   );
 
-  const visibleAssignments = isAdmin && !isMentorPreview
+  const visibleAssignments = isAdmin && !isMentorPreview && !scopedMentorProfileId
     ? mentorAssignmentsResult.data ?? []
     : (mentorAssignmentsResult.data ?? []).filter((assignment) =>
-        isMentor || isMentorPreview
+        isMentor || isMentorPreview || isAdmin
           ? assignment.mentor_profile_id ===
-              (isMentorPreview ? requestedMentorProfileId : profile.id) &&
+              (isMentorPreview || requestedMentorProfileId ? scopedMentorProfileId : profile.id) &&
             isActiveMentorAssignmentStatus(assignment.status)
           : candidateIdForSelfAccess !== null &&
             assignment.candidate_id === candidateIdForSelfAccess,
