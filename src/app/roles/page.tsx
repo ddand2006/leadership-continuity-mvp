@@ -679,7 +679,6 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                     </p>
                     <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                       {[
-                        { id: "competencies", notice: workflowNotices.competencies, tone: "accent-card-gold", title: "Upload Competencies", description: "Import the talents, skills, and behaviors that define success in this role." },
                         { id: "printables", notice: workflowNotices.printables, tone: "accent-card-green", title: "Role Printables", description: "Create and download role profile documents for sharing, review, and ongoing use." },
                         { id: "composite", notice: workflowNotices.composite, tone: "accent-card-coral", title: "Update Role Composite", description: "Create, download, and update the role profile using its competencies." },
                         { id: "modification", notice: null, tone: "accent-card-blue", title: "Role Modification", description: "Update the role profile, competencies, and supporting details as the role evolves." },
@@ -698,7 +697,18 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                             </span>
                           ) : null}
                           <span className="mt-4 inline-flex text-sm font-semibold text-teal-800">Open tool<span className="sr-only">: {tool.title}</span></span>
-                        </Link>
+                          {tool.id === "modification" ? (
+                            <Link
+                              href={`/roles?roleId=${selectedRoleId}&mode=import&tool=survey`}
+                              className="mt-5 rounded-xl border border-emerald-300 bg-emerald-50/90 p-4"
+                              onClick={(event) => event.stopPropagation()}
+                            >
+                              <span className="block font-semibold text-slate-900">Send Competency Survey</span>
+                              <span className="mt-1 block text-sm leading-6 text-slate-600">Gather input from people who know the work before updating this role.</span>
+                              <span className="mt-3 inline-flex text-sm font-semibold text-teal-800 underline">Open survey tool</span>
+                            </Link>
+                          ) : null}
+                          </Link>
                       ))}
                     </div>
                   </section>
