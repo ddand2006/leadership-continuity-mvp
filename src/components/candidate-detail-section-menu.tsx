@@ -12,6 +12,7 @@ type CandidateDetailSection = {
   detailSectionIds?: string[];
   parentSectionId?: string;
   navOrder?: number;
+  hidden?: boolean;
 };
 
 export function CandidateDetailSectionMenu({
@@ -21,10 +22,11 @@ export function CandidateDetailSectionMenu({
   sections: CandidateDetailSection[];
   initialSectionId?: string;
 }) {
+  const visibleSections = sections.filter((section) => !section.hidden);
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [activeSectionId, setActiveSectionId] = useState<string>(
-    sections.some((section) => section.id === initialSectionId)
+    visibleSections.some((section) => section.id === initialSectionId)
       ? (initialSectionId ?? "")
       : "overview",
   );
@@ -32,16 +34,16 @@ export function CandidateDetailSectionMenu({
 
   const urlSectionId = searchParams.get("section");
   const resolvedUrlSectionId =
-    sections.find((section) => section.id === urlSectionId)?.parentSectionId ??
+    visibleSections.find((section) => section.id === urlSectionId)?.parentSectionId ??
     urlSectionId;
-  const selectedSectionId = (resolvedUrlSectionId === "overview" || sections.some((section) => section.id === resolvedUrlSectionId))
+  const selectedSectionId = (resolvedUrlSectionId === "overview" || visibleSections.some((section) => section.id === resolvedUrlSectionId))
     ? resolvedUrlSectionId
     : activeSectionId;
   const activeSection =
-    sections.find((section) => section.id === selectedSectionId) ?? sections[0] ?? null;
+    visibleSections.find((section) => section.id === selectedSectionId) ?? visibleSections[0] ?? null;
   const detailSections = activeSection?.detailSectionIds
     ? activeSection.detailSectionIds
-        .map((sectionId) => sections.find((section) => section.id === sectionId))
+        .map((sectionId) => visibleSections.find((section) => section.id === sectionId))
         .filter((section): section is CandidateDetailSection => Boolean(section))
     : [];
   const selectedDetailSectionId = detailSections.some(
@@ -69,7 +71,7 @@ export function CandidateDetailSectionMenu({
           <h2 className="mt-3 font-display text-3xl text-slate-900">Profile, fit, and development</h2>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">Explore the selected candidate’s profile, review their role fit, and follow their progress and mentoring priorities.</p>
           <div className="mt-6 grid gap-4 md:grid-cols-2">
-            {sections
+            {visibleSections
               .filter((section) => !section.parentSectionId)
               .map((section, index) => ({ section, index }))
               .sort((left, right) => (left.section.navOrder ?? left.index) - (right.section.navOrder ?? right.index))
