@@ -33,7 +33,14 @@ export type DevelopmentData = {
 };
 export const text = (row: DevelopmentRow, key: string) => String(row[key] ?? '');
 export function competencyRows(sources: DevelopmentRow[]) {
-    return sources.filter(s => s.data_type === 'competencies').map(c => {
+    const seen = new Set<string>();
+    return sources.filter(s => {
+        if (s.data_type !== 'competencies') return false;
+        const key = String(s.title ?? s.name ?? s.id).trim().toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    }).map(c => {
         const assessed = sources.filter(s => s.competency_id === c.id && s.current_level != null && (s.data_type !== 'development_plan' || s.occurred_at)).sort((a, b) => String(b.occurred_at ?? '').localeCompare(String(a.occurred_at ?? '')) || Number(b.data_type === 'assessment') - Number(a.data_type === 'assessment'))[0];
         const current = assessed ? Number(assessed.current_level) : null;
         const target = c.target_level == null ? null : Number(c.target_level);

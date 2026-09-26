@@ -34,7 +34,7 @@ export async function DevelopmentBody({ candidate, engagement, view = 'prioritie
         if (roleResult.data) {
             const competencyIds = new Set((competencyResult.data ?? []).map((item) => item.id));
             const roleSources = (base.sources ?? []).filter((source) => source.data_type !== 'competencies' && source.data_type !== 'assessment' && source.data_type !== 'development_plan' && source.data_type !== '360_review' && source.data_type !== 'readiness');
-            const roleCompetencies = (competencyResult.data ?? []).map((item) => ({ id: item.id, data_type: 'competencies', title: item.name, description: item.definition, competency_id: item.id, current_level: null, target_level: item.target_score, occurred_at: null, status: 'current' }));
+            const roleCompetencies = Array.from(new Map((competencyResult.data ?? []).map((item) => [item.name.trim().toLowerCase(), item])).values()).map((item) => ({ id: item.id, data_type: 'competencies', title: item.name, description: item.definition, competency_id: item.id, current_level: null, target_level: item.target_score, occurred_at: null, status: 'current' }));
             const roleEvidence = (base.sources ?? []).filter((source) => source.competency_id && competencyIds.has(String(source.competency_id)));
             d = { ...base, candidate: base.candidate ? { ...base.candidate, target_role_id: roleId, target_role: roleResult.data.title } : base.candidate, sources: [...roleSources, ...roleCompetencies, ...roleEvidence] };
         }
