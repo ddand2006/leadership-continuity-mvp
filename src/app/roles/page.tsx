@@ -691,7 +691,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                     </p>
                     <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                       {[
-                        { id: "competencies", notice: workflowNotices.competencies, tone: "accent-card-gold", title: "Upload Competencies", description: "Import the talents, skills, and behaviors that define success in this role.", survey: "Use the Competency Survey to gather input from others and prioritize the role’s key competencies." },
+                        { id: "competencies", notice: workflowNotices.competencies, tone: "accent-card-gold", title: "Upload Competencies", description: "Import the talents, skills, and behaviors that define success in this role." },
                         { id: "printables", notice: null, tone: "accent-card-green", title: "Role Printables", description: "Create and download role profile documents for sharing, review, and ongoing use." },
                         { id: "composite", notice: workflowNotices.composite, tone: "accent-card-coral", title: "Update Role Composite", description: "Create, download, and update the role profile using its competencies." },
                         { id: "modification", notice: null, tone: "accent-card-blue", title: "Role Modification", description: "Update the role profile, competencies, and supporting details as the role evolves." },
@@ -703,12 +703,6 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                         >
                           <h3 className="font-semibold text-slate-900">{tool.title}</h3>
                           <p className="mt-2 flex-1 text-sm leading-6 text-slate-600">{tool.description}</p>
-                          {tool.survey ? (
-                            <span className="mt-4 block rounded-xl border border-emerald-700/20 bg-emerald-100/70 px-3 py-3 text-sm leading-6 text-slate-700">
-                              <span className="block font-semibold text-slate-900">Competency Survey</span>
-                              {tool.survey}
-                            </span>
-                          ) : null}
                           {tool.notice ? (
                             <span className="mt-4 block rounded-xl border border-amber-700/30 bg-white/80 px-3 py-3 text-sm leading-6 text-amber-950">
                               <span className="block font-semibold">Action needed</span>
