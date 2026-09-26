@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react';
-export function Panel({ title, children }: {
+export function Panel({ title, children, className = "" }: {
     title?: string;
     children: ReactNode;
-}) { return <section className="theme-panel rounded-3xl border border-slate-200 bg-white/80 p-5 sm:p-7">{title && <h2 className="mb-4 text-xl font-semibold text-teal-950">{title}</h2>}{children}</section>; }
+    className?: string;
+}) { return <section className={`theme-panel rounded-3xl border border-slate-200 bg-white/80 p-5 sm:p-7 ${className}`}>{title && <h2 className="mb-4 text-xl font-semibold text-teal-950">{title}</h2>}{children}</section>; }
 export function Field({ name, label, type = 'text', value, required = false, step }: {
     name: string;
     label?: string;
