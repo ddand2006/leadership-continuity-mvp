@@ -4,6 +4,7 @@ import { ApiRouteError, createApiErrorResponse } from "@/lib/api-route";
 import { MENTORING_DOCUMENTS_BUCKET, WORD_DOCUMENT_MIME, requireMentoringDocumentAccess } from "@/lib/mentoring-documents";
 import { isActiveMentorAssignmentStatus, mentorHasCandidateAccess } from "@/lib/mentor-access";
 import { sendResendEmail } from "@/lib/resend";
+import mammoth from "mammoth";
 
 export const runtime = "nodejs";
 const querySchema = z.object({ candidateId: z.string().uuid(), documentId: z.string().uuid().optional() });
@@ -41,11 +42,17 @@ export async function GET(request: Request) {
     if (!parsed.success) throw new ApiRouteError("Invalid document request.", 400);
     const { candidateId, documentId } = parsed.data;
     const context = await requireMentoringDocumentAccess(candidateId);
+    const preview = new URL(request.url).searchParams.get("preview") === "1";
     if (documentId) {
       const document = await loadDocument(context, documentId);
       const file = await context.admin.storage.from(MENTORING_DOCUMENTS_BUCKET).download(document.storage_path);
       if (file.error || !file.data) throw new ApiRouteError("Unable to open the saved document.", 500);
-      return new NextResponse(await file.data.arrayBuffer(), { headers: {
+      const fileBuffer = Buffer.from(await file.data.arrayBuffer());
+      if (preview) {
+        const converted = await mammoth.extractRawText({ buffer: fileBuffer });
+        return NextResponse.json({ text: converted.value });
+      }
+      return new NextResponse(fileBuffer, { headers: {
         "Content-Type": WORD_DOCUMENT_MIME,
         "Content-Disposition": `attachment; filename="${document.file_name.replace(/["\r\n]/g, "")}"`,
         "Cache-Control": "private, no-store",

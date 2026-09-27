@@ -18,6 +18,8 @@ function DocumentLibrary({ candidateId }: { candidateId: string }) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const [preview, setPreview] = useState<{ title: string; text: string } | null>(null);
+  const [previewLoading, setPreviewLoading] = useState<string | null>(null);
   const [selected, setSelected] = useState<Record<string, string>>({});
   const attempts = useRef<Record<string, string>>({});
   const loadVersion = useRef(0);
@@ -63,6 +65,17 @@ function DocumentLibrary({ candidateId }: { candidateId: string }) {
     finally { setBusy(null); }
   }
 
+  async function view(document: SavedDocument) {
+    setPreviewLoading(document.id); setError(null);
+    try {
+      const response = await fetch(`/api/mentoring/documents?candidateId=${candidateId}&documentId=${document.id}&preview=1`, { cache: "no-store" });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error ?? "Unable to preview document.");
+      setPreview({ title: document.title, text: payload.text ?? "" });
+    } catch (error) { setError(error instanceof Error ? error.message : "Unable to preview document."); }
+    finally { setPreviewLoading(null); }
+  }
+
   return (
     <section className="my-6 rounded-3xl border border-slate-200 bg-white p-6 lg:col-span-2" aria-label="Saved mentoring documents">
       <div className="flex items-center justify-between gap-3">
@@ -82,7 +95,8 @@ function DocumentLibrary({ candidateId }: { candidateId: string }) {
             <p className="font-semibold text-slate-900">{document.title}</p>
             <p className="mt-1 text-xs text-slate-500">Saved {new Date(document.created_at).toLocaleString()}</p>
             <div className="mt-3 flex flex-wrap items-center gap-3">
-              <a className="text-sm font-semibold text-teal-800 underline" href={`/api/mentoring/documents?candidateId=${candidateId}&documentId=${document.id}`} download={document.file_name}>Download Word document</a>
+              <a className="rounded-full border border-teal-200 bg-white px-4 py-2 text-sm font-semibold text-teal-800" href={`/api/mentoring/documents?candidateId=${candidateId}&documentId=${document.id}`} download={document.file_name}>Download</a>
+              <button type="button" onClick={() => void view(document)} disabled={Boolean(previewLoading)} className="rounded-full border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-800 disabled:opacity-50">{previewLoading === document.id ? "Loading…" : "View document"}</button>
               <select aria-label={`Email recipient for ${document.title}`} className="max-w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" value={selected[document.id] ?? ""} onChange={(event) => setSelected((current) => ({ ...current, [document.id]: event.target.value }))} disabled={Boolean(busy)}>
                 <option value="">Choose mentor or mentee</option>
                 {document.recipients.map((recipient) => <option key={recipient.id} value={recipient.id}>{recipient.relationship}: {recipient.name} ({recipient.email})</option>)}
@@ -94,6 +108,14 @@ function DocumentLibrary({ candidateId }: { candidateId: string }) {
         ))}
       </ul>
       </div>
+      {preview ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4" role="dialog" aria-modal="true" aria-label={`Preview ${preview.title}`}>
+          <div className="flex max-h-[90vh] w-full max-w-4xl flex-col rounded-3xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between gap-4 border-b border-slate-200 p-5"><h3 className="text-lg font-semibold text-slate-900">{preview.title}</h3><button type="button" onClick={() => setPreview(null)} className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Close</button></div>
+            <pre className="max-h-[75vh] overflow-y-auto whitespace-pre-wrap p-8 font-sans text-sm leading-7 text-slate-800">{preview.text}</pre>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
