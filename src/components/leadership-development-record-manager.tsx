@@ -997,6 +997,7 @@ export function LeadershipDevelopmentRecordManager({
   ]);
 
   function toggleSection(sectionId: CollapsibleSectionId) {
+    setMenteeWorksheetOpen(false);
     setOpenSections((current) => {
       const shouldOpen = !current[sectionId];
       return Object.fromEntries(
@@ -1951,7 +1952,10 @@ export function LeadershipDevelopmentRecordManager({
               <article className="mt-6 rounded-[1.5rem] border-2 border-teal-200 bg-white px-6 py-6 shadow-[0_16px_40px_rgba(15,118,110,0.08)]">
                 <button
                   type="button"
-                  onClick={() => setMenteeWorksheetOpen((current) => !current)}
+                  onClick={() => {
+                    setOpenSections(createOpenSectionState());
+                    setMenteeWorksheetOpen((current) => !current);
+                  }}
                   className="flex w-full items-center justify-between gap-4 text-left"
                 >
                   <div>
