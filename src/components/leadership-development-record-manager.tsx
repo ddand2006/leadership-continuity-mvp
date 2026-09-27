@@ -1026,6 +1026,10 @@ export function LeadershipDevelopmentRecordManager({
       targetRole: selectedAssignment.roleTitle,
       primaryMentor: selectedAssignment.mentorName,
       status,
+      completionDate:
+        status === "completed"
+          ? record.completionDate || new Date().toISOString().slice(0, 10)
+          : record.completionDate,
     };
   }
 

@@ -872,7 +872,10 @@ export async function POST(request: Request) {
       mentor_development_needed: payload.mentorDevelopmentNeeded || null,
       next_recommended_experience: payload.nextRecommendedExperience || null,
       mentor_review_date: payload.mentorReviewDate || null,
-      completion_date: payload.status === "completed" ? payload.completionDate || null : null,
+      completion_date:
+        payload.status === "completed"
+          ? payload.completionDate || new Date().toISOString().slice(0, 10)
+          : null,
       average_feedback_score: averageFeedbackScore,
       created_by_profile_id: profile.id,
       updated_at: timestamp,
