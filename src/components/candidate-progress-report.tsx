@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { projectScore, projectScoreChange, projectCompletionLabel, type ProjectProgressEvidence } from "@/lib/progress-development-evidence";
 import { MentoringDocumentLibrary } from "@/components/mentoring-document-library";
 
@@ -409,7 +410,20 @@ export function CandidateProgressReport({
                   </table>
                 </div>
               ) : <p className="mt-4 leading-7">Competency score changes: No scores recorded for this project.</p>}
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-3"><p className="text-xs text-slate-500">Last updated: {formatDate(record.occurredAt)}</p>{canManageProjects ? <button type="button" onClick={() => removeProject(record)} disabled={record.status === "completed" || removingProjectId === record.id} className="rounded-full border border-rose-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400">{record.status === "completed" ? "Project Completed" : removingProjectId === record.id ? "Removing…" : "Remove Project"}</button> : null}</div>
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                <p className="text-xs text-slate-500">Last updated: {formatDate(record.occurredAt)}</p>
+                {canManageProjects ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Link
+                      href={`/mentoring?section=leadership-development-record&candidateId=${candidateId}&roleId=${record.roleId}&mentorProfileId=${record.mentorId}&recordId=${record.id}`}
+                      className="rounded-full border border-sky-200 bg-white px-3 py-1.5 text-xs font-semibold text-sky-800"
+                    >
+                      Edit Project
+                    </Link>
+                    <button type="button" onClick={() => removeProject(record)} disabled={record.status === "completed" || removingProjectId === record.id} className="rounded-full border border-rose-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400">{record.status === "completed" ? "Project Completed" : removingProjectId === record.id ? "Removing…" : "Remove Project"}</button>
+                  </div>
+                ) : null}
+              </div>
             </article>
           ))}
           {projectError ? <p className="text-sm text-rose-700">{projectError}</p> : null}
