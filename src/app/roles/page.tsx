@@ -663,7 +663,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                     </p>
                     <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                       {[
-                        { id: "modification", notice: null, tone: "accent-card-yellow", title: "Role Modification", description: "Update the role profile, competencies, and supporting details as the role evolves." },
+                        { id: "modification", notice: null, tone: "accent-card-gold", title: "Role Modification", description: "Update the role profile, competencies, and supporting details as the role evolves." },
                         { id: "printables", notice: workflowNotices.printables, tone: "accent-card-green", title: "Role Printables", description: "Create and download role profile documents for sharing, review, and ongoing use." },
                         { id: "composite", notice: workflowNotices.composite, tone: "accent-card-coral", title: "Update Role Composite", description: "Create, download, and update the role profile using its competencies." },
                       ].map((tool) => (
