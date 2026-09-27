@@ -78,12 +78,12 @@ function getAssignmentKey(option: {
 
 function createOpenSectionState() {
   return {
-    "candidate-information": true,
-    "development-focus": true,
-    "development-experience": true,
-    "competency-scoring": true,
-    "leader-feedback": true,
-    "mentor-review": true,
+    "candidate-information": false,
+    "development-focus": false,
+    "development-experience": false,
+    "competency-scoring": false,
+    "leader-feedback": false,
+    "mentor-review": false,
   } as Record<CollapsibleSectionId, boolean>;
 }
 
@@ -996,10 +996,12 @@ export function LeadershipDevelopmentRecordManager({
   ]);
 
   function toggleSection(sectionId: CollapsibleSectionId) {
-    setOpenSections((current) => ({
-      ...current,
-      [sectionId]: !current[sectionId],
-    }));
+    setOpenSections((current) => {
+      const shouldOpen = !current[sectionId];
+      return Object.fromEntries(
+        (Object.keys(current) as CollapsibleSectionId[]).map((id) => [id, shouldOpen && id === sectionId]),
+      ) as Record<CollapsibleSectionId, boolean>;
+    });
   }
 
   function buildRecordSavePayload(
