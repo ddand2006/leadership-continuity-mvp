@@ -241,27 +241,11 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
     throw new Error(printableGenerationsResult.error.message);
   }
 
-  if (characteristicsResult.error) {
-    throw new Error(characteristicsResult.error.message);
-  }
-
   if (
     sharedLibraryResult.error &&
     !isMissingRoleCharacteristicLibraryTableError(sharedLibraryResult.error)
   ) {
     throw new Error(sharedLibraryResult.error.message);
-  }
-
-  if (compositeDocumentsResult.error) {
-    throw new Error(compositeDocumentsResult.error.message);
-  }
-
-  if (mentorsResult.error) {
-    throw new Error(mentorsResult.error.message);
-  }
-
-  if (roleMentorAssignmentsResult.error) {
-    throw new Error(roleMentorAssignmentsResult.error.message);
   }
 
   if (
@@ -314,7 +298,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
     string,
     typeof normalizedCharacteristics
   >();
-  const normalizedCharacteristics = (characteristicsResult.data ?? []) as Array<{
+  const normalizedCharacteristics = (characteristicsResult.data ?? []) as unknown as Array<{
     id?: string;
     role_id: string;
     category?: string;
@@ -325,7 +309,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
   }>;
   const normalizedCompositeDocuments = (
     compositeDocumentsResult.data ?? []
-  ) as Array<{
+  ) as unknown as Array<{
     id?: string;
     role_id: string;
     storage_path?: string | null;
@@ -452,7 +436,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
         category: string;
         characteristic: string;
       }>),
-      ...((characteristicsResult.data ?? []) as Array<{
+      ...((characteristicsResult.data ?? []) as unknown as Array<{
         id: string;
         category: string;
         characteristic: string;
