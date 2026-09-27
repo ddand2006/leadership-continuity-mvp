@@ -52,7 +52,10 @@ const removeProjectSchema = z.object({
   candidateId: z.string().uuid(),
   roleId: z.string().uuid(),
   mentorId: z.string().uuid(),
-  projectAssignmentId: z.string().uuid(),
+  projectAssignmentId: z.string().uuid().optional(),
+  recordId: z.string().uuid().optional(),
+}).refine((payload) => payload.projectAssignmentId || payload.recordId, {
+  message: "A project assignment or development record is required.",
 });
 
 const archiveRecordSchema = z.object({
@@ -1316,31 +1319,14 @@ export async function DELETE(request: Request) {
       mentorId: payload.mentorId,
     });
 
-    const projectAssignmentResult = await admin
-      .from("candidate_project_assignments")
-      .select("id")
-      .eq("organization_id", profile.organization_id)
-      .eq("id", payload.projectAssignmentId)
-      .eq("candidate_id", payload.candidateId)
-      .eq("mentor_profile_id", payload.mentorId)
-      .maybeSingle();
-
-    if (projectAssignmentResult.error) {
-      throw new ApiRouteError(projectAssignmentResult.error.message, 500);
-    }
-
-    if (!projectAssignmentResult.data) {
-      throw new ApiRouteError("This project is no longer assigned to the candidate.", 404);
-    }
-
     const linkedRecordsResult = await admin
       .from("development_records")
-      .select("id, status")
+      .select("id, status, source_project_assignment_id")
       .eq("organization_id", profile.organization_id)
       .eq("candidate_id", payload.candidateId)
       .eq("role_id", payload.roleId)
       .eq("mentor_id", payload.mentorId)
-      .eq("source_project_assignment_id", payload.projectAssignmentId);
+      .match(payload.recordId ? { id: payload.recordId } : { source_project_assignment_id: payload.projectAssignmentId });
 
     if (linkedRecordsResult.error) {
       if (isMissingLeadershipDevelopmentRecordTableError(linkedRecordsResult.error)) {
@@ -1370,16 +1356,26 @@ export async function DELETE(request: Request) {
       }
     }
 
-    const deleteProjectAssignmentResult = await admin
-      .from("candidate_project_assignments")
-      .delete()
-      .eq("organization_id", profile.organization_id)
-      .eq("id", payload.projectAssignmentId)
-      .eq("candidate_id", payload.candidateId)
-      .eq("mentor_profile_id", payload.mentorId);
+    const projectAssignmentIds = new Set(
+      (linkedRecordsResult.data ?? [])
+        .map((record) => record.source_project_assignment_id)
+        .filter((id): id is string => Boolean(id)),
+    );
+    if (payload.projectAssignmentId) {
+      projectAssignmentIds.add(payload.projectAssignmentId);
+    }
+    if (projectAssignmentIds.size > 0) {
+      const deleteProjectAssignmentResult = await admin
+        .from("candidate_project_assignments")
+        .delete()
+        .eq("organization_id", profile.organization_id)
+        .eq("candidate_id", payload.candidateId)
+        .eq("mentor_profile_id", payload.mentorId)
+        .in("id", Array.from(projectAssignmentIds));
 
-    if (deleteProjectAssignmentResult.error) {
-      throw new ApiRouteError(deleteProjectAssignmentResult.error.message, 500);
+      if (deleteProjectAssignmentResult.error) {
+        throw new ApiRouteError(deleteProjectAssignmentResult.error.message, 500);
+      }
     }
 
     return NextResponse.json({

@@ -20,6 +20,8 @@ type InterviewProgress = {
 };
 
 type DevelopmentProgress = ProjectProgressEvidence & {
+  id: string;
+  mentorId: string;
   roleId: string;
   roleTitle: string;
   title: string | null;
@@ -144,6 +146,7 @@ export function CandidateProgressReport({
   events,
   decisionEvents,
   workflowContent,
+  canManageProjects = false,
 }: {
   candidateId: string;
   candidateName: string;
@@ -154,6 +157,7 @@ export function CandidateProgressReport({
   events: ProgressEvent[];
   decisionEvents: ProgressEvent[];
   workflowContent?: ReactNode;
+  canManageProjects?: boolean;
 }) {
   const currentYear = new Date().getFullYear();
   const datedValues = [
@@ -169,6 +173,9 @@ export function CandidateProgressReport({
   const [selectedYear, setSelectedYear] = useState(years[0] ?? currentYear);
   const [isDownloading, startDownload] = useTransition();
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [removingProjectId, setRemovingProjectId] = useState<string | null>(null);
+  const [projectError, setProjectError] = useState<string | null>(null);
+  const [hiddenProjectIds, setHiddenProjectIds] = useState<Set<string>>(new Set());
   const activeRoleTitles = roles
     .filter((role) => role.status === "active")
     .map((role) => role.roleTitle);
@@ -196,6 +203,26 @@ export function CandidateProgressReport({
   const periodDevelopmentRecords = isPeriodFilteredByYear
     ? developmentRecords.filter((item) => isInYear(item.occurredAt, reportingYear))
     : developmentRecords;
+  const visibleDevelopmentRecords = periodDevelopmentRecords.filter(
+    (record) => !hiddenProjectIds.has(record.id),
+  );
+  async function removeProject(record: DevelopmentProgress) {
+    if (record.status === "completed" || !window.confirm(`Remove “${record.title ?? "this project"}” from the candidate’s development record?`)) return;
+    setRemovingProjectId(record.id);
+    setProjectError(null);
+    const response = await fetch("/api/mentoring/leadership-development-record", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ candidateId, roleId: record.roleId, mentorId: record.mentorId, recordId: record.id }),
+    });
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+      setProjectError(payload?.error ?? "Unable to remove this project.");
+    } else {
+      setHiddenProjectIds((current) => new Set(current).add(record.id));
+    }
+    setRemovingProjectId(null);
+  }
   const periodMentorReportCount = isPeriodFilteredByYear
     ? mentorReportDates.filter((item) => isInYear(item, reportingYear)).length
     : mentorReportDates.length;
@@ -354,8 +381,8 @@ export function CandidateProgressReport({
         <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">Projects & Development</p>
         <h3 className="mt-3 font-display text-3xl text-slate-900">Development work completed and underway</h3>
         <div className="mt-6 grid gap-4">
-          {[...periodDevelopmentRecords].sort((left, right) => new Date(right.occurredAt).getTime() - new Date(left.occurredAt).getTime()).map((record, index) => (
-            <article key={`${record.roleId}-${record.occurredAt}-${index}`} className="rounded-3xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-700">
+          {[...visibleDevelopmentRecords].sort((left, right) => new Date(right.occurredAt).getTime() - new Date(left.occurredAt).getTime()).map((record) => (
+            <article key={record.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-700">
               <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-lg font-semibold text-slate-900">{record.title ?? "Development record"}</p><span className="rounded-full bg-white px-3 py-1 text-xs font-semibold tracking-[0.1em] text-slate-600 uppercase">{record.status.replaceAll("_", " ")}</span></div>
               <p className="mt-2 font-medium text-slate-600">Role: {record.roleTitle}</p>
               {record.summary ? <p className="mt-3 leading-7">{record.summary}</p> : null}
@@ -382,10 +409,11 @@ export function CandidateProgressReport({
                   </table>
                 </div>
               ) : <p className="mt-4 leading-7">Competency score changes: No scores recorded for this project.</p>}
-              <p className="mt-3 text-xs text-slate-500">Last updated: {formatDate(record.occurredAt)}</p>
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3"><p className="text-xs text-slate-500">Last updated: {formatDate(record.occurredAt)}</p>{canManageProjects ? <button type="button" onClick={() => removeProject(record)} disabled={record.status === "completed" || removingProjectId === record.id} className="rounded-full border border-rose-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400">{record.status === "completed" ? "Project Completed" : removingProjectId === record.id ? "Removing…" : "Remove Project"}</button> : null}</div>
             </article>
           ))}
-          {periodDevelopmentRecords.length === 0 ? <p className="text-sm leading-7 text-slate-600">No development projects or records were saved for this reporting period.</p> : null}
+          {projectError ? <p className="text-sm text-rose-700">{projectError}</p> : null}
+          {visibleDevelopmentRecords.length === 0 ? <p className="text-sm leading-7 text-slate-600">No development projects or records were saved for this reporting period.</p> : null}
         </div>
       </section>
 

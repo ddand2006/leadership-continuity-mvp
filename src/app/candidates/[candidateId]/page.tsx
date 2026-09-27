@@ -503,7 +503,7 @@ export default async function CandidateDetailPage({
     supabase
       .from("development_records")
       .select(
-        "role_id, status, experience_title, project_summary, date_assigned, updated_at, mentor_review_date, completion_date, mentor_improvement_observed, mentor_development_needed, next_recommended_experience, mentor:profiles!development_records_mentor_id_fkey(full_name), development_record_competencies(competency_name, baseline_score, current_score, target_score)",
+        "id, role_id, mentor_id, status, source_project_assignment_id, experience_title, project_summary, date_assigned, updated_at, mentor_review_date, completion_date, mentor_improvement_observed, mentor_development_needed, next_recommended_experience, mentor:profiles!development_records_mentor_id_fkey(full_name), development_record_competencies(competency_name, baseline_score, current_score, target_score)",
       )
       .eq("organization_id", profile.organization_id)
       .eq("candidate_id", candidate.id)
@@ -1129,6 +1129,8 @@ export default async function CandidateDetailPage({
                       }))}
                     interviews={progressInterviews}
                     developmentRecords={progressDevelopmentRecords.map((record) => ({
+                      id: record.id,
+                      mentorId: record.mentor_id,
                       roleId: record.role_id,
                       roleTitle: roleMap.get(record.role_id)?.title ?? "Unknown role",
                       title: record.experience_title,
@@ -1179,6 +1181,7 @@ export default async function CandidateDetailPage({
                         />
                       ) : null
                     }
+                    canManageProjects={isAdmin}
                   />
                 </section>
               ),
