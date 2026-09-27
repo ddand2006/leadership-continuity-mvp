@@ -670,7 +670,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                         <Link
                           key={tool.id}
                           href={tool.id === "modification" ? `/roles?roleId=${selectedRoleId}&mode=create` : tool.id === "printables" ? `/roles?roleId=${selectedRoleId}&mode=printables` : `/roles?roleId=${selectedRoleId}&mode=import&tool=${tool.id}`}
-                          className={`flex h-full flex-col rounded-2xl border p-5 transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-700 ${tool.tone}`}
+                          className={`flex h-full flex-col rounded-2xl border p-5 transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-700 ${tool.tone} ${tool.id === "modification" ? "!border-amber-300 !bg-amber-100" : ""}`}
                         >
                           <h3 className="font-semibold text-slate-900">{tool.title}</h3>
                           <p className="mt-2 flex-1 text-sm leading-6 text-slate-600">{tool.description}</p>
