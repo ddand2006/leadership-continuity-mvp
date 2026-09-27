@@ -685,7 +685,6 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                             <Link
                               href={`/roles?roleId=${selectedRoleId}&mode=import&tool=survey`}
                               className="mt-5 rounded-xl border border-emerald-300 bg-emerald-50/90 p-4"
-                              onClick={(event) => event.stopPropagation()}
                             >
                               <span className="block font-semibold text-slate-900">Send Competency Survey</span>
                               <span className="mt-1 block text-sm leading-6 text-slate-600">Gather input from people who know the work before updating this role.</span>
