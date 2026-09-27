@@ -56,7 +56,13 @@ export async function GET(request: Request) {
       .eq("organization_id", context.profile.organization_id).eq("candidate_id", candidateId)
       .order("created_at", { ascending: false });
     if (result.error) throw new ApiRouteError("Saved documents are unavailable. Ask your administrator to enable document storage.", 503);
-    const documents = (result.data ?? []).filter((doc) => context.unrestricted || mentorHasCandidateAccess({ profileId: context.profile.id, candidateId, roleId: doc.role_id ?? undefined, mentorAssignments: context.assignments }));
+    const accessibleDocuments = (result.data ?? []).filter((doc) => context.unrestricted || mentorHasCandidateAccess({ profileId: context.profile.id, candidateId, roleId: doc.role_id ?? undefined, mentorAssignments: context.assignments }));
+    const documents = Array.from(new Map(accessibleDocuments.map((doc) => [`${doc.role_id ?? "none"}:${doc.title.trim().toLowerCase()}`, doc])).values());
+    const duplicateDocuments = accessibleDocuments.filter((doc) => !documents.some((kept) => kept.id === doc.id));
+    if (duplicateDocuments.length > 0) {
+      await context.admin.storage.from(MENTORING_DOCUMENTS_BUCKET).remove(duplicateDocuments.map((doc) => `${context.profile.organization_id}/${candidateId}/${doc.id}.docx`));
+      await context.admin.from("mentoring_documents").delete().in("id", duplicateDocuments.map((doc) => doc.id));
+    }
     const roles = [...new Set(documents.map((doc) => doc.role_id))];
     const byRole = new Map(await Promise.all(roles.map(async (roleId) => [roleId, await recipients(context, roleId)] as const)));
     return NextResponse.json({ documents: documents.map((doc) => ({ ...doc, recipients: byRole.get(doc.role_id) ?? [] })) }, { headers: { "Cache-Control": "private, no-store" } });
