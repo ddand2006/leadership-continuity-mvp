@@ -535,6 +535,7 @@ export function LeadershipDevelopmentRecordManager({
   const [projectToolsMount, setProjectToolsMount] = useState<HTMLDivElement | null>(null);
   const [isSavingInitialProject, setIsSavingInitialProject] = useState(false);
   const [openSections, setOpenSections] = useState(createOpenSectionState);
+  const [menteeWorksheetOpen, setMenteeWorksheetOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const selectionRevisionRef = useRef(0);
@@ -1948,7 +1949,23 @@ export function LeadershipDevelopmentRecordManager({
             {projectToolsMount && shouldShowTransferredProjectEditor && formState
               ? createPortal(
               <article className="mt-6 rounded-[1.5rem] border-2 border-teal-200 bg-white px-6 py-6 shadow-[0_16px_40px_rgba(15,118,110,0.08)]">
-                <p className="mb-4 text-lg font-semibold text-slate-900">4. Mentee Worksheet</p>
+                <button
+                  type="button"
+                  onClick={() => setMenteeWorksheetOpen((current) => !current)}
+                  className="flex w-full items-center justify-between gap-4 text-left"
+                >
+                  <div>
+                    <p className="text-lg font-semibold text-slate-900">4. Mentee Worksheet</p>
+                    <p className="mt-1 text-sm leading-6 text-slate-600">
+                      Generate and manage the mentee worksheet for this project.
+                    </p>
+                  </div>
+                  <span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                    {menteeWorksheetOpen ? "Collapse" : "Expand"}
+                  </span>
+                </button>
+                {menteeWorksheetOpen ? (
+                  <div className="mt-5">
                 <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                   <div>
                     <p className="text-xs font-semibold tracking-[0.16em] text-teal-700 uppercase">
@@ -2104,6 +2121,8 @@ export function LeadershipDevelopmentRecordManager({
                         <label className="block"><span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">Mentee report-back notes</span><textarea value={formState.menteeReportNotes} onChange={(event) => updateRecord("menteeReportNotes", event.target.value)} className="mt-2 min-h-28 w-full rounded-2xl border border-sky-200 bg-white px-4 py-3 text-sm text-slate-900" placeholder="What I completed, learned, and need from my mentor next." /></label>
                       </div>
                     ) : null}
+                  </div>
+                ) : null}
                   </div>
                 ) : null}
               </article>,
