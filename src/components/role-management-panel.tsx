@@ -274,6 +274,7 @@ export function RoleManagementPanel({
   function openCompetencyImport() {
     const nextParams = new URLSearchParams(searchParams.toString());
     nextParams.set("mode", "import");
+    nextParams.set("tool", "competencies");
 
     if (editorRoleId) {
       nextParams.set("roleId", editorRoleId);
