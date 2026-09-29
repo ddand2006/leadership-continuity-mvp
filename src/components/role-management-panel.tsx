@@ -1091,13 +1091,13 @@ export function RoleManagementPanel({
 
             <form
               ref={editorFormRef}
-              className={`mt-6 space-y-5 ${mode === "manual" ? "manual-editor-page" : ""}`}
+              className={mode === "manual" ? "manual-editor-page mt-2 space-y-3" : "mt-6 space-y-5"}
               onSubmit={(event) => {
                 event.preventDefault();
                 handleCreateRole();
               }}
             >
-              <label className={`block ${mode === "manual" ? "hidden" : ""}`}>
+              <label className="block" style={{ display: mode === "manual" ? "none" : undefined }}>
                 <span className="mb-2 block text-sm font-semibold text-slate-700">
                   Modify Role Title
                 </span>
@@ -1110,7 +1110,7 @@ export function RoleManagementPanel({
                   required
                 />
               </label>
-              <label className={`block ${mode === "manual" ? "hidden" : ""}`}>
+              <label className="block" style={{ display: mode === "manual" ? "none" : undefined }}>
                 <span className="mb-2 block text-sm font-semibold text-slate-700">
                   Department
                 </span>
@@ -1122,7 +1122,7 @@ export function RoleManagementPanel({
                   placeholder="Example: Operations"
                 />
               </label>
-              <label className={`block ${mode === "manual" ? "hidden" : ""}`}>
+              <label className="block" style={{ display: mode === "manual" ? "none" : undefined }}>
                 <span className="mb-2 block text-sm font-semibold text-slate-700">
                   Description
                 </span>
@@ -1134,7 +1134,7 @@ export function RoleManagementPanel({
                   required
                 />
               </label>
-              <label className={`block ${mode === "manual" ? "hidden" : ""}`}>
+              <label className="block" style={{ display: mode === "manual" ? "none" : undefined }}>
                 <span className="mb-2 block text-sm font-semibold text-slate-700">
                   Status
                 </span>
