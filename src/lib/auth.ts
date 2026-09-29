@@ -31,7 +31,8 @@ export async function getCurrentUser() {
       return null;
     }
 
-    throw error;
+    console.error("Supabase authentication was unavailable.", error);
+    return null;
   }
 }
 

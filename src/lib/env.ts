@@ -15,9 +15,14 @@ function resolveSupabaseSecretKey() {
 }
 
 export function hasSupabaseEnv() {
-  return Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL && resolveSupabasePublishableKey(),
-  );
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = resolveSupabasePublishableKey();
+
+  if (!url || !key) {
+    return false;
+  }
+
+  return urlSchema.safeParse(url).success && key.trim().length > 0;
 }
 
 export function getClientEnv() {
