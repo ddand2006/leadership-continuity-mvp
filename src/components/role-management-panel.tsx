@@ -1092,7 +1092,7 @@ export function RoleManagementPanel({
             >
               <label className="block">
                 <span className="mb-2 block text-sm font-semibold text-slate-700">
-                  Role title
+                  Modify Role Title
                 </span>
                 <input
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:bg-white"
