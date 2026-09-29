@@ -1097,7 +1097,8 @@ export function RoleManagementPanel({
                 handleCreateRole();
               }}
             >
-              <label className="block" style={{ display: mode === "manual" ? "none" : undefined }}>
+              <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+              <label className="block lg:col-start-1 lg:row-start-1" style={{ display: mode === "manual" ? "none" : undefined }}>
                 <span className="mb-2 block text-sm font-semibold text-slate-700">
                   Modify Role Title
                 </span>
@@ -1110,7 +1111,7 @@ export function RoleManagementPanel({
                   required
                 />
               </label>
-              <label className="block" style={{ display: mode === "manual" ? "none" : undefined }}>
+              <label className="block lg:col-start-1 lg:row-start-2" style={{ display: mode === "manual" ? "none" : undefined }}>
                 <span className="mb-2 block text-sm font-semibold text-slate-700">
                   Department
                 </span>
@@ -1122,7 +1123,7 @@ export function RoleManagementPanel({
                   placeholder="Example: Operations"
                 />
               </label>
-              <label className="block" style={{ display: mode === "manual" ? "none" : undefined }}>
+              <label className="block lg:col-start-2 lg:row-span-3 lg:row-start-1" style={{ display: mode === "manual" ? "none" : undefined }}>
                 <span className="mb-2 block text-sm font-semibold text-slate-700">
                   Description
                 </span>
@@ -1134,7 +1135,7 @@ export function RoleManagementPanel({
                   required
                 />
               </label>
-              <label className="block" style={{ display: mode === "manual" ? "none" : undefined }}>
+              <label className="block lg:col-start-1 lg:row-start-3" style={{ display: mode === "manual" ? "none" : undefined }}>
                 <span className="mb-2 block text-sm font-semibold text-slate-700">
                   Status
                 </span>
@@ -1149,6 +1150,8 @@ export function RoleManagementPanel({
                   <option value="active">Active</option>
                 </select>
               </label>
+
+              </div>
 
               <div id="competency-template" className="hidden rounded-3xl border border-slate-200 bg-slate-50 p-5">
                 <p className="text-sm font-semibold tracking-[0.14em] text-slate-500 uppercase">
