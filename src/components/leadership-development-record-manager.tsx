@@ -1953,7 +1953,7 @@ export function LeadershipDevelopmentRecordManager({
 
             {projectToolsMount && shouldShowTransferredProjectEditor && formState
               ? createPortal(
-              <article className="mt-6 rounded-[1.5rem] border-2 border-teal-200 bg-white px-6 py-6 shadow-[0_16px_40px_rgba(15,118,110,0.08)]">
+              <article className="mt-6 rounded-[1.5rem] border-2 border-blue-200 bg-blue-50 px-6 py-6 shadow-[0_16px_40px_rgba(37,99,235,0.08)]">
                 <button
                   type="button"
                   onClick={() => {
@@ -2878,7 +2878,7 @@ export function LeadershipDevelopmentRecordManager({
               return (order[left.id] ?? 99) - (order[right.id] ?? 99);
             }).map((section) => (
               <div key={section.id}>
-              <article className={`rounded-[1.5rem] border ${section.id === "development-experience" ? "border-amber-200 bg-amber-50" : "border-slate-200 bg-white"}`}>
+              <article className={`rounded-[1.5rem] border ${section.id === "candidate-information" || section.id === "leader-feedback" ? "border-amber-200 bg-amber-50" : section.id === "development-focus" || section.id === "mentor-review" ? "border-emerald-200 bg-emerald-50" : section.id === "development-experience" ? "border-rose-200 bg-rose-50" : "border-blue-200 bg-blue-50"}`}>
                 <button
                   type="button"
                   onClick={() => toggleSection(section.id)}
