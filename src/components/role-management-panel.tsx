@@ -1243,14 +1243,14 @@ export function RoleManagementPanel({
                   <button
                     type="button"
                     onClick={openCompetencyImport}
-                    className="group rounded-2xl border border-amber-300 bg-amber-50/80 p-4 text-left transition hover:border-amber-400 hover:bg-amber-50"
+                    className="group rounded-2xl border border-yellow-300 bg-yellow-50/80 p-4 text-left transition hover:border-yellow-400 hover:bg-yellow-50"
                   >
                     <span className="flex items-center gap-3">
-                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500 text-sm font-bold text-white">1</span>
+                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-yellow-500 text-sm font-bold text-slate-950">1</span>
                       <span className="text-base font-semibold text-slate-900">Upload a spreadsheet</span>
                     </span>
                     <span className="mt-3 block text-sm leading-6 text-slate-600">Import a prepared Excel file with your competency list.</span>
-                    <span className="mt-3 inline-flex rounded-full bg-amber-500 px-3 py-2 text-xs font-semibold text-white">Upload Competency Spreadsheet</span>
+                    <span className="mt-3 inline-flex rounded-full bg-yellow-500 px-3 py-2 text-xs font-semibold text-slate-950">Upload Competency Spreadsheet</span>
                   </button>
 
                   <Link
