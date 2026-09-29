@@ -1301,13 +1301,13 @@ export function RoleManagementPanel({
                   </a>
                 </div>
 
-                <div id="manual-competencies" className={`mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 ${mode === "manual" ? "hidden" : ""}`}>
+                <div id="manual-competencies" className={`mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 ${mode === "manual" ? "" : "hidden"}`}>
                   <p className="text-sm font-semibold text-slate-900">Manual competency editor</p>
                   <p className="mt-1 text-sm text-slate-600">Use the fields below to add or edit competencies by category.</p>
                 </div>
               </div>
 
-              <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+              <div className={`grid gap-4 xl:grid-cols-[1.2fr_0.8fr] ${mode === "manual" ? "" : "hidden"}`}>
                 <div className="grid gap-4">
                   <label className="block">
                     <span className="mb-2 block text-sm font-semibold text-slate-700">
