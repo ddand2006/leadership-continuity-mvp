@@ -1243,19 +1243,19 @@ export function RoleManagementPanel({
                   <button
                     type="button"
                     onClick={openCompetencyImport}
-                    className="group rounded-2xl border border-blue-200 bg-blue-50/70 p-4 text-left transition hover:border-blue-400 hover:bg-blue-50"
+                    className="group rounded-2xl border border-amber-300 bg-amber-50/80 p-4 text-left transition hover:border-amber-400 hover:bg-amber-50"
                   >
                     <span className="flex items-center gap-3">
-                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-sm font-bold text-white">1</span>
+                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500 text-sm font-bold text-white">1</span>
                       <span className="text-base font-semibold text-slate-900">Upload a spreadsheet</span>
                     </span>
                     <span className="mt-3 block text-sm leading-6 text-slate-600">Import a prepared Excel file with your competency list.</span>
-                    <span className="mt-3 inline-flex rounded-full bg-blue-600 px-3 py-2 text-xs font-semibold text-white">Upload Competency Spreadsheet</span>
+                    <span className="mt-3 inline-flex rounded-full bg-amber-500 px-3 py-2 text-xs font-semibold text-white">Upload Competency Spreadsheet</span>
                   </button>
 
                   <Link
                     href={editorRoleId ? `/roles?roleId=${editorRoleId}&mode=import&tool=survey#role-survey-tools` : "#role-survey-tools"}
-                    className="group rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 text-left transition hover:border-emerald-400 hover:bg-emerald-50"
+                    className="group rounded-2xl border border-emerald-300 bg-emerald-50/80 p-4 text-left transition hover:border-emerald-400 hover:bg-emerald-50"
                   >
                     <span className="flex items-center gap-3">
                       <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-600 text-sm font-bold text-white">2</span>
@@ -1280,14 +1280,14 @@ export function RoleManagementPanel({
 
                   <a
                     href="#manual-competencies"
-                    className="group rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-slate-400 hover:bg-slate-100"
+                    className="group rounded-2xl border border-rose-300 bg-rose-50/80 p-4 text-left transition hover:border-rose-400 hover:bg-rose-50"
                   >
                     <span className="flex items-center gap-3">
-                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-700 text-sm font-bold text-white">3</span>
+                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-600 text-sm font-bold text-white">3</span>
                       <span className="text-base font-semibold text-slate-900">Enter them manually</span>
                     </span>
                     <span className="mt-3 block text-sm leading-6 text-slate-600">Type talents, skills, and behaviors directly into the editor.</span>
-                    <span className="mt-3 inline-flex rounded-full border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700">Go to manual editor</span>
+                    <span className="mt-3 inline-flex rounded-full border border-rose-300 px-3 py-2 text-xs font-semibold text-rose-800">Go to manual editor</span>
                   </a>
                 </div>
 
