@@ -792,7 +792,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
               </>
             ) : selectedMode === "printables" && selectedRole ? (
               <>
-                <Link href={`/roles?roleId=${selectedRole.id}&mode=create`} className="mb-6 inline-flex rounded-full bg-blue-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800">
+                <Link href={`/roles?roleId=${selectedRole.id}&mode=create`} className="interactive-contrast mb-6 inline-flex w-fit rounded-full bg-blue-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800">
                   ← Back to Role Workflow
                 </Link>
                 <RolePrintablesPanel
