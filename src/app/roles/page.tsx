@@ -719,7 +719,11 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                   mode="import"
                 /> : null}
                 {workflowTool === "survey" ? (surveyModuleReady ? (
-                  <RoleSurveyPanel
+                  <>
+                    <Link href={`/roles?roleId=${selectedRoleId}&mode=create`} className="mb-6 inline-flex rounded-full bg-blue-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800">
+                      ← Back to Role Editor
+                    </Link>
+                    <RoleSurveyPanel
                     roles={roleOptionsForPanels.map((role) => ({
                       id: role.id,
                       title: role.title,
@@ -731,7 +735,8 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                     initialSelectedRoleId={selectedRoleId}
                     isEmailDeliveryEnabled={isEmailDeliveryEnabled}
                     sectionId="role-survey-tools"
-                  />
+                    />
+                  </>
                 ) : (
                   <section
                     id="role-survey-tools"
