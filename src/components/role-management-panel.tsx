@@ -1059,6 +1059,12 @@ export function RoleManagementPanel({
 
   return (
     <section className="grid gap-6">
+      <Link
+        href={editorRoleId ? `/roles?roleId=${editorRoleId}&mode=import` : "/roles?mode=import"}
+        className="interactive-contrast w-fit rounded-full bg-blue-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800"
+      >
+        ← Back to Role Workflow
+      </Link>
       {printableReminderRoleId ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-6" role="dialog" aria-modal="true" aria-labelledby="printable-reminder-title">
           <div className="w-full max-w-lg rounded-[2rem] bg-white p-7 shadow-2xl">
