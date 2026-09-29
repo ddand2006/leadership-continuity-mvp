@@ -653,14 +653,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
               selectedMode === "composite" ||
               selectedMode === "survey" ? (
               <>
-                {workflowTool ? (
-                  <Link
-                    href={`/roles?roleId=${selectedRoleId}&mode=import`}
-                    className="w-fit rounded-lg text-sm font-semibold text-teal-800 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-700"
-                  >
-                    ← Back to Role Workflow
-                  </Link>
-                ) : (
+                {workflowTool ? null : (
                   <>
                     <Link href={selectedRoleId ? `/roles?roleId=${selectedRoleId}` : "/roles"} className="mb-6 inline-flex rounded-full bg-blue-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800">
                       ← Back to Roles
