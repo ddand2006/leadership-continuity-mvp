@@ -43,6 +43,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
   const requestedModeIsValid =
     requestedMode === "view" ||
     requestedMode === "create" ||
+    requestedMode === "manual" ||
     requestedMode === "import" ||
     requestedMode === "composite" ||
     requestedMode === "resources" ||
@@ -50,6 +51,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
     requestedMode === "printables";
   const dataMode:
     | "create"
+    | "manual"
     | "import"
     | "composite"
     | "view"
@@ -71,6 +73,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
   const canGenerateComposite = hasOpenAIEnv();
   const needsCompetencies =
     dataMode === "create" ||
+    dataMode === "manual" ||
     dataMode === "import" ||
     dataMode === "composite" ||
     dataMode === "survey" ||
@@ -79,6 +82,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
     dataMode === "printables";
   const needsCharacteristicDetails =
     dataMode === "create" ||
+    dataMode === "manual" ||
     dataMode === "import" ||
     dataMode === "composite" ||
     dataMode === "survey" ||
@@ -88,6 +92,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
   const needsCharacteristicPresence = needsCharacteristicDetails;
   const needsSharedLibrary =
     dataMode === "create" ||
+    dataMode === "manual" ||
     dataMode === "import" ||
     dataMode === "composite" ||
     dataMode === "survey";
@@ -610,7 +615,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
 
         <section className="grid gap-6">
           <div className="grid gap-6">
-            {selectedMode === "create" ? (
+            {selectedMode === "create" || selectedMode === "manual" ? (
               <RoleManagementPanel
                 key={`create-${selectedRoleId ?? "new"}`}
                 roles={roleOptionsForPanels.map((role) => ({
@@ -642,7 +647,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                 masterRoleTemplates={masterRoleTemplates}
                 canGenerateComposite={canGenerateComposite}
                 initialSelectedRoleId={selectedRoleId}
-                mode="create"
+                mode={selectedMode === "manual" ? "manual" : "create"}
               />
             ) : selectedMode === "import" ||
               selectedMode === "composite" ||

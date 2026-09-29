@@ -47,7 +47,7 @@ type RoleManagementPanelProps = {
   masterRoleTemplates?: MasterRoleTemplate[];
   canGenerateComposite: boolean;
   initialSelectedRoleId?: string | null;
-  mode?: "create" | "import" | "composite" | "survey";
+  mode?: "create" | "manual" | "import" | "composite" | "survey";
 };
 
 const MAX_COMPETENCY_UPLOAD_SIZE_BYTES = 50 * 1024 * 1024;
@@ -1068,7 +1068,7 @@ export function RoleManagementPanel({
           </div>
         </div>
       ) : null}
-      {mode === "create" ? (
+      {mode === "create" || mode === "manual" ? (
         <div className="grid gap-6">
           <div className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
             <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">
@@ -1082,15 +1082,22 @@ export function RoleManagementPanel({
               This keeps each role&apos;s own competency set preserved while also
               letting you pull from the shared competency library as it grows.
             </p>
+            {mode === "manual" ? (
+              <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <p className="text-sm font-semibold text-slate-900">Manual competency editor</p>
+                <p className="mt-1 text-sm text-slate-600">Use the fields below to add or edit competencies by category.</p>
+              </div>
+            ) : null}
+
             <form
               ref={editorFormRef}
-              className="mt-6 space-y-5"
+              className={`mt-6 space-y-5 ${mode === "manual" ? "manual-editor-page" : ""}`}
               onSubmit={(event) => {
                 event.preventDefault();
                 handleCreateRole();
               }}
             >
-              <label className="block">
+              <label className={`block ${mode === "manual" ? "hidden" : ""}`}>
                 <span className="mb-2 block text-sm font-semibold text-slate-700">
                   Modify Role Title
                 </span>
@@ -1103,7 +1110,7 @@ export function RoleManagementPanel({
                   required
                 />
               </label>
-              <label className="block">
+              <label className={`block ${mode === "manual" ? "hidden" : ""}`}>
                 <span className="mb-2 block text-sm font-semibold text-slate-700">
                   Department
                 </span>
@@ -1115,7 +1122,7 @@ export function RoleManagementPanel({
                   placeholder="Example: Operations"
                 />
               </label>
-              <label className="block">
+              <label className={`block ${mode === "manual" ? "hidden" : ""}`}>
                 <span className="mb-2 block text-sm font-semibold text-slate-700">
                   Description
                 </span>
@@ -1127,7 +1134,7 @@ export function RoleManagementPanel({
                   required
                 />
               </label>
-              <label className="block">
+              <label className={`block ${mode === "manual" ? "hidden" : ""}`}>
                 <span className="mb-2 block text-sm font-semibold text-slate-700">
                   Status
                 </span>
@@ -1230,7 +1237,7 @@ export function RoleManagementPanel({
                 )}
               </div>
 
-              <div id="competency-options" className="rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_12px_35px_rgba(15,23,42,0.05)]">
+              <div id="competency-options" className={`rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_12px_35px_rgba(15,23,42,0.05)] ${mode === "manual" ? "hidden" : ""}`}>
                 <p className="text-sm font-semibold tracking-[0.14em] text-slate-500 uppercase">
                   Competency Options
                 </p>
@@ -1279,7 +1286,7 @@ export function RoleManagementPanel({
                   </a>
 
                   <a
-                    href="#manual-competencies"
+                    href={editorRoleId ? `/roles?roleId=${editorRoleId}&mode=manual` : "#manual-competencies"}
                     className="group rounded-2xl border border-rose-300 bg-rose-50/80 p-4 text-left transition hover:border-rose-400 hover:bg-rose-50"
                   >
                     <span className="flex items-center gap-3">
@@ -1291,7 +1298,7 @@ export function RoleManagementPanel({
                   </a>
                 </div>
 
-                <div id="manual-competencies" className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <div id="manual-competencies" className={`mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 ${mode === "manual" ? "hidden" : ""}`}>
                   <p className="text-sm font-semibold text-slate-900">Manual competency editor</p>
                   <p className="mt-1 text-sm text-slate-600">Use the fields below to add or edit competencies by category.</p>
                 </div>
