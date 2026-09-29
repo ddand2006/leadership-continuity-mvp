@@ -1239,7 +1239,7 @@ export function RoleManagementPanel({
                   gather input through a survey, or enter everything yourself.
                 </p>
 
-                <div className="mt-5 grid gap-3 md:grid-cols-2">
+                <div className="mt-5 grid gap-3 md:grid-cols-3">
                   <button
                     type="button"
                     onClick={openCompetencyImport}
