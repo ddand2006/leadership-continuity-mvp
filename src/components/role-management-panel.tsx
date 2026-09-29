@@ -1143,7 +1143,7 @@ export function RoleManagementPanel({
                 </select>
               </label>
 
-              <div id="competency-template" className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+              <div id="competency-template" className="hidden rounded-3xl border border-slate-200 bg-slate-50 p-5">
                 <p className="text-sm font-semibold tracking-[0.14em] text-slate-500 uppercase">
                   3. Choose a template and modify it
                 </p>
@@ -1236,7 +1236,7 @@ export function RoleManagementPanel({
                 </p>
                 <p className="mt-3 text-sm leading-7 text-slate-600">
                   Choose the way that fits your process. You can start with a spreadsheet,
-                  gather input through a survey, use a template, or enter everything yourself.
+                  gather input through a survey, or enter everything yourself.
                 </p>
 
                 <div className="mt-5 grid gap-3 md:grid-cols-2">
@@ -1266,6 +1266,7 @@ export function RoleManagementPanel({
                   </Link>
 
                   <a
+                    hidden
                     href="#competency-template"
                     className="group rounded-2xl border border-violet-200 bg-violet-50/70 p-4 text-left transition hover:border-violet-400 hover:bg-violet-50"
                   >
@@ -1282,7 +1283,7 @@ export function RoleManagementPanel({
                     className="group rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-slate-400 hover:bg-slate-100"
                   >
                     <span className="flex items-center gap-3">
-                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-700 text-sm font-bold text-white">4</span>
+                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-700 text-sm font-bold text-white">3</span>
                       <span className="text-base font-semibold text-slate-900">Enter them manually</span>
                     </span>
                     <span className="mt-3 block text-sm leading-6 text-slate-600">Type talents, skills, and behaviors directly into the editor.</span>
