@@ -1082,17 +1082,6 @@ export function RoleManagementPanel({
               This keeps each role&apos;s own competency set preserved while also
               letting you pull from the shared competency library as it grows.
             </p>
-            {editorRoleId ? (
-              <Link
-                href={`/roles?roleId=${editorRoleId}&mode=import&tool=survey`}
-                className="mt-6 block rounded-2xl border border-emerald-300 bg-emerald-50/90 p-5 transition hover:border-emerald-400 hover:shadow-md"
-              >
-                <span className="block text-lg font-semibold text-slate-900">Send Competency Survey</span>
-                <span className="mt-1 block text-sm leading-6 text-slate-600">Gather input from people who know the work before updating this role.</span>
-                <span className="mt-3 inline-flex text-sm font-semibold text-teal-800 underline">Open survey tool</span>
-              </Link>
-            ) : null}
-
             <form
               ref={editorFormRef}
               className="mt-6 space-y-5"
