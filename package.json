@@ -2,7 +2,7 @@
   "name": "leadership-continuity-mvp",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "npm@11.6.2",
+  "packageManager": "pnpm@11.9.0",
   "overrides": {
     "@xmldom/xmldom": "0.8.15",
     "browserslist": "4.28.7",
