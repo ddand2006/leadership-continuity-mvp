@@ -661,7 +661,11 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                     ← Back to Role Workflow
                   </Link>
                 ) : (
-                  <section className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-8">
+                  <>
+                    <Link href={selectedRoleId ? `/roles?roleId=${selectedRoleId}` : "/roles"} className="mb-6 inline-flex rounded-full bg-blue-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800">
+                      ← Back to Roles
+                    </Link>
+                    <section className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-8">
                     <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">Role workflow</p>
                     <h2 className="mt-3 font-display text-3xl text-slate-900">Build your role profile</h2>
                     <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
@@ -690,7 +694,8 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                           </Link>
                       ))}
                     </div>
-                  </section>
+                    </section>
+                  </>
                 )}
                 {workflowTool === "competencies" ? <RoleManagementPanel
                   key={`import-${selectedRoleId ?? "new"}`}
@@ -793,7 +798,11 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                 /> : null}
               </>
             ) : selectedMode === "printables" && selectedRole ? (
-              <RolePrintablesPanel
+              <>
+                <Link href={`/roles?roleId=${selectedRole.id}&mode=import`} className="mb-6 inline-flex rounded-full bg-blue-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800">
+                  ← Back to Role Workflow
+                </Link>
+                <RolePrintablesPanel
                 roleId={selectedRole.id}
                 roleTitle={selectedRole.title}
                 printables={(() => {
@@ -808,7 +817,8 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                     { id: "interview_scorecard" as const, title: "Behavioral Interview Scorecard", description: "An interviewer packet with competency-based questions, what each question is intended to validate, and scoring space. Use it to compare candidates consistently and focus on evidence rather than impressions.", endpoint: `/api/roles/${selectedRole.id}/interview-scorecard-docx`, enabled: ready, generated: Boolean(generation("interview_scorecard")), outdated: Boolean(generation("interview_scorecard")) && generation("interview_scorecard") !== signature },
                   ];
                 })()}
-              />
+                />
+              </>
             ) : selectedMode === "resources" ? (
               <RoleResourcesPanel
                 roles={roleOptionsForPanels.map((role) => ({
