@@ -1284,7 +1284,7 @@ export function RoleManagementPanel({
                   >
                     <span className="flex items-center gap-3">
                       <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-600 text-sm font-bold text-white">3</span>
-                      <span className="text-base font-semibold text-slate-900">Enter them manually</span>
+                      <span className="text-base font-semibold text-slate-900">Edit manually</span>
                     </span>
                     <span className="mt-3 block text-sm leading-6 text-slate-600">Type talents, skills, and behaviors directly into the editor.</span>
                     <span className="mt-3 inline-flex rounded-full border border-rose-300 px-3 py-2 text-xs font-semibold text-rose-800">Go to manual editor</span>
