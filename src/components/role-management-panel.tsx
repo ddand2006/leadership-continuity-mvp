@@ -1153,9 +1153,9 @@ export function RoleManagementPanel({
 
               </div>
 
-              <div id="competency-template" className="hidden rounded-3xl border border-slate-200 bg-slate-50 p-5">
+              <div id="competency-template" className={`${mode === "manual" ? "" : "hidden"} rounded-3xl border border-slate-200 bg-slate-50 p-5`}>
                 <p className="text-sm font-semibold tracking-[0.14em] text-slate-500 uppercase">
-                  3. Choose a template and modify it
+                  Choose a role template
                 </p>
                 <p className="mt-3 text-sm leading-7 text-slate-600">
                   Pull starter competencies from the shared platform library
