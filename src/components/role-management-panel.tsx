@@ -1154,7 +1154,7 @@ export function RoleManagementPanel({
 
               </div>
 
-              <div id="competency-template" className={`${mode === "manual" ? "" : "hidden"} rounded-3xl border border-slate-200 bg-slate-50 p-5`}>
+              <div id="competency-template" className={`${mode === "manual" ? "" : "hidden"} rounded-3xl border border-yellow-200 bg-yellow-50/70 p-5`}>
                 <p className="text-sm font-semibold tracking-[0.14em] text-slate-500 uppercase">
                   Choose a role template
                 </p>
