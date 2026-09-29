@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { FileDropInput } from "@/components/file-drop-input";
@@ -179,20 +179,6 @@ export function RoleManagementPanel({
   const [isAddLibraryCompetencyPending, startAddLibraryCompetencyTransition] =
     useTransition();
 
-  useEffect(() => {
-    const nextRole = roles.find((role) => role.id === initialSelectedRoleId) ?? null;
-    const nextRoleId = nextRole?.id ?? "";
-    setEditorRoleId(nextRoleId);
-    setTitle(nextRole?.title ?? "");
-    setDepartment(nextRole?.department ?? "");
-    setDescription(nextRole?.description ?? "");
-    setStatus(nextRole?.status ?? "draft");
-    setMentorProfileId(nextRole?.primaryMentorProfileId ?? "");
-    setTalentsValue(nextRole?.talents.join("\n") ?? "");
-    setSkillsValue(nextRole?.skills.join("\n") ?? "");
-    setBehaviorsValue(nextRole?.behaviors.join("\n") ?? "");
-    setSelectedCompetencyRoleId(nextRoleId);
-  }, [initialSelectedRoleId, roles]);
   const [isGenerateCompositePending, startGenerateCompositeTransition] = useTransition();
   const [isDownloadCompositePending, startDownloadCompositeTransition] = useTransition();
   const [isDownloadCondensedCompositePending, startDownloadCondensedCompositeTransition] =
@@ -1168,9 +1154,9 @@ export function RoleManagementPanel({
                 </select>
               </label>
 
-              <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+              <div id="competency-template" className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
                 <p className="text-sm font-semibold tracking-[0.14em] text-slate-500 uppercase">
-                  Industry Role Templates
+                  3. Choose a template and modify it
                 </p>
                 <p className="mt-3 text-sm leading-7 text-slate-600">
                   Pull starter competencies from the shared platform library
@@ -1255,22 +1241,69 @@ export function RoleManagementPanel({
                 )}
               </div>
 
-              <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+              <div id="competency-options" className="rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_12px_35px_rgba(15,23,42,0.05)]">
                 <p className="text-sm font-semibold tracking-[0.14em] text-slate-500 uppercase">
                   Competency Options
                 </p>
                 <p className="mt-3 text-sm leading-7 text-slate-600">
-                  You can upload competencies from an Excel spreadsheet, or you can
-                  manually input them from the selections below.
+                  Choose the way that fits your process. You can start with a spreadsheet,
+                  gather input through a survey, use a template, or enter everything yourself.
                 </p>
-                <div className="mt-4">
+
+                <div className="mt-5 grid gap-3 md:grid-cols-2">
                   <button
                     type="button"
                     onClick={openCompetencyImport}
-                    className="interactive-contrast rounded-full bg-teal-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-600"
+                    className="group rounded-2xl border border-blue-200 bg-blue-50/70 p-4 text-left transition hover:border-blue-400 hover:bg-blue-50"
                   >
-                    Upload Competency Spreadsheet
+                    <span className="flex items-center gap-3">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-sm font-bold text-white">1</span>
+                      <span className="text-base font-semibold text-slate-900">Upload a spreadsheet</span>
+                    </span>
+                    <span className="mt-3 block text-sm leading-6 text-slate-600">Import a prepared Excel file with your competency list.</span>
+                    <span className="mt-3 inline-flex rounded-full bg-blue-600 px-3 py-2 text-xs font-semibold text-white">Upload Competency Spreadsheet</span>
                   </button>
+
+                  <Link
+                    href={editorRoleId ? `/roles?roleId=${editorRoleId}&mode=import&tool=survey#role-survey-tools` : "#role-survey-tools"}
+                    className="group rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 text-left transition hover:border-emerald-400 hover:bg-emerald-50"
+                  >
+                    <span className="flex items-center gap-3">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-600 text-sm font-bold text-white">2</span>
+                      <span className="text-base font-semibold text-slate-900">Send out a survey</span>
+                    </span>
+                    <span className="mt-3 block text-sm leading-6 text-slate-600">Ask people who know the role what great performance looks like.</span>
+                    <span className="mt-3 inline-flex rounded-full border border-emerald-300 px-3 py-2 text-xs font-semibold text-emerald-800">Open survey tool</span>
+                  </Link>
+
+                  <a
+                    href="#competency-template"
+                    className="group rounded-2xl border border-violet-200 bg-violet-50/70 p-4 text-left transition hover:border-violet-400 hover:bg-violet-50"
+                  >
+                    <span className="flex items-center gap-3">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-600 text-sm font-bold text-white">3</span>
+                      <span className="text-base font-semibold text-slate-900">Choose a generic template</span>
+                    </span>
+                    <span className="mt-3 block text-sm leading-6 text-slate-600">Start with an industry role template, then make it your own.</span>
+                    <span className="mt-3 inline-flex rounded-full border border-violet-300 px-3 py-2 text-xs font-semibold text-violet-800">Choose a template below</span>
+                  </a>
+
+                  <a
+                    href="#manual-competencies"
+                    className="group rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-slate-400 hover:bg-slate-100"
+                  >
+                    <span className="flex items-center gap-3">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-700 text-sm font-bold text-white">4</span>
+                      <span className="text-base font-semibold text-slate-900">Enter them manually</span>
+                    </span>
+                    <span className="mt-3 block text-sm leading-6 text-slate-600">Type talents, skills, and behaviors directly into the editor.</span>
+                    <span className="mt-3 inline-flex rounded-full border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700">Go to manual editor</span>
+                  </a>
+                </div>
+
+                <div id="manual-competencies" className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <p className="text-sm font-semibold text-slate-900">Manual competency editor</p>
+                  <p className="mt-1 text-sm text-slate-600">Use the fields below to add or edit competencies by category.</p>
                 </div>
               </div>
 

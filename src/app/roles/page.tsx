@@ -612,6 +612,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
           <div className="grid gap-6">
             {selectedMode === "create" ? (
               <RoleManagementPanel
+                key={`create-${selectedRoleId ?? "new"}`}
                 roles={roleOptionsForPanels.map((role) => ({
                   id: role.id,
                   title: role.title,
@@ -687,6 +688,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                   </section>
                 )}
                 {workflowTool === "competencies" ? <RoleManagementPanel
+                  key={`import-${selectedRoleId ?? "new"}`}
                   roles={roleOptionsForPanels.map((role) => ({
                     id: role.id,
                     title: role.title,
@@ -752,6 +754,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                   </section>
                 )) : null}
                 {workflowTool === "composite" ? <RoleManagementPanel
+                  key={`composite-${selectedRoleId ?? "new"}`}
                   roles={roleOptionsForPanels.map((role) => ({
                     id: role.id,
                     title: role.title,
