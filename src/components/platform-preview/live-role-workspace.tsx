@@ -53,7 +53,6 @@ export async function LiveRoleWorkspace({ role, section = "home", candidateId }:
     notifications: "Notifications",
   };
   const sectionLinks = role === "mentor" ? [
-    ["My Candidates", `/candidates/${candidate?.id ?? ""}?roleId=${roleResult.data?.id ?? ""}`],
     ["Preparation Worksheet", preparationHref],
     ["Development Plan", `/candidates/${candidate?.id ?? ""}/development?roleId=${roleResult.data?.id ?? ""}`],
     ["Departmental Project", `/mentoring?section=departmental-project&candidateId=${candidate?.id ?? ""}&roleId=${roleResult.data?.id ?? ""}`],
