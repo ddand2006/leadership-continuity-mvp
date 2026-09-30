@@ -27,16 +27,16 @@ export async function LiveRoleWorkspace({ role, section = "home", candidateId }:
   const title = roleResult.data?.title || "Target role not assigned";
   const liveLink = candidate && roleResult.data
     ? role === "candidate"
-      ? `/candidates/${candidate.id}?roleId=${roleResult.data.id}`
+      ? `/candidates/${candidate.id}?roleId=${roleResult.data.id}&viewAs=candidate`
       : `/mentoring?candidateId=${candidate.id}&roleId=${roleResult.data.id}`
-    : role === "candidate" ? "/candidates" : "/mentoring";
+    : role === "candidate" ? "/candidates?viewAs=candidate" : "/mentoring";
   const preparationHref = assignment
     ? `/mentoring?section=preparation-worksheet&candidateId=${candidate?.id ?? ""}&roleId=${roleResult.data?.id ?? ""}&mentorProfileId=${assignment.mentor_profile_id ?? ""}`
     : `/mentoring?candidateId=${candidate?.id ?? ""}&roleId=${roleResult.data?.id ?? ""}`;
   const cards = role === "candidate"
     ? [
-        ["My Role Profile", `Your target role is ${title}. Review readiness, role considerations, assessments, strengths, and the competencies that define success.`, `/candidates/${candidate?.id ?? ""}?roleId=${roleResult.data?.id ?? ""}&section=role-fit`],
-        ["Development Plan", "Work through mentoring assignments, evidence, and next actions connected to your role.", `/candidates/${candidate?.id ?? ""}/development?roleId=${roleResult.data?.id ?? ""}`],
+        ["My Role Profile", `Your target role is ${title}. Review readiness, role considerations, assessments, strengths, and the competencies that define success.`, `/candidates/${candidate?.id ?? ""}?roleId=${roleResult.data?.id ?? ""}&section=role-fit&viewAs=candidate`],
+        ["Development Plan", "Work through mentoring assignments, evidence, and next actions connected to your role.", `/candidates/${candidate?.id ?? ""}/development?roleId=${roleResult.data?.id ?? ""}&viewAs=candidate`],
         ["Mentoring Track", assignment ? "Open your assigned preparation worksheet and complete the mentoring track." : "No mentor assignment is attached yet.", preparationHref],
       ]
     : [
