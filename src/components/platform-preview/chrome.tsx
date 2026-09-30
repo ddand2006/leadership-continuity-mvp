@@ -27,6 +27,7 @@ export function PlatformPreviewChrome({children}:{children:ReactNode}) {
   if(pageId==='notifications') return `/dashboard?${marker}`;
   return `/view-as/mentor/home?${marker}`;
  };
+ const visibleRolePages=role==='candidate'?rolePages.candidate:role?rolePages[role]:[];
  function navigate(href:string){startTransition(()=>router.push(href));}
  const selector=<label className="flex flex-wrap items-center gap-2 text-sm font-semibold text-teal-950">View as
   <select aria-label="View as" value={role??'platform'} disabled={pending} onChange={event=>{const next=event.target.value;navigate(isPreviewRole(next)?previewHref(next,role?section:'home',values):returnTo);}} className="max-w-full rounded-xl border border-teal-800/25 bg-white px-3 py-2 text-sm">
@@ -47,7 +48,7 @@ export function PlatformPreviewChrome({children}:{children:ReactNode}) {
      <p className="pb-2 text-sm text-slate-600">{sample.name} · {roleLabels[role]}</p>
      <span role="status" className="pb-2 text-sm text-slate-500">{pending?'Opening workspace…':''}</span>
     </div>}
-    <nav aria-label={`${roleLabels[role]} platform navigation`} className="mt-4 flex flex-wrap gap-1">{rolePages[role].map(page=><Link key={page.id} href={liveRole&&role==='mentor'?liveMentorHref(page.id):previewHref(role,page.id,values)} aria-current={section===page.id?'page':undefined} className={`rounded-lg px-3 py-2 text-sm font-semibold ${section===page.id?'interactive-contrast bg-teal-950 text-white':'text-teal-950 hover:bg-teal-50'}`}>{page.label}</Link>)}</nav>
+    <nav aria-label={`${roleLabels[role]} platform navigation`} className="mt-4 flex flex-wrap gap-1">{visibleRolePages.map(page=><Link key={page.id} href={liveRole&&role==='mentor'?liveMentorHref(page.id):previewHref(role,page.id,values)} aria-current={section===page.id?'page':undefined} className={`rounded-lg px-3 py-2 text-sm font-semibold ${section===page.id?'interactive-contrast bg-teal-950 text-white':'text-teal-950 hover:bg-teal-50'}`}>{page.label}</Link>)}</nav>
    </div>
   </div>
  </header>;
