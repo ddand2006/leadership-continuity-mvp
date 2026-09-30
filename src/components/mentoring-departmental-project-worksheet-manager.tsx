@@ -28,6 +28,8 @@ type WorksheetAssignmentOption = {
   mentorPositionTitle: string | null;
   startDate: string | null;
   worksheet: DepartmentalProjectWorksheetRecord | null;
+  topCompetencies: string[];
+  candidateStrengths: string[];
 };
 
 function getAssignmentKey(option: {
@@ -453,18 +455,17 @@ export function MentoringDepartmentalProjectWorksheetManager({
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
                 />
               </label>
-              <label className="block">
+              <div>
                 <span className="mb-2 block text-sm font-semibold text-slate-700">
                   Which top competencies will this project develop?
                 </span>
-                <textarea
-                  value={formState.competenciesDeveloped}
-                  onChange={(event) =>
-                    updateField("competenciesDeveloped", event.target.value)
-                  }
-                  className="min-h-24 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
-                />
-              </label>
+                <div className="flex flex-wrap gap-2">{selectedAssignment.topCompetencies.map((competency) => { const selected = formState.competenciesDeveloped.split("\n").map((item) => item.trim()).includes(competency); return <button key={competency} type="button" onClick={() => updateField("competenciesDeveloped", selected ? formState.competenciesDeveloped.split("\n").filter((item) => item.trim() !== competency).join("\n") : [...formState.competenciesDeveloped.split("\n").filter(Boolean), competency].join("\n"))} className={`rounded-full border px-3 py-2 text-sm font-semibold ${selected ? "border-teal-900 bg-teal-900 text-white" : "border-slate-200 bg-white text-slate-700"}`}>{competency}</button>; })}</div>
+              </div>
+              <div>
+                <span className="mb-2 block text-sm font-semibold text-slate-700">Which strengths will you use?</span>
+                <div className="flex flex-wrap gap-2">{selectedAssignment.candidateStrengths.map((strength) => { const selected = formState.strengthsObserved.split("\n").map((item) => item.trim()).includes(strength); return <button key={strength} type="button" onClick={() => updateField("strengthsObserved", selected ? formState.strengthsObserved.split("\n").filter((item) => item.trim() !== strength).join("\n") : [...formState.strengthsObserved.split("\n").filter(Boolean), strength].join("\n"))} className={`rounded-full border px-3 py-2 text-sm font-semibold ${selected ? "border-teal-900 bg-teal-900 text-white" : "border-slate-200 bg-white text-slate-700"}`}>{strength}</button>; })}</div>
+                {!selectedAssignment.candidateStrengths.length ? <p className="text-sm text-slate-500">No saved candidate strengths are available yet.</p> : null}
+              </div>
             </div>
           </article>
 

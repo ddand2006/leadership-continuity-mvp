@@ -209,6 +209,8 @@ export default async function MentoringPage({
     preparationWorksheetsResult,
     departmentalProjectWorksheetsResult,
     crossDepartmentalProjectWorksheetsResult,
+    roleCompetenciesResult,
+    candidateStrengthsResult,
   ] = await Promise.all([
     supabase
       .from("candidates")
@@ -272,6 +274,8 @@ export default async function MentoringPage({
           .eq("organization_id", profile.organization_id)
           .order("updated_at", { ascending: false })
       : Promise.resolve({ data: [], error: null }),
+    supabase.from("role_competencies").select("role_id, name, target_score").eq("organization_id", profile.organization_id).is("deleted_at", null).order("target_score", { ascending: false }),
+    supabase.from("candidate_strengths").select("candidate_id, theme_name, rank").eq("organization_id", profile.organization_id).order("rank", { ascending: true }),
   ]);
 
   for (const result of [
@@ -303,6 +307,18 @@ export default async function MentoringPage({
       { ...candidate, full_name: getCandidateDisplayName(candidate.full_name) },
     ]),
   );
+  const topCompetenciesByRole = new Map<string, string[]>();
+  for (const item of roleCompetenciesResult.data ?? []) {
+    const current = topCompetenciesByRole.get(item.role_id) ?? [];
+    if (current.length < 8) current.push(item.name);
+    topCompetenciesByRole.set(item.role_id, current);
+  }
+  const strengthsByCandidate = new Map<string, string[]>();
+  for (const item of candidateStrengthsResult.data ?? []) {
+    const current = strengthsByCandidate.get(item.candidate_id) ?? [];
+    if (current.length < 10) current.push(item.theme_name);
+    strengthsByCandidate.set(item.candidate_id, current);
+  }
   const mentorMap = new Map(
     (mentorsResult.data ?? []).map((mentor) => [mentor.id, mentor]),
   );
@@ -517,6 +533,8 @@ export default async function MentoringPage({
         mentorPositionTitle:
           mentorMap.get(assignment.mentor_profile_id)?.position_title ?? null,
         startDate: assignment.start_date,
+        topCompetencies: topCompetenciesByRole.get(assignment.role_id) ?? [],
+        candidateStrengths: strengthsByCandidate.get(assignment.candidate_id) ?? [],
         worksheet: worksheet
           ? {
               id: worksheet.id,
