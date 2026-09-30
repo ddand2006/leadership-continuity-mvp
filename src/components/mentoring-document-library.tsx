@@ -80,9 +80,9 @@ function DocumentLibrary({ candidateId }: { candidateId: string }) {
     <section className="my-6 rounded-3xl border border-slate-200 bg-white p-6 lg:col-span-2" aria-label="Saved mentoring documents">
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-xl font-semibold text-slate-900">Saved mentoring documents</h3>
-        <div className="flex items-center gap-4"><button type="button" onClick={() => setExpanded((current) => !current)} className="text-sm font-semibold text-teal-800">{expanded ? "Collapse" : "Expand"}</button><button type="button" onClick={() => void load()} disabled={loading} className="text-sm font-semibold text-teal-800 disabled:opacity-50">Refresh</button></div>
+        <div className="flex items-center gap-4"><button type="button" onClick={() => setExpanded((current) => !current)} className="rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">{expanded ? "Collapse Mentoring Documents" : "See Mentoring Documents"}</button><button type="button" onClick={() => void load()} disabled={loading} className="rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">Refresh</button></div>
       </div>
-      {!expanded ? <p className="mt-2 text-sm text-slate-600">{documents.length} saved document{documents.length === 1 ? "" : "s"}. Expand to download or email one.</p> : null}
+      {!expanded ? <p className="mt-2 text-sm text-slate-600">{documents.length} saved document{documents.length === 1 ? "" : "s"}. See mentoring documents to download or email one.</p> : null}
       <div className={expanded ? "" : "hidden"}>
       <p className="mt-2 text-sm text-slate-600">Word exports are saved here automatically. Download a saved copy or email it as an attachment to the mentee or an assigned mentor.</p>
       {loading ? <p className="mt-3 text-sm" role="status">Loading documents…</p> : null}
