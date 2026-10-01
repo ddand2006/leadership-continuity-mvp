@@ -1060,7 +1060,7 @@ export function RoleManagementPanel({
   return (
     <section className="grid gap-6">
       <Link
-        href={editorRoleId ? `/roles?roleId=${editorRoleId}&mode=create` : "/roles?mode=create"}
+        href={editorRoleId ? `/roles?roleId=${editorRoleId}&mode=import` : "/roles?mode=import"}
         className="interactive-contrast w-fit rounded-full bg-blue-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800"
       >
         ← Back to Role Workflow

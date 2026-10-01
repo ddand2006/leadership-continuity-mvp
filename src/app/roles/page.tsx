@@ -720,7 +720,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                 /> : null}
                 {workflowTool === "survey" ? (surveyModuleReady ? (
                   <>
-                    <Link href={`/roles?roleId=${selectedRoleId}&mode=create`} className="interactive-contrast mb-6 inline-flex w-fit rounded-full bg-blue-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800">
+                    <Link href={`/roles?roleId=${selectedRoleId}&mode=import`} className="interactive-contrast mb-6 inline-flex w-fit rounded-full bg-blue-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800">
                       ← Back to Role Workflow
                     </Link>
                     <RoleSurveyPanel
@@ -792,7 +792,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
               </>
             ) : selectedMode === "printables" && selectedRole ? (
               <>
-                <Link href={`/roles?roleId=${selectedRole.id}&mode=create`} className="interactive-contrast mb-6 inline-flex w-fit rounded-full bg-blue-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800">
+                <Link href={`/roles?roleId=${selectedRole.id}&mode=import`} className="interactive-contrast mb-6 inline-flex w-fit rounded-full bg-blue-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800">
                   ← Back to Role Workflow
                 </Link>
                 <RolePrintablesPanel
