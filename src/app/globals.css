@@ -23,13 +23,13 @@
   --color-attention-ink: #713f12;
   --color-danger-surface: rgba(255, 228, 230, 0.94);
   --color-danger-ink: #881337;
-  --color-accent-yellow: rgba(254, 243, 199, 0.86);
+  --color-accent-yellow: rgba(254, 243, 199, 0.96);
   --color-accent-yellow-border: #fbdc91;
-  --color-accent-green: rgba(220, 252, 231, 0.86);
+  --color-accent-green: rgba(220, 252, 231, 0.96);
   --color-accent-green-border: #bbf7d0;
-  --color-accent-red: rgba(255, 228, 230, 0.86);
+  --color-accent-red: rgba(255, 228, 230, 0.96);
   --color-accent-red-border: #fda4af;
-  --color-accent-blue: rgba(232, 245, 251, 0.86);
+  --color-accent-blue: rgba(232, 245, 251, 0.96);
   --color-accent-blue-border: #addcf0;
   --color-input: rgba(247, 250, 252, 0.86);
   --color-input-focus: rgba(255, 255, 255, 0.98);
