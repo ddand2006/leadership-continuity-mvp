@@ -995,14 +995,14 @@ export default async function MentoringPage({
             <p className="text-sm font-semibold tracking-[0.16em] text-slate-500 uppercase">Mentoring workspace</p>
             <h2 className="mt-3 font-display text-3xl text-slate-900">Choose a mentoring workspace</h2>
             <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">Open the area you need to manage a mentoring track, review readiness, recognize mentor impact, or use supporting resources.</p>
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <div className="order-colored-grid mt-6 grid gap-4 md:grid-cols-2">
               {[
                 { id: "leadership-development-record", tone: "accent-card-gold", title: "Leadership Development Record", description: "Define a stretch experience, target competencies, feedback, and the review cycle." },
                 { id: "readiness-review", tone: "accent-card-green", title: "Readiness Review", description: "Review evidence of growth and record the next leadership recommendation." },
                 ...(canManageMentorAssignments ? [{ id: "mentor-scorecard", tone: "accent-card-coral", title: "Mentor Scorecard", description: "Track mentor engagement, current reports, and timely reviews." }] : []),
-                { id: "resources", tone: "border-sky-200 bg-sky-50", title: "Additional Resources", description: "Open preparation worksheets and departmental project tools." },
+                { id: "resources", tone: "accent-card-blue", title: "Additional Resources", description: "Open preparation worksheets and departmental project tools." },
               ].map((workspace) => (
-                <Link key={workspace.id} href={getMentoringSectionHref(workspace.id)} className={`flex flex-col rounded-2xl border p-5 transition hover:-translate-y-0.5 hover:shadow-md ${workspace.tone}`}>
+                <Link key={workspace.id} href={getMentoringSectionHref(workspace.id)} className={`workspace-card flex flex-col rounded-2xl border p-5 transition hover:-translate-y-0.5 hover:shadow-md ${workspace.tone}`}>
                   <h3 className="font-semibold text-slate-900">{workspace.title}</h3>
                   <p className="mt-2 flex-1 text-sm leading-6 text-slate-600">{workspace.description}</p>
                   <span className="mt-4 text-sm font-semibold text-teal-800">Open workspace</span>

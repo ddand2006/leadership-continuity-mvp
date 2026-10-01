@@ -3,13 +3,47 @@
 :root {
   --font-body: "Manrope", Arial, sans-serif;
   --font-display: "Fraunces", Georgia, serif;
-  --background: #ffffff;
-  --foreground: #0b2f6b;
-  --page-surface: #ffffff;
-  --page-surface-strong: #ffffff;
-  --page-border: rgba(159, 198, 218, 0.82);
-  --page-shadow: 0 30px 90px rgba(20, 56, 92, 0.1);
-  --page-shadow-soft: 0 20px 60px rgba(20, 56, 92, 0.07);
+  --background: #eff6fa;
+  --foreground: #102a56;
+
+  /* Glass Candidate design tokens. Keep the mountain background visible and
+     use quiet, readable surfaces above it. */
+  --color-ink: #102a56;
+  --color-ink-strong: #172554;
+  --color-muted: #55718f;
+  --color-action: #1d4ed8;
+  --color-action-hover: #1e40af;
+  --color-surface: rgba(255, 255, 255, 0.86);
+  --color-surface-strong: rgba(255, 255, 255, 0.95);
+  --color-surface-soft: rgba(239, 246, 250, 0.72);
+  --color-line: rgba(185, 211, 226, 0.86);
+  --color-success-surface: rgba(220, 252, 231, 0.92);
+  --color-success-ink: #14532d;
+  --color-attention-surface: rgba(254, 243, 199, 0.94);
+  --color-attention-ink: #713f12;
+  --color-danger-surface: rgba(255, 228, 230, 0.94);
+  --color-danger-ink: #881337;
+  --color-accent-yellow: rgba(254, 243, 199, 0.86);
+  --color-accent-yellow-border: #fbdc91;
+  --color-accent-green: rgba(220, 252, 231, 0.86);
+  --color-accent-green-border: #bbf7d0;
+  --color-accent-red: rgba(255, 228, 230, 0.86);
+  --color-accent-red-border: #fda4af;
+  --color-accent-blue: rgba(232, 245, 251, 0.86);
+  --color-accent-blue-border: #addcf0;
+  --color-input: rgba(247, 250, 252, 0.86);
+  --color-input-focus: rgba(255, 255, 255, 0.98);
+  --space-control-x: 1rem;
+  --space-control-y: 0.75rem;
+  --radius-control: 0.75rem;
+  --radius-panel: 1.5rem;
+  --shadow-panel: 0 20px 60px rgba(20, 56, 92, 0.1);
+  --shadow-panel-soft: 0 12px 32px rgba(20, 56, 92, 0.06);
+  --page-surface: var(--color-surface);
+  --page-surface-strong: var(--color-surface-strong);
+  --page-border: var(--color-line);
+  --page-shadow: var(--shadow-panel);
+  --page-shadow-soft: var(--shadow-panel-soft);
 }
 
 @theme inline {
@@ -190,14 +224,14 @@ a {
 }
 
 .theme-panel {
-  border: 1px solid rgba(159, 198, 218, 0.82);
+  border: 1px solid var(--color-line);
   background: var(--page-surface);
   box-shadow: var(--page-shadow-soft);
   backdrop-filter: blur(18px);
 }
 
 .theme-panel-strong {
-  border: 1px solid rgba(126, 185, 215, 0.84);
+  border: 1px solid rgba(126, 185, 215, 0.72);
   background: var(--page-surface-strong);
   box-shadow: var(--page-shadow);
   backdrop-filter: blur(18px);
@@ -205,48 +239,353 @@ a {
 
 /* Supporting highlights add warmth and visual rhythm while royal blue remains the action color. */
 .accent-card-gold {
-  border-color: #fbdc91;
-  background-color: #fef3c7;
-  color: #0b2f6b;
+  border-color: var(--color-accent-yellow-border);
+  background-color: var(--color-accent-yellow);
+  color: var(--color-ink);
 }
 
 .accent-card-green {
-  border-color: #bbf7d0;
-  background-color: #dcfce7;
-  color: #0b2f6b;
+  border-color: var(--color-accent-green-border);
+  background-color: var(--color-accent-green);
+  color: var(--color-ink);
 }
 
 .accent-card-coral {
-  border-color: #fda4af;
-  background-color: #ffe4e6;
-  color: #0b2f6b;
+  border-color: var(--color-accent-red-border);
+  background-color: var(--color-accent-red);
+  color: var(--color-ink);
 }
 
 .accent-card-blue {
-  border-color: #addcf0;
-  background-color: #e8f5fb;
-  color: #0b2f6b;
+  border-color: var(--color-accent-blue-border);
+  background-color: var(--color-accent-blue);
+  color: var(--color-ink);
 }
+
+/* Workspace choices are cards that behave like buttons: one neutral surface,
+   one clear outline, and one consistent action affordance. */
+.workspace-card {
+  border-color: var(--color-line) !important;
+  background: var(--color-surface-strong) !important;
+  color: var(--color-ink) !important;
+  box-shadow: var(--shadow-panel-soft);
+  backdrop-filter: blur(18px);
+}
+
+.workspace-card:hover,
+.workspace-card:focus-visible {
+  border-color: var(--color-action) !important;
+  box-shadow: var(--shadow-panel);
+}
+
+/* Accent surfaces remain light and readable; they identify category without
+   turning each card into a different component. */
+.workspace-card.accent-card-gold,
+.accent-card-gold.workspace-card {
+  border-color: var(--color-accent-yellow-border);
+  background-color: var(--color-accent-yellow);
+}
+
+.workspace-card.accent-card-green,
+.accent-card-green.workspace-card {
+  border-color: var(--color-accent-green-border);
+  background-color: var(--color-accent-green);
+}
+
+.workspace-card.accent-card-coral,
+.accent-card-coral.workspace-card {
+  border-color: var(--color-accent-red-border);
+  background-color: var(--color-accent-red);
+}
+
+.workspace-card.accent-card-blue,
+.accent-card-blue.workspace-card {
+  border-color: var(--color-accent-blue-border);
+  background-color: var(--color-accent-blue);
+}
+
+.workspace-card > :last-child {
+  align-self: flex-start;
+  border: 1px solid var(--color-action);
+  border-radius: 999px;
+  padding: 0.5rem 0.8rem;
+  color: var(--color-action) !important;
+  font-size: 0.8125rem;
+}
+
+/* Temporary order-based card cycle for decorative/action grids. */
+.order-colored-grid > .workspace-card:nth-child(4n + 1),
+.order-colored-grid > .workspace-card:nth-child(4n + 1):hover,
+.order-colored-grid > .workspace-card:nth-child(4n + 1):focus-visible {
+  border-color: var(--color-accent-yellow-border) !important;
+  background-color: var(--color-accent-yellow) !important;
+}
+
+.order-colored-grid > .workspace-card:nth-child(4n + 2),
+.order-colored-grid > .workspace-card:nth-child(4n + 2):hover,
+.order-colored-grid > .workspace-card:nth-child(4n + 2):focus-visible {
+  border-color: var(--color-accent-green-border) !important;
+  background-color: var(--color-accent-green) !important;
+}
+
+.order-colored-grid > .workspace-card:nth-child(4n + 3),
+.order-colored-grid > .workspace-card:nth-child(4n + 3):hover,
+.order-colored-grid > .workspace-card:nth-child(4n + 3):focus-visible {
+  border-color: var(--color-accent-red-border) !important;
+  background-color: var(--color-accent-red) !important;
+}
+
+.order-colored-grid > .workspace-card:nth-child(4n + 4),
+.order-colored-grid > .workspace-card:nth-child(4n + 4):hover,
+.order-colored-grid > .workspace-card:nth-child(4n + 4):focus-visible {
+  border-color: var(--color-accent-blue-border) !important;
+  background-color: var(--color-accent-blue) !important;
+}
+
+/* Explicit order hooks cover grids with hidden/template children. */
+.order-card-1 { border-color: var(--color-accent-yellow-border) !important; background-color: var(--color-accent-yellow) !important; }
+.order-card-2 { border-color: var(--color-accent-green-border) !important; background-color: var(--color-accent-green) !important; }
+.order-card-3 { border-color: var(--color-accent-red-border) !important; background-color: var(--color-accent-red) !important; }
+.order-card-4 { border-color: var(--color-accent-blue-border) !important; background-color: var(--color-accent-blue) !important; }
+
+#competency-options > div > :is(button, a, a:visited) {
+  border-color: var(--color-line) !important;
+  background: var(--color-surface-strong) !important;
+  color: var(--color-ink) !important;
+  box-shadow: var(--shadow-panel-soft);
+  backdrop-filter: blur(18px);
+}
+
+/* The cards are the visual grouping; avoid a second card wrapped around them. */
+#competency-options {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+#competency-options > div > :is(button, a, a:visited):hover,
+#competency-options > div > :is(button, a, a:visited):focus-visible {
+  border-color: var(--color-action) !important;
+  box-shadow: var(--shadow-panel);
+}
+
+#competency-options > div > .accent-card-gold {
+  border-color: var(--color-accent-yellow-border);
+  background-color: var(--color-accent-yellow);
+}
+
+#competency-options > div > .accent-card-green {
+  border-color: var(--color-accent-green-border);
+  background-color: var(--color-accent-green);
+}
+
+#competency-options > div > .accent-card-coral {
+  border-color: var(--color-accent-red-border);
+  background-color: var(--color-accent-red);
+}
+
+#competency-options > div > .order-card-1 {
+  border-color: var(--color-accent-yellow-border) !important;
+  background-color: var(--color-accent-yellow) !important;
+}
+
+#competency-options > div > .order-card-2 {
+  border-color: var(--color-accent-green-border) !important;
+  background-color: var(--color-accent-green) !important;
+}
+
+#competency-options > div > .order-card-3 {
+  border-color: var(--color-accent-red-border) !important;
+  background-color: var(--color-accent-red) !important;
+}
+
+#competency-options > div > .order-card-4 {
+  border-color: var(--color-accent-blue-border) !important;
+  background-color: var(--color-accent-blue) !important;
+}
+
+/* Keep each competency card's badge and action outline in the same color family. */
+#competency-options .order-card-1 > span:first-child > span:first-child,
+#competency-options .order-card-1 > span:last-child {
+  border-color: var(--color-accent-yellow-border) !important;
+  background-color: rgba(234, 179, 8, 0.92) !important;
+  color: #513006 !important;
+}
+
+#competency-options .order-card-1 > span:last-child {
+  background-color: transparent !important;
+}
+
+#competency-options .order-card-2 > span:first-child > span:first-child,
+#competency-options .order-card-2 > span:last-child {
+  border-color: var(--color-accent-green-border) !important;
+  background-color: rgba(22, 128, 61, 0.9) !important;
+  color: #ffffff !important;
+}
+
+#competency-options .order-card-2 > span:last-child {
+  background-color: transparent !important;
+  color: #166534 !important;
+}
+
+#competency-options .order-card-3 > span:first-child > span:first-child,
+#competency-options .order-card-3 > span:last-child {
+  border-color: var(--color-accent-red-border) !important;
+  background-color: rgba(225, 29, 72, 0.9) !important;
+  color: #ffffff !important;
+}
+
+#competency-options .order-card-3 > span:last-child {
+  background-color: transparent !important;
+  color: #9f1239 !important;
+}
+
+/* The competency grid can be nested inside form/layout wrappers. */
+#competency-options .order-card-1 {
+  border-color: var(--color-accent-yellow-border) !important;
+  background-color: var(--color-accent-yellow) !important;
+}
+
+#competency-options .order-card-2 {
+  border-color: var(--color-accent-green-border) !important;
+  background-color: var(--color-accent-green) !important;
+}
+
+#competency-options .order-card-3 {
+  border-color: var(--color-accent-red-border) !important;
+  background-color: var(--color-accent-red) !important;
+}
+
+#competency-options .order-card-4 {
+  border-color: var(--color-accent-blue-border) !important;
+  background-color: var(--color-accent-blue) !important;
+}
+
+#competency-options > div > :is(button, a, a:visited) > span:first-child > span:first-child {
+  background: var(--color-action) !important;
+  color: #ffffff !important;
+}
+
+#competency-options > div > :is(button, a, a:visited) > span:last-child {
+  border: 1px solid var(--color-action);
+  border-radius: 999px;
+  background: transparent !important;
+  color: var(--color-action) !important;
+}
+
+/* Final component-specific precedence: the badge and action inherit the card order. */
+#competency-options .order-card-1 > span:first-child > span:first-child { background-color: rgba(234, 179, 8, 0.92) !important; color: #513006 !important; }
+#competency-options .order-card-1 > span:last-child { border-color: var(--color-accent-yellow-border) !important; color: #854d0e !important; }
+#competency-options .order-card-2 > span:first-child > span:first-child { background-color: rgba(22, 128, 61, 0.9) !important; color: #ffffff !important; }
+#competency-options .order-card-2 > span:last-child { border-color: var(--color-accent-green-border) !important; color: #166534 !important; }
+#competency-options .order-card-3 > span:first-child > span:first-child { background-color: rgba(225, 29, 72, 0.9) !important; color: #ffffff !important; }
+#competency-options .order-card-3 > span:last-child { border-color: var(--color-accent-red-border) !important; color: #9f1239 !important; }
 
 /* Shared card treatment: bright enough to create hierarchy, but quiet enough for long-form work. */
 .app-page :is(section, article, aside, div)[class~="bg-white"][class*="rounded-"] {
-  border-color: rgba(174, 207, 224, 0.86);
-  background-color: #ffffff;
+  border-color: var(--color-line);
+  background-color: var(--color-surface-strong);
   background-image: none;
+  backdrop-filter: blur(18px);
 }
 
 .app-page :is(section, article, aside)[class~="bg-white"][class*="shadow-"] {
-  box-shadow: 0 20px 60px rgba(36, 95, 135, 0.11);
+  box-shadow: var(--shadow-panel-soft);
+}
+
+/* Semantic component vocabulary. New screens should use these classes instead
+   of composing raw surface, border, radius, and shadow utilities. */
+.ui-panel {
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-panel-soft);
+  backdrop-filter: blur(18px);
+}
+
+.ui-card {
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-strong);
+  box-shadow: var(--shadow-panel-soft);
+  backdrop-filter: blur(18px);
+}
+
+.ui-input {
+  min-width: 0;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-control);
+  background: var(--color-input);
+  color: var(--color-ink);
+  padding: var(--space-control-y) var(--space-control-x);
+  outline: none;
+}
+
+.ui-input:focus {
+  border-color: var(--color-action);
+  background: var(--color-input-focus);
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.12);
+}
+
+.ui-button-primary,
+.ui-button-secondary,
+.ui-button-quiet {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  border-radius: 999px;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, color 160ms ease;
+}
+
+.ui-button-primary {
+  border: 1px solid var(--color-action);
+  background: var(--color-action);
+  color: #ffffff;
+  box-shadow: 0 12px 24px rgba(29, 78, 216, 0.22);
+}
+
+.ui-button-primary:hover,
+.ui-button-primary:focus-visible {
+  background: var(--color-action-hover);
+}
+
+.ui-button-secondary {
+  border: 1px solid var(--color-action);
+  background: transparent;
+  color: var(--color-action);
+}
+
+.ui-button-secondary:hover,
+.ui-button-secondary:focus-visible {
+  background: rgba(232, 245, 251, 0.72);
+}
+
+.ui-button-quiet {
+  border: 1px solid var(--color-line);
+  background: var(--color-surface-strong);
+  color: var(--color-ink);
+}
+
+.ui-button-quiet:hover,
+.ui-button-quiet:focus-visible {
+  border-color: var(--color-action);
+  color: var(--color-action);
 }
 
 /* Primary controls use the signature sky blue rather than default near-black. */
 .interactive-contrast[class*="bg-slate"] {
-  background-color: #1d4ed8 !important;
+  background-color: var(--color-action) !important;
   box-shadow: 0 12px 24px rgba(29, 78, 216, 0.28);
 }
 
 .interactive-contrast[class*="bg-slate"]:hover {
-  background-color: #1e40af !important;
+  background-color: var(--color-action-hover) !important;
 }
 
 .interactive-contrast[class*="bg-teal"] {
