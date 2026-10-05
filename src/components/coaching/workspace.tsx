@@ -28,8 +28,9 @@ type RecordRow = {
 const visibility = ['coach_private', 'coach_client', 'organization_shared'];
 async function records(ctx: Context, table: string, column?: string, value?: string): Promise<RecordRow[]> {
     const rows: RecordRow[] = [];
+    const orderColumn = ['coach_specialties', 'coach_industries', 'coach_leadership_levels'].includes(table) ? 'coach_id' : 'id';
     for (let offset = 0; ; offset += 500) {
-        let query = ctx.db.from(table).select('*').order('id').range(offset, offset + 499);
+        let query = ctx.db.from(table).select('*').order(orderColumn).range(offset, offset + 499);
         if (column && value) query = query.eq(column, value);
         const result = await query;
         if (result.error) throw new Error(result.error.message);
@@ -46,6 +47,7 @@ export async function CoachingWorkspace({ path, filters }: {
     if (!path.length) redirect(viewHomes[currentView(ctx,path,(await cookies()).get('coaching-view')?.value)]);
     const section = path[0] ?? 'overview';
     let content: ReactNode;
+    if (section === 'admin' && !ctx.platformAdmin) redirect('/coaching/engagements');
     if(isScalePath(path)) content=await ScaleWorkspace({path,filters:Object.fromEntries(Object.entries(filters).filter((entry):entry is [string,string]=>entry[1]!==undefined))});
     else if(section==='outcomes') content=await DevelopmentOutcomes();
     else if(section==='admin'&&path[1]==='development-rules') content=await DevelopmentConfiguration();

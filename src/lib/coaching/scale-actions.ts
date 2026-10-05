@@ -21,7 +21,7 @@ export async function mutateScale(_previous: ScaleResult, form: FormData): Promi
         if (payload[key])
             payload[key] = JSON.parse(String(payload[key]));
     if (payload.category) payload.categories = [payload.category];
-        const call = operation === 'refresh' ? db.rpc('coaching_scale_refresh', { filters: payload.filters ?? {} }) : operation === 'daily' ? db.rpc('coaching_scale_run_daily') : db.rpc('coaching_scale_mutate', { operation, payload });
+    const call = operation === 'refresh' ? db.rpc('coaching_scale_refresh', { filters: payload.filters ?? {} }) : operation === 'daily' ? db.rpc('coaching_scale_run_daily') : operation.startsWith('legal_hold_') || operation === 'termination_export_request' ? db.rpc('coaching_retention_admin', { operation, payload }) : db.rpc('coaching_scale_mutate', { operation, payload });
     const { data, error } = await call;
     if (error)
         throw Error(error.message);

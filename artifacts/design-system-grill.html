@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Leadership Continuity Design Grill</title>
+  <style>
+    :root {
+      --font-body: Manrope, Inter, system-ui, sans-serif;
+      --font-display: Fraunces, Georgia, serif;
+      --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+      --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-10: 40px;
+      --radius-sm: 10px; --radius-md: 16px; --radius-lg: 24px;
+      --blue-700: #1d4ed8; --blue-950: #172554; --ink: #102a56;
+      --muted: #55718f; --surface: #ffffff; --canvas: #eff6fa;
+      --line: #b9d3e2; --success: #dcfce7; --warning: #fef3c7; --danger: #ffe4e6;
+      --shadow: 0 20px 60px rgba(20,56,92,.10);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #dceaf2; color: var(--ink); font: 14px/1.55 var(--font-body); }
+    button, select { font: inherit; }
+    button { cursor: pointer; }
+    .grill-shell { min-height: 100vh; padding: 24px; background: linear-gradient(135deg,#dceef8,#f7fafc 48%,#d9e7ef); }
+    .grill-toolbar { max-width: 1440px; margin: 0 auto 20px; padding: 16px; display: flex; flex-wrap: wrap; gap: 12px; align-items: end; background: rgba(255,255,255,.92); border: 1px solid var(--line); border-radius: var(--radius-md); box-shadow: var(--shadow); }
+    .grill-toolbar label { display: grid; gap: 4px; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+    .grill-toolbar select { min-width: 170px; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: white; color: var(--blue-950); }
+    .grill-toolbar .grill-note { margin-left: auto; max-width: 480px; color: var(--muted); font-size: 12px; }
+    .grill-frame { width: 100%; max-width: 1280px; min-height: 720px; margin: 0 auto; overflow: hidden; border-radius: var(--radius-lg); box-shadow: 0 28px 80px rgba(20,56,92,.22); transition: max-width .2s ease; }
+    .grill-frame.phone { max-width: 430px; }
+    .grill-variant { display: none; min-height: 720px; }
+    .grill-variant:not(.active) { display: none !important; }
+    .grill-variant.active { display: block; }
+    .grill-kicker { font-size: 11px; font-weight: 800; letter-spacing: .15em; text-transform: uppercase; }
+    .grill-title { margin: 4px 0 0; font: 700 34px/1.05 var(--font-display); letter-spacing: -.03em; }
+    .grill-subtitle { margin: 10px 0 0; color: var(--muted); }
+    .grill-button { display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 9px 15px; border: 0; border-radius: 999px; background: var(--blue-700); color: white; font-weight: 800; }
+    .grill-button.secondary { background: transparent; border: 1px solid currentColor; color: var(--blue-700); }
+    .grill-status { padding: 5px 9px; border-radius: 999px; font-size: 11px; font-weight: 800; }
+    .grill-status.success { background: var(--success); color: #14532d; }
+    .grill-status.warning { background: var(--warning); color: #713f12; }
+    .grill-status.danger { background: var(--danger); color: #881337; }
+    .grill-card { padding: var(--space-6); border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); box-shadow: 0 12px 32px rgba(20,56,92,.06); }
+    .grill-card h2, .grill-card h3 { margin: 0; }
+    .grill-card p { margin: 8px 0 0; }
+    .grill-grid { display: grid; gap: var(--space-4); grid-template-columns: repeat(3, minmax(0,1fr)); }
+    .grill-list { display: grid; gap: 10px; margin: 16px 0 0; padding: 0; list-style: none; }
+    .grill-list li { display: flex; gap: 10px; align-items: start; padding: 12px 0; border-top: 1px solid rgba(185,211,226,.7); }
+    .grill-check { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--blue-700); }
+    .state-loading, .state-empty, .state-error, .state-content { display: none; }
+    .state-loading.state-box, .state-empty.state-box, .state-error.state-box { display: none; }
+    [data-state="loading"] .state-loading.state-box, [data-state="empty"] .state-empty.state-box, [data-state="error"] .state-error.state-box { display: grid; }
+    [data-state="content"] .state-content, [data-state="overflow"] .state-content { display: block; }
+    .state-box { min-height: 150px; display: grid; place-items: center; padding: 24px; text-align: center; border: 1px dashed var(--line); border-radius: var(--radius-md); color: var(--muted); }
+    .skeleton { width: 70%; height: 14px; border-radius: 99px; background: linear-gradient(90deg,#e5eef4,#c9dce7,#e5eef4); background-size: 200% 100%; animation: shimmer 1.2s infinite; }
+    @keyframes shimmer { to { background-position: -200% 0; } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; } }
+
+    /* A: current brand, made calmer and more token-led. */
+    .variant-a { padding: 42px clamp(20px,5vw,70px); background: linear-gradient(135deg,rgba(239,246,250,.84),rgba(255,255,255,.68)), url("file:///Users/DavidsAir/Code/GitHub/leadership-continuity-mvp/public/mountains-wallpaper.jpg") center / cover fixed no-repeat; }
+    .variant-a .a-top { display: flex; justify-content: space-between; gap: 20px; align-items: center; padding-bottom: 28px; }
+    .variant-a .a-brand { display: flex; gap: 12px; align-items: center; font-weight: 900; color: var(--blue-950); }
+    .variant-a .a-mark { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 14px; background: var(--blue-950); color: white; }
+    .variant-a .a-hero { display: flex; justify-content: space-between; gap: 40px; align-items: end; padding: 32px 0; }
+    .variant-a .a-hero-copy { max-width: 680px; }
+    .variant-a .a-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .variant-a .a-content { display: grid; gap: 20px; grid-template-columns: 1.4fr .8fr; }
+    .variant-a .a-accent { border-top: 5px solid #82c8e4; }
+    .variant-a .a-accent.green { border-top-color: #86c87e; }
+    .variant-a .a-accent.gold { border-top-color: #e7b94f; }
+    .variant-a .a-empty, .variant-a .a-error { margin-top: 16px; }
+
+    /* B: editorial navy workspace; hierarchy and navigation come first. */
+    .grill-variant.variant-b { display: none; grid-template-columns: 240px 1fr; background: linear-gradient(90deg,rgba(255,255,255,.72),rgba(239,246,250,.72)), url("file:///Users/DavidsAir/Code/GitHub/leadership-continuity-mvp/public/mountains-wallpaper.jpg") center / cover fixed no-repeat; }
+    .grill-variant.active.variant-b { display: grid; }
+    .variant-b .b-side { padding: 28px 18px; background: var(--blue-950); color: #e8f5fb; }
+    .variant-b .b-logo { display: flex; gap: 10px; align-items: center; margin-bottom: 44px; font-weight: 900; }
+    .variant-b .b-logo-mark { display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid #82c8e4; border-radius: 10px; }
+    .variant-b nav { display: grid; gap: 6px; }
+    .variant-b nav a { padding: 10px 12px; border-radius: 9px; color: #c9ddec; text-decoration: none; }
+    .variant-b nav a.active, .variant-b nav a:hover { background: #274d82; color: white; }
+    .variant-b .b-main { padding: 44px clamp(24px,5vw,70px); }
+    .variant-b .b-header { display: flex; justify-content: space-between; align-items: end; gap: 18px; padding-bottom: 30px; border-bottom: 1px solid #c8d5df; }
+    .variant-b .b-metrics { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin: 24px 0; }
+    .variant-b .b-metric { padding: 18px; background: white; border: 1px solid #dbe5eb; border-radius: 12px; }
+    .variant-b .b-metric strong { display: block; margin-top: 4px; font-size: 26px; color: var(--blue-950); }
+    .variant-b .b-work { display: grid; grid-template-columns: 1fr .8fr; gap: 16px; }
+    .variant-b .b-card { border-radius: 12px; box-shadow: none; }
+
+    /* C: warm human development; conversation and reflection come first. */
+    .variant-c { padding: 32px clamp(20px,6vw,84px); background: linear-gradient(135deg,rgba(255,253,249,.90),rgba(229,242,249,.76)), url("file:///Users/DavidsAir/Code/GitHub/leadership-continuity-mvp/public/mountains-wallpaper.jpg") center / cover fixed no-repeat; color: #3d3340; }
+    .variant-c .c-top { display: flex; justify-content: space-between; align-items: center; padding-bottom: 18px; border-bottom: 1px solid #e5d8c7; }
+    .variant-c .c-brand { font: 700 24px var(--font-display); color: #50384c; }
+    .variant-c .c-hero { max-width: 740px; padding: 56px 0 34px; }
+    .variant-c .c-hero .grill-kicker { color: #a64b3f; }
+    .variant-c .grill-title { font-size: clamp(40px,6vw,68px); }
+    .variant-c .c-hero p { font-size: 17px; color: #6f6260; }
+    .variant-c .c-rail { display: grid; grid-template-columns: .8fr 1.2fr; gap: 18px; }
+    .variant-c .c-card { background: #fffdf9; border-color: #e5d8c7; box-shadow: 0 10px 24px rgba(102,71,47,.06); }
+    .variant-c .c-focus { background: #f5e8c8; border-color: #e9c978; }
+    .variant-c .c-conversation { background: #e5f2e9; border-color: #b9d9c1; }
+    .variant-c .grill-button { background: #a64b3f; }
+
+    /* D: careful designer pushback; dense, operational, status-led. */
+    .variant-d { padding: 24px; background: linear-gradient(135deg,rgba(236,244,248,.88),rgba(255,255,255,.74)), url("file:///Users/DavidsAir/Code/GitHub/leadership-continuity-mvp/public/mountains-wallpaper.jpg") center / cover fixed no-repeat; color: #1c2937; }
+    .variant-d .d-top { display: flex; justify-content: space-between; gap: 16px; align-items: center; padding: 14px 16px; background: #1c2937; color: white; border-radius: 10px; }
+    .variant-d .d-top strong { letter-spacing: .08em; text-transform: uppercase; }
+    .variant-d .d-hero { display: grid; grid-template-columns: 1fr auto; gap: 18px; align-items: end; padding: 26px 0 18px; }
+    .variant-d .d-hero .grill-title { font: 800 30px/1.1 var(--font-body); letter-spacing: -.04em; }
+    .variant-d .d-board { display: grid; gap: 12px; grid-template-columns: repeat(4,1fr); }
+    .variant-d .d-cell { padding: 14px; background: white; border: 1px solid #cbd5df; border-radius: 8px; }
+    .variant-d .d-cell h3 { font-size: 13px; }
+    .variant-d .d-cell strong { display: block; margin-top: 8px; font-size: 24px; }
+    .variant-d .d-table { margin-top: 18px; padding: 0; overflow: hidden; background: white; border: 1px solid #cbd5df; border-radius: 8px; }
+    .variant-d .d-row { display: grid; grid-template-columns: 1.4fr .7fr .7fr 1fr; gap: 10px; padding: 14px 16px; border-top: 1px solid #e4e9ee; }
+    .variant-d .d-row:first-child { border-top: 0; background: #f7f9fb; font-size: 11px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+    .variant-d .d-footer { margin-top: 18px; display: flex; justify-content: space-between; gap: 12px; align-items: center; font-size: 12px; color: #627386; }
+    .roles-view { padding: 42px clamp(20px,5vw,70px); background: linear-gradient(135deg,rgba(239,246,250,.84),rgba(255,255,255,.68)), url("file:///Users/DavidsAir/Code/GitHub/leadership-continuity-mvp/public/mountains-wallpaper.jpg") center / cover fixed no-repeat; }
+    .roles-top, .roles-hero, .roles-section-head { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+    .roles-top { padding-bottom: 28px; }
+    .roles-top small { color: var(--muted); font-weight: 500; }
+    .roles-hero { align-items: end; padding: 32px 0; }
+    .roles-hero > div:first-child { max-width: 680px; }
+    .roles-summary { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 20px; }
+    .roles-stat strong { display: block; margin-top: 5px; font-size: 30px; color: var(--blue-950); }
+    .roles-stat p { color: var(--muted); }
+    .roles-layout { display: grid; grid-template-columns: 1.35fr .85fr; gap: 20px; }
+    .roles-section-head { align-items: end; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+    .roles-section-head h2 { margin: 4px 0 0; }
+    .roles-section-head select { padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); color: var(--blue-950); background: white; }
+    .role-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 18px 0; border-bottom: 1px solid rgba(185,211,226,.7); }
+    .role-row.active { margin: 0 -12px; padding-inline: 12px; background: rgba(224,242,254,.55); }
+    .role-row p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+    .roles-detail h2 { margin-top: 5px; }
+    .roles-detail h3 { margin: 26px 0 8px; }
+    .competency { display: flex; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid rgba(185,211,226,.7); }
+    .competency strong { color: var(--blue-700); }
+    @media (max-width: 720px) {
+      .grill-shell { padding: 12px; }
+      .grill-toolbar .grill-note { width: 100%; margin-left: 0; }
+      .grill-grid, .variant-a .a-content, .variant-b .b-work, .variant-c .c-rail { grid-template-columns: 1fr; }
+      .variant-b { grid-template-columns: 1fr; }
+      .variant-b .b-side { padding: 18px; }
+      .variant-b .b-logo { margin-bottom: 14px; }
+      .variant-b nav { grid-template-columns: repeat(3,1fr); }
+      .variant-b .b-main { padding: 26px 18px; }
+      .variant-b .b-metrics, .variant-d .d-board { grid-template-columns: repeat(2,1fr); }
+      .variant-d .d-row { grid-template-columns: 1.2fr .8fr; }
+      .variant-d .d-row > :nth-child(n+3) { display: none; }
+      .variant-a .a-hero, .variant-c .c-top, .variant-d .d-hero { display: block; }
+      .a-actions { margin-top: 18px; }
+      .roles-summary, .roles-layout { grid-template-columns: 1fr; }
+      .roles-hero, .roles-top, .roles-section-head { display: block; }
+      .roles-hero .a-actions { margin-top: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="grill-shell" id="app" data-state="content">
+    <section class="grill-toolbar" aria-label="Design comparison controls">
+      <label>Variant <select id="variant"><option value="a">A · Glass Candidate</option><option value="b">B · Glass + Metrics</option><option value="c">C · Mentor Focus</option><option value="d">D · Hybrid Activity</option></select></label>
+      <label>Page <select id="page"><option value="development">Development plan</option><option value="roles">Roles tab</option></select></label>
+      <label>State <select id="state"><option value="content">Content</option><option value="overflow">Too much content</option><option value="loading">Loading</option><option value="empty">Empty</option><option value="error">Error</option></select></label>
+      <label>Width <select id="width"><option value="desktop">Desktop</option><option value="phone">Phone</option></select></label>
+      <p class="grill-note">Round 3 combines the two survivors: A’s open candidate experience and D’s operational progress detail. Compare how much structure belongs above the fold.</p>
+    </section>
+
+    <section class="grill-frame" id="frame">
+      <article class="grill-variant variant-a active" data-variant="a">
+        <div class="a-top"><div class="a-brand"><span class="a-mark">LC</span><span>Leader Continuity<br><small style="font-weight:500;color:var(--muted)">Development workspace</small></span></div><span class="grill-status success">Candidate view</span></div>
+        <div class="a-hero"><div class="a-hero-copy"><div class="grill-kicker">Development plan</div><h1 class="grill-title">Build the next level of leadership.</h1><p class="grill-subtitle">One shared place for the candidate, mentor, evidence, and next action.</p></div><div class="a-actions"><button class="grill-button">Open worksheet</button><button class="grill-button secondary">View evidence</button></div></div>
+        <div class="a-content"><section class="grill-card a-accent"><h2>Provider contract negotiation</h2><p>Lead a scoped negotiation with mentor guardrails and clear approval limits.</p><div class="state-content"><ul class="grill-list"><li><input class="grill-check" type="checkbox" checked><span>Schedule kickoff with mentor</span></li><li><input class="grill-check" type="checkbox"><span>Draft negotiation plan and fallback positions</span></li><li><input class="grill-check" type="checkbox"><span>Align internal stakeholders before provider discussions</span></li></ul></div><div class="state-loading state-box"><span class="skeleton"></span></div><div class="state-empty state-box">No worksheet has been assigned yet.</div><div class="state-error state-box">We could not load this worksheet.<br><button class="grill-button" style="margin-top:10px">Try again</button></div></section><aside class="grill-card a-accent green"><h3>Mentor checkpoint</h3><p>Next conversation · Thursday</p><div class="state-content"><p><span class="grill-status warning">Needs preparation</span></p><p>Bring the current plan, open risks, and one decision you need help with.</p></div><div class="state-loading state-box"><span class="skeleton"></span></div><div class="state-empty state-box">Your mentor has not added a checkpoint.</div><div class="state-error state-box">Checkpoint unavailable.</div></aside></div>
+      </article>
+
+      <article class="grill-variant variant-b" data-variant="b">
+        <aside class="b-side"><div class="b-logo"><span class="b-logo-mark">LC</span><span>LEADER<br>CONTINUITY</span></div><nav><a class="active" href="#">Development</a><a href="#">Evidence</a><a href="#">Mentoring</a><a href="#">Competencies</a><a href="#">Progress</a></nav></aside>
+        <div class="b-main"><header class="b-header"><div><div class="grill-kicker">Candidate · Erin Erickson</div><h1 class="grill-title">Development plan</h1><p class="grill-subtitle">VP · Patient Care Services</p></div><button class="grill-button">Open worksheet</button></header><div class="b-metrics"><div class="b-metric"><span class="grill-kicker">Progress</span><strong>42%</strong></div><div class="b-metric"><span class="grill-kicker">Checkpoints</span><strong>2 / 5</strong></div><div class="b-metric"><span class="grill-kicker">Status</span><strong style="font-size:16px;margin-top:12px"><span class="grill-status warning">In progress</span></strong></div></div><div class="b-work"><section class="grill-card b-card"><h2>Provider contract negotiation</h2><p>Lead a scoped negotiation with mentor guardrails and clear approval limits.</p><div class="state-content"><ul class="grill-list"><li><input class="grill-check" type="checkbox" checked><span>Schedule kickoff with mentor</span></li><li><input class="grill-check" type="checkbox"><span>Draft negotiation plan and fallback positions</span></li><li><input class="grill-check" type="checkbox"><span>Align internal stakeholders before provider discussions</span></li></ul></div><div class="state-loading state-box"><span class="skeleton"></span></div><div class="state-empty state-box">No worksheet has been assigned yet.</div><div class="state-error state-box">We could not load this worksheet.</div></section><aside class="grill-card b-card"><h3>Mentor checkpoint</h3><p class="state-content">Bring the current plan, open risks, and one decision you need help with.</p><div class="state-loading state-box"><span class="skeleton"></span></div><div class="state-empty state-box">Your mentor has not added a checkpoint.</div><div class="state-error state-box">Checkpoint unavailable.</div></aside></div></div>
+      </article>
+
+      <article class="grill-variant variant-c" data-variant="c">
+        <div class="c-top"><div class="c-brand">Leader Continuity</div><span class="grill-status success">Candidate view</span></div><div class="c-hero"><div class="grill-kicker">Development plan</div><h1 class="grill-title">Build the next level of leadership.</h1><p>One shared place for the candidate, mentor, evidence, and next action.</p><button class="grill-button" style="margin-top:18px">Open worksheet</button></div><div class="c-rail"><section class="grill-card c-card c-focus"><div class="grill-kicker">Provider contract negotiation</div><h2 style="margin-top:8px">Current assignment</h2><p>Lead a scoped negotiation with mentor guardrails and clear approval limits.</p><div class="state-content"><ul class="grill-list"><li><input class="grill-check" type="checkbox" checked><span>Schedule kickoff with mentor</span></li><li><input class="grill-check" type="checkbox"><span>Draft negotiation plan and fallback positions</span></li><li><input class="grill-check" type="checkbox"><span>Align internal stakeholders before provider discussions</span></li></ul></div><div class="state-loading state-box"><span class="skeleton"></span></div><div class="state-empty state-box">No worksheet has been assigned yet.</div><div class="state-error state-box">We could not load this worksheet.</div></section><section class="grill-card c-card c-conversation"><div class="grill-kicker">Mentor checkpoint · Thursday</div><h2 style="margin-top:8px">Bring your open risks</h2><p class="state-content">Bring the current plan, open risks, and one decision you need help with.</p><textarea class="state-content" style="width:100%;min-height:120px;margin-top:16px;border:1px solid #b9d9c1;border-radius:12px;padding:12px;background:#fffdf9" placeholder="I need help thinking through..."></textarea><div class="state-loading state-box"><span class="skeleton"></span></div><div class="state-empty state-box">Your mentor has not added a checkpoint.</div><div class="state-error state-box">Checkpoint unavailable.</div></section></div>
+      </article>
+
+      <article class="grill-variant variant-d" data-variant="d">
+        <div class="d-top"><strong>LC / Development operations</strong><span>Candidate · Erin Erickson</span></div><div class="d-hero"><div><div class="grill-kicker">VP · Patient Care Services</div><h1 class="grill-title">Provider contract negotiation</h1><p class="grill-subtitle">Lead a scoped negotiation with mentor guardrails and clear approval limits.</p></div><button class="grill-button">Open worksheet</button></div><div class="d-board"><div class="d-cell"><h3>Progress</h3><strong>42%</strong></div><div class="d-cell"><h3>Next checkpoint</h3><strong style="font-size:16px">Thursday</strong></div><div class="d-cell"><h3>Open risks</h3><strong>3</strong></div><div class="d-cell"><h3>Owner</h3><strong style="font-size:16px">Candidate</strong></div></div><div class="d-table"><div class="d-row"><span>Worksheet action</span><span>Status</span><span>Owner</span><span>Evidence</span></div><div class="state-content"><div class="d-row"><span>Schedule kickoff with mentor</span><span><span class="grill-status success">Done</span></span><span>Candidate</span><span>Kickoff notes</span></div><div class="d-row"><span>Draft negotiation plan</span><span><span class="grill-status warning">Active</span></span><span>Candidate</span><span>Plan draft</span></div><div class="d-row"><span>Align internal stakeholders</span><span><span class="grill-status danger">Open</span></span><span>Mentor</span><span>Next meeting</span></div></div><div class="state-loading state-box"><span class="skeleton"></span></div><div class="state-empty state-box">No worksheet actions.</div><div class="state-error state-box">The action board could not be loaded.</div></div><div class="d-footer"><span>Last saved today at 9:42 AM</span><button class="grill-button secondary">View activity</button></div>
+      </article>
+
+      <article class="grill-variant roles-view" data-variant="roles">
+        <div class="roles-top"><div class="a-brand"><span class="a-mark">LC</span><span>Leader Continuity<br><small>Role workspace</small></span></div><span class="grill-status success">Administrator view</span></div>
+        <div class="roles-hero"><div><div class="grill-kicker">Roles</div><h1 class="grill-title">Role architecture</h1><p class="grill-subtitle">Define the expectations, competencies, and development paths that guide leadership continuity.</p></div><div class="a-actions"><button class="grill-button">Add role</button><button class="grill-button secondary">Export roles</button></div></div>
+        <div class="roles-summary"><div class="grill-card roles-stat"><span class="grill-kicker">Active roles</span><strong>12</strong><p>Across 3 leadership levels</p></div><div class="grill-card roles-stat"><span class="grill-kicker">Competencies</span><strong>28</strong><p>Shared expectations in use</p></div><div class="grill-card roles-stat"><span class="grill-kicker">Needs review</span><strong>3</strong><p>Roles due for refresh</p></div></div>
+        <div class="roles-layout"><section class="grill-card roles-list"><div class="roles-section-head"><div><div class="grill-kicker">Configured roles</div><h2>Leadership pathways</h2></div><select><option>All levels</option><option>Executive</option><option>Director</option></select></div><div class="role-row active"><div><strong>VP · Patient Care Services</strong><p>Executive · 7 competencies · 3 successors</p></div><span class="grill-status success">Ready</span></div><div class="role-row"><div><strong>Director · Nursing Operations</strong><p>Director · 6 competencies · 2 successors</p></div><span class="grill-status warning">Review soon</span></div><div class="role-row"><div><strong>VP · Operations</strong><p>Executive · 8 competencies · 1 successor</p></div><span class="grill-status danger">Needs attention</span></div></section><aside class="grill-card roles-detail"><div class="grill-kicker">Selected role</div><h2>VP · Patient Care Services</h2><p>Owns clinical service performance, patient experience, and leadership continuity.</p><h3>Core competencies</h3><div class="competency"><span>Accountability</span><strong>4 / 5</strong></div><div class="competency"><span>People Development</span><strong>4 / 5</strong></div><div class="competency"><span>Systems Thinking</span><strong>4 / 5</strong></div><button class="grill-button secondary" style="margin-top:18px">Open role profile</button></aside></div>
+      </article>
+    </section>
+  </main>
+  <script>
+    const app = document.querySelector('#app');
+    const frame = document.querySelector('#frame');
+    const page = document.querySelector('#page');
+    const variants = [...document.querySelectorAll('.grill-variant')];
+    document.querySelector('#variant').addEventListener('change', (event) => {
+      if (page.value === 'roles') return;
+      variants.forEach((item) => item.classList.toggle('active', item.dataset.variant === event.target.value));
+    });
+    document.querySelector('#state').addEventListener('change', (event) => app.dataset.state = event.target.value);
+    document.querySelector('#width').addEventListener('change', (event) => frame.classList.toggle('phone', event.target.value === 'phone'));
+    page.addEventListener('change', (event) => {
+      const roles = event.target.value === 'roles';
+      variants.forEach((item) => item.classList.toggle('active', !roles && item.dataset.variant === document.querySelector('#variant').value));
+      document.querySelector('.roles-view').classList.toggle('active', roles);
+    });
+  </script>
+</body>
+</html>

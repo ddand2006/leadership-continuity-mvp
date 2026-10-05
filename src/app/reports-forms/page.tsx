@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { getCandidateDisplayName } from "@/lib/candidate-display-name";
-import { getAccessibleCandidateIds } from "@/lib/mentor-access";
+import {
+  filterCandidateDocuments,
+  getRepositoryAccess,
+  getRepositoryVisibilityNote,
+} from "@/lib/document-access";
 import { canonicalizeRoleTitle } from "@/lib/role-title";
 import { requirePaidWorkspaceProfile } from "@/lib/workspace";
 
@@ -16,12 +20,12 @@ export default async function ReportsFormsPage() {
     await Promise.all([
       supabase
         .from("mentor_reports")
-        .select("id, candidate_id, role_id, version, created_at")
+        .select("id, candidate_id, role_id, version, document_status, archived_at, created_at")
         .eq("organization_id", profile.organization_id)
         .order("created_at", { ascending: false }),
       supabase
         .from("candidate_source_documents")
-        .select("id, candidate_id, file_name, document_category, created_at")
+        .select("id, candidate_id, file_name, document_category, document_status, archived_at, created_at")
         .eq("organization_id", profile.organization_id)
         .order("created_at", { ascending: false }),
       supabase
@@ -50,20 +54,25 @@ export default async function ReportsFormsPage() {
     }
   }
 
-  const accessibleCandidateIds = getAccessibleCandidateIds({
+  const repositoryAccess = getRepositoryAccess({
     profile,
     account,
     mentorAssignments: mentorAssignmentsResult.data ?? [],
   });
-  const visibleReports = (reportsResult.data ?? []).filter((report) =>
-    accessibleCandidateIds ? accessibleCandidateIds.has(report.candidate_id) : true,
+  const visibleReports = filterCandidateDocuments(
+    reportsResult.data ?? [],
+    repositoryAccess.candidateIds,
   );
-  const visibleDocuments = (documentsResult.data ?? []).filter((document) =>
-    accessibleCandidateIds ? accessibleCandidateIds.has(document.candidate_id) : true,
+  const visibleDocuments = filterCandidateDocuments(
+    documentsResult.data ?? [],
+    repositoryAccess.candidateIds,
   );
-  const visibleCandidates = (candidatesResult.data ?? []).filter((candidate) =>
-    accessibleCandidateIds ? accessibleCandidateIds.has(candidate.id) : true,
-  );
+  const visibleCandidates =
+    repositoryAccess.candidateIds === null
+      ? candidatesResult.data ?? []
+      : (candidatesResult.data ?? []).filter((candidate) =>
+          repositoryAccess.candidateIds?.has(candidate.id),
+        );
 
   const candidateMap = new Map(
     visibleCandidates.map((candidate) => [
@@ -96,6 +105,9 @@ export default async function ReportsFormsPage() {
             surfaces generated mentor reports and uploaded source files, and it is
             now the home for growing interview resources such as behavioral
             question guides, interview scorecards, and other role-based packets.
+          </p>
+          <p className="mt-4 text-sm font-medium text-slate-500">
+            {getRepositoryVisibilityNote(repositoryAccess)}
           </p>
         </section>
 
@@ -160,7 +172,7 @@ export default async function ReportsFormsPage() {
                       Role: {roleMap.get(report.role_id)?.title ?? "Unknown role"}
                     </p>
                     <p className="text-slate-600">
-                      Version {report.version} generated on{" "}
+                      Version {report.version} · {report.document_status} · generated on{" "}
                       {new Date(report.created_at).toLocaleDateString()}
                     </p>
                   </article>
@@ -193,7 +205,7 @@ export default async function ReportsFormsPage() {
                         "Unknown candidate"}
                     </p>
                     <p className="emerald-soft-surface-muted">
-                      Category: {document.document_category}
+                      Category: {document.document_category} · {document.document_status}
                     </p>
                   </article>
                 ))

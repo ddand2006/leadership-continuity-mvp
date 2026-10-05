@@ -46,6 +46,7 @@ type CandidateInsightExplorerProps = {
   candidateId?: string;
   candidateName?: string;
   roleId?: string;
+  readinessWeighting?: "equal" | "role";
   mentorProfileId?: string;
   savedGeneratedIdeasByCompetencyId?: Record<string, GeneratedCandidateMentoringIdea[]>;
   award: CandidateAward;
@@ -64,6 +65,7 @@ export function CandidateInsightExplorer({
   candidateId,
   candidateName,
   roleId,
+  readinessWeighting = "equal",
   mentorProfileId,
   savedGeneratedIdeasByCompetencyId = {},
   award,
@@ -87,8 +89,8 @@ export function CandidateInsightExplorer({
   const topStrengths = strengths.slice(0, 5);
   const nextStrengths = strengths.slice(5, 15);
   const roleGoalReadiness = useMemo(
-    () => computeRoleGoalReadiness(assessments),
-    [assessments],
+    () => computeRoleGoalReadiness(assessments, { weighting: readinessWeighting }),
+    [assessments, readinessWeighting],
   );
 
   const activeAssessment =

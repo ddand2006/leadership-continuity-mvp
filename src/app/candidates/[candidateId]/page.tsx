@@ -1,5 +1,4 @@
 import { latestDevelopmentScores } from '@/lib/candidate-current-scores';
-import {canViewCoachingPreview} from '@/lib/coaching/preview-server';
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CandidateProgressReport } from "@/components/candidate-progress-report";
@@ -111,7 +110,7 @@ export default async function CandidateDetailPage({
       .eq("organization_id", profile.organization_id),
     supabase
       .from("roles")
-      .select("id, title, description")
+      .select("id, title, description, readiness_weighting")
       .eq("organization_id", profile.organization_id),
     supabase
       .from("candidate_strengths")
@@ -153,8 +152,27 @@ export default async function CandidateDetailPage({
     full_name: getCandidateDisplayName(candidateResult.data.full_name),
   };
 
-  const considerations = considerationsResult.data ?? [];
   const mentorAssignments = mentorAssignmentsResult.data ?? [];
+  const consideredRoleIds = new Set(
+    (considerationsResult.data ?? []).map((consideration) => consideration.role_id),
+  );
+  const considerations = [
+    ...(considerationsResult.data ?? []),
+    ...mentorAssignments
+      .filter(
+        (assignment) =>
+          !consideredRoleIds.has(assignment.role_id) &&
+          mentorAssignments.findIndex(
+            (candidateAssignment) => candidateAssignment.role_id === assignment.role_id,
+          ) === mentorAssignments.indexOf(assignment),
+      )
+      .map((assignment) => ({
+        candidate_id: assignment.candidate_id,
+        role_id: assignment.role_id,
+        is_primary: false,
+        status: assignment.status,
+      })),
+  ];
   const roleMap = new Map(
     (rolesResult.data ?? []).map((role) => [
       role.id,
@@ -695,7 +713,11 @@ export default async function CandidateDetailPage({
       };
     });
   const readiness = computeOverallReadiness(assessments);
-  const roleGoalReadiness = computeRoleGoalReadiness(assessments);
+  const roleGoalReadiness = computeRoleGoalReadiness(assessments, {
+    weighting: roleMap.get(primaryConsideration?.role_id ?? "")?.readiness_weighting === "role"
+      ? "role"
+      : "equal",
+  });
   const roleMatchesWeakestToStrongest =
     buildRoleMatchesWeakestToStrongest(assessments);
   const strengthBuckets = categorizeStrengths(strengthsResult.data ?? []);
@@ -1058,7 +1080,6 @@ export default async function CandidateDetailPage({
           />
 
           <div className="min-w-0">
-            {await canViewCoachingPreview() && (<nav aria-label="Development intelligence" className="mb-5 flex flex-wrap gap-4 rounded-2xl bg-white p-4 text-sm font-semibold">{!canViewOwnCandidate && <Link href={`/candidates/${candidate.id}/development-intelligence?roleId=${activeRoleId ?? ""}`} className="text-teal-800 underline">Development priorities</Link>}<Link href={`/candidates/${candidate.id}/development?roleId=${activeRoleId ?? ""}`} className="text-teal-800 underline">My development</Link><Link href={`/candidates/${candidate.id}/readiness-review?roleId=${activeRoleId ?? ""}`} className="text-teal-800 underline">Readiness review</Link></nav>)}
             <CandidateDetailSectionMenu
               initialSectionId={requestedSection}
               sections={[
@@ -1432,6 +1453,42 @@ export default async function CandidateDetailPage({
                 "Focus on the candidate’s role-fit competencies, top 5 strengths, and next 10 strengths one insight at a time.",
               content: (
                 <section className="grid gap-6">
+                  <section className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-8">
+                    <p className="text-sm font-semibold tracking-[0.16em] text-teal-700 uppercase">
+                      Role comparison
+                    </p>
+                    <h2 className="mt-2 font-display text-3xl text-slate-900">
+                      Choose the position to evaluate
+                    </h2>
+                    <p className="mt-3 text-sm leading-7 text-slate-600">
+                      This candidate is being considered for multiple positions. Select a role to
+                      compare the candidate against that role&apos;s competencies, goals, and readiness.
+                    </p>
+                    <div className="mt-5 flex flex-wrap gap-3" aria-label="Candidate role comparison">
+                      {Array.from(allowedRoleIds).map((roleId) => {
+                        const role = roleMap.get(roleId);
+                        if (!role) return null;
+                        const isActive = roleId === activeRoleId;
+                        return (
+                          <Link
+                            key={roleId}
+                            href={`/candidates/${candidate.id}?section=role-fit&roleId=${roleId}`}
+                            aria-current={isActive ? "page" : undefined}
+                            className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                              isActive
+                                ? "border-teal-900 bg-teal-900 text-white"
+                                : "border-slate-200 bg-slate-50 text-slate-700 hover:border-teal-300 hover:bg-teal-50"
+                            }`}
+                          >
+                            {role.title}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                    <p className="mt-4 text-sm font-semibold text-slate-700">
+                      Currently evaluating: {roleMap.get(activeRoleId ?? "")?.title ?? "No role selected"}
+                    </p>
+                  </section>
                   <CandidateInsightExplorer
                     assessments={assessments.map((assessment) => ({
                       ...assessment,
@@ -1446,6 +1503,11 @@ export default async function CandidateDetailPage({
                     candidateId={candidate.id}
                     candidateName={candidate.full_name}
                     roleId={activeRoleId ?? undefined}
+                    readinessWeighting={
+                      roleMap.get(activeRoleId ?? "")?.readiness_weighting === "role"
+                        ? "role"
+                        : "equal"
+                    }
                     mentorProfileId={preferredActiveRoleMentorProfileId ?? undefined}
                     savedGeneratedIdeasByCompetencyId={
                       savedGeneratedIdeasByCompetencyIdObject

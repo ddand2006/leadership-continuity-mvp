@@ -9,6 +9,7 @@ export const personalDevelopmentWorkspaceSections = [
   { id: "composite", label: "Composite", href: "/personal-development/composite" },
   { id: "strengths", label: "Strengths", href: "/personal-development/strengths" },
   { id: "coaching", label: "Coaching", href: "/personal-development/coaching" },
+  { id: "360-review", label: "360 Review", href: "/360-review" },
   {
     id: "growth-plan",
     label: "Growth Plan",

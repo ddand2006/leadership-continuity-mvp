@@ -17,6 +17,7 @@ const createRoleSchema = z.object({
   department: z.string().trim().optional(),
   description: z.string().min(1),
   status: z.enum(["draft", "active"]).default("draft"),
+  readinessWeighting: z.enum(["equal", "role"]).default("equal"),
   mentorProfileId: z.string().uuid().optional(),
   talents: z.array(z.string().min(1)).default([]),
   skills: z.array(z.string().min(1)).default([]),
@@ -105,6 +106,7 @@ export async function POST(request: Request) {
           department: payload.department?.trim() || null,
           description: payload.description.trim(),
           status: payload.status,
+          readiness_weighting: payload.readinessWeighting,
         })
         .eq("organization_id", profile.organization_id)
         .eq("id", payload.roleId)
@@ -135,6 +137,7 @@ export async function POST(request: Request) {
           department: payload.department?.trim() || null,
           description: payload.description.trim(),
           status: payload.status,
+          readiness_weighting: payload.readinessWeighting,
         })
         .select("id, title")
         .single();

@@ -118,6 +118,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
     characteristicsResult,
     sharedLibraryResult,
     compositeDocumentsResult,
+    jobDescriptionsResult,
     mentorsResult,
     roleMentorAssignmentsResult,
     roleSurveysResult,
@@ -130,7 +131,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
     await Promise.all([
       supabase
         .from("roles")
-        .select("id, title, department, description, status")
+        .select("id, title, department, description, status, readiness_weighting")
         .eq("organization_id", profile.organization_id)
         .order("created_at", { ascending: true }),
       needsCompetencies
@@ -171,6 +172,12 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
             )
             .eq("organization_id", profile.organization_id)
             .order("created_at", { ascending: false })
+        : Promise.resolve({ data: [], error: null }),
+      needsCompositeDocumentPresence
+        ? supabase
+            .from("role_job_descriptions")
+            .select("role_id, updated_at")
+            .eq("organization_id", profile.organization_id)
         : Promise.resolve({ data: [], error: null }),
       needsMentors
         ? supabase
@@ -326,6 +333,9 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
     string,
     (typeof normalizedCompositeDocuments)[number]
   >();
+  const jobDescriptionUpdatedAtByRole = new Map(
+    (jobDescriptionsResult.data ?? []).map((item) => [item.role_id, item.updated_at]),
+  );
   const mentorMap = new Map((mentorsResult.data ?? []).map((mentor) => [mentor.id, mentor]));
   const mentorsByRole = new Map<string, string[]>();
   const primaryMentorIdByRole = new Map<string, string>();
@@ -592,6 +602,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
             selectedRoleId={selectedRoleId}
             isCreatingRole={!selectedRoleId && selectedMode === "create"}
             selectedWorkspaceMode={selectedWorkspaceMode}
+            selectedTool={requestedTool}
           />
           <div className="grid min-w-0 gap-6">
         {!isRoleWorkspaceMode || !selectedRole ? (
@@ -624,6 +635,7 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                   department: role.department,
                   description: role.description,
                   status: role.status as "draft" | "active",
+                  readinessWeighting: role.readiness_weighting as "equal" | "role",
                   primaryMentorProfileId: primaryMentorIdByRole.get(role.id) ?? null,
                   idealCompetencyCount:
                     (characteristicsByRole.get(role.id) ?? []).length,
@@ -632,6 +644,21 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                     compositeDocumentByRole.get(role.id)?.document_source ?? null,
                   compositeDocumentFileName:
                     compositeDocumentByRole.get(role.id)?.file_name ?? null,
+                  compositeNeedsRegeneration: (() => {
+                    const composite = compositeDocumentByRole.get(role.id);
+                    if (composite?.document_source !== "generated") return false;
+                    const compositeCreatedAt = new Date(composite.created_at ?? 0).getTime();
+                    const latestCharacteristicUpdate = Math.max(
+                      0,
+                      ...(characteristicsByRole.get(role.id) ?? []).map((item) =>
+                        new Date(item.updated_at ?? item.created_at ?? 0).getTime(),
+                      ),
+                    );
+                    const jobDescriptionUpdatedAt = new Date(
+                      jobDescriptionUpdatedAtByRole.get(role.id) ?? 0,
+                    ).getTime();
+                    return Math.max(latestCharacteristicUpdate, jobDescriptionUpdatedAt) > compositeCreatedAt;
+                  })(),
                   talents: groupCharacteristicsByCategory(
                     getDetailedCharacteristics(role.id),
                   ).talents,
@@ -660,16 +687,16 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                     <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
                       Define competencies for {selectedRole?.title ?? "this role"} by importing a file or gathering survey feedback. Then create and maintain the role composite.
                     </p>
-                    <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    <div className="order-colored-grid mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                       {[
                         { id: "modification", notice: null, tone: "accent-card-gold", title: "Role Creation/Modification", description: "Create or update the role profile, competencies, and supporting details as the role evolves." },
                         { id: "printables", notice: workflowNotices.printables, tone: "accent-card-green", title: "Role Printables", description: "Create and download role profile documents for sharing, review, and ongoing use." },
-                        { id: "composite", notice: workflowNotices.composite, tone: "accent-card-coral", title: "Update Role Composite", description: "Create, download, and update the role profile using its competencies." },
+                        { id: "composite", notice: workflowNotices.composite, tone: "accent-card-coral", title: "Update Role Composite", description: "Add the job description, then create, download, and update the role profile using its competencies." },
                       ].map((tool) => (
                         <Link
                           key={tool.id}
                           href={tool.id === "modification" ? `/roles?roleId=${selectedRoleId}&mode=create` : tool.id === "printables" ? `/roles?roleId=${selectedRoleId}&mode=printables` : `/roles?roleId=${selectedRoleId}&mode=import&tool=${tool.id}`}
-                          className={`flex h-full flex-col rounded-2xl border p-5 transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-700 ${tool.tone} ${tool.id === "modification" ? "!border-amber-300 !bg-amber-100" : ""}`}
+                          className={`workspace-card flex h-full flex-col rounded-2xl border p-5 transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-700 ${tool.tone}`}
                         >
                           <h3 className="font-semibold text-slate-900">{tool.title}</h3>
                           <p className="mt-2 flex-1 text-sm leading-6 text-slate-600">{tool.description}</p>
@@ -693,14 +720,23 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                     department: role.department,
                     description: role.description,
                     status: role.status as "draft" | "active",
+                    readinessWeighting: role.readiness_weighting as "equal" | "role",
                     primaryMentorProfileId: primaryMentorIdByRole.get(role.id) ?? null,
                     idealCompetencyCount:
                       (characteristicsByRole.get(role.id) ?? []).length,
                     roleCompositeCount: (competenciesByRole.get(role.id) ?? []).length,
                     compositeDocumentSource:
                       compositeDocumentByRole.get(role.id)?.document_source ?? null,
-                    compositeDocumentFileName:
-                      compositeDocumentByRole.get(role.id)?.file_name ?? null,
+                  compositeDocumentFileName:
+                    compositeDocumentByRole.get(role.id)?.file_name ?? null,
+                  compositeNeedsRegeneration: (() => {
+                    const composite = compositeDocumentByRole.get(role.id);
+                    if (composite?.document_source !== "generated") return false;
+                    const compositeCreatedAt = new Date(composite.created_at ?? 0).getTime();
+                    const latestCharacteristicUpdate = Math.max(0, ...(characteristicsByRole.get(role.id) ?? []).map((item) => new Date(item.updated_at ?? item.created_at ?? 0).getTime()));
+                    const jobDescriptionUpdatedAt = new Date(jobDescriptionUpdatedAtByRole.get(role.id) ?? 0).getTime();
+                    return Math.max(latestCharacteristicUpdate, jobDescriptionUpdatedAt) > compositeCreatedAt;
+                  })(),
                     talents: groupCharacteristicsByCategory(
                       getDetailedCharacteristics(role.id),
                     ).talents,
@@ -764,14 +800,23 @@ export default async function RolesPage({ searchParams }: RolesPageProps) {
                     department: role.department,
                     description: role.description,
                     status: role.status as "draft" | "active",
+                    readinessWeighting: role.readiness_weighting as "equal" | "role",
                     primaryMentorProfileId: primaryMentorIdByRole.get(role.id) ?? null,
                     idealCompetencyCount:
                       (characteristicsByRole.get(role.id) ?? []).length,
                     roleCompositeCount: (competenciesByRole.get(role.id) ?? []).length,
                     compositeDocumentSource:
                       compositeDocumentByRole.get(role.id)?.document_source ?? null,
-                    compositeDocumentFileName:
-                      compositeDocumentByRole.get(role.id)?.file_name ?? null,
+                  compositeDocumentFileName:
+                    compositeDocumentByRole.get(role.id)?.file_name ?? null,
+                  compositeNeedsRegeneration: (() => {
+                    const composite = compositeDocumentByRole.get(role.id);
+                    if (composite?.document_source !== "generated") return false;
+                    const compositeCreatedAt = new Date(composite.created_at ?? 0).getTime();
+                    const latestCharacteristicUpdate = Math.max(0, ...(characteristicsByRole.get(role.id) ?? []).map((item) => new Date(item.updated_at ?? item.created_at ?? 0).getTime()));
+                    const jobDescriptionUpdatedAt = new Date(jobDescriptionUpdatedAtByRole.get(role.id) ?? 0).getTime();
+                    return Math.max(latestCharacteristicUpdate, jobDescriptionUpdatedAt) > compositeCreatedAt;
+                  })(),
                     talents: groupCharacteristicsByCategory(
                       getDetailedCharacteristics(role.id),
                     ).talents,

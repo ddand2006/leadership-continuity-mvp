@@ -42,6 +42,8 @@ LEADERSHIP_HELP_PREVIEW_ORGANIZATION_IDS=
 
 You can use either the current publishable/secret keys or the legacy anon/service-role keys. The app will accept both so it can connect cleanly to newer Supabase projects.
 
+For keeping local and live environments separate, follow [the environment separation guide](docs/environment-separation.md). Local Supabase values belong in `.env.local`; production values belong only in the Hostinger application environment.
+
 To send role survey invitations through Resend, also add:
 
 ```bash

@@ -14,6 +14,10 @@ function resolveSupabaseSecretKey() {
   return process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
 }
 
+function resolveSupabaseJwtSecret() {
+  return process.env.SUPABASE_JWT_SECRET;
+}
+
 export function hasSupabaseEnv() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = resolveSupabasePublishableKey();
@@ -44,6 +48,7 @@ export function getSupabaseAdminEnv() {
   return {
     ...getClientEnv(),
     SUPABASE_SECRET_KEY: nonEmptyString.parse(resolveSupabaseSecretKey()),
+    SUPABASE_JWT_SECRET: resolveSupabaseJwtSecret()?.trim() || null,
   };
 }
 

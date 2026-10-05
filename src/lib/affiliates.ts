@@ -18,7 +18,11 @@ export const affiliateInput = z.object({
   initialPercent: z.number().min(0).max(100).multipleOf(0.01),
   renewalPercent: z.number().min(0).max(100).multipleOf(0.01),
   renewalYears: z.number().int().min(1).max(100).nullable(),
+  commissionExclusions: z.array(z.enum(["tax", "refunds", "chargebacks", "discounts", "stripe_fees", "pass_through_expenses"])).min(1),
+  payoutHoldDays: z.number().int().min(0).max(90),
+  attributionDays: z.number().int().min(1).max(365),
+  agreementAccepted: z.boolean().default(false),
   action: z.enum(["save", "publish", "unpublish"]),
   approved: z.boolean().default(false),
-}).refine(value => value.action !== "publish" || value.approved, "Confirm the affiliate approved this page before publishing");
+}).refine(value => value.action !== "publish" || (value.approved && value.agreementAccepted), "Confirm the affiliate agreement and page approval before publishing");
 export type AffiliateBranding = z.infer<typeof affiliateBranding>;

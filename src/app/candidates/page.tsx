@@ -86,7 +86,7 @@ export default async function CandidatesPage({ searchParams }: {
   ] = await Promise.all([
     supabase
       .from("roles")
-      .select("id, title")
+      .select("id, title, readiness_weighting")
       .eq("organization_id", profile.organization_id),
     hasVisibleCandidates
       ? supabase
@@ -326,7 +326,11 @@ export default async function CandidatesPage({ searchParams }: {
       strengthAssessments,
     );
     const readiness = computeOverallReadiness(assessments);
-    const roleGoalReadiness = computeRoleGoalReadiness(assessments);
+    const roleGoalReadiness = computeRoleGoalReadiness(assessments, {
+      weighting: roleMap.get(primaryConsideration?.role_id ?? "")?.readiness_weighting === "role"
+        ? "role"
+        : "equal",
+    });
     const mentorAssignments =
       mentorAssignmentsByCandidate.get(candidate.id)?.filter(
         (assignment) =>

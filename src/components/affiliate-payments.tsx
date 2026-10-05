@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
-type Result = { message?: string; error?: string; name?: string; email?: string; country?: string; livemode?: boolean; portalUrl?: string; state?: { details_submitted: boolean; payouts_enabled: boolean; transfers_active: boolean } | null; earnings?: { invoice_id: string; currency: string; commission_cents: number; status: string; reason: string; renewal_number: number | null }[] };
+type Result = { message?: string; error?: string; name?: string; email?: string; country?: string; livemode?: boolean; portalUrl?: string; state?: { details_submitted: boolean; payouts_enabled: boolean; transfers_active: boolean } | null; earnings?: { invoice_id: string; currency: string; commission_cents: number; status: string; reason: string; renewal_number: number | null; hold_until?: string | null }[] };
 export function AffiliatePayments({ affiliateId, admin = false, sandbox = false, signedInEmail }: { affiliateId: string; admin?: boolean; sandbox?: boolean; signedInEmail?: string }) {
  const [email,setEmail] = useState(""); const [country,setCountry] = useState(""); const [busy,setBusy] = useState(false); const [result,setResult] = useState<Result>({});
  async function act(action: string) {

@@ -3,6 +3,12 @@ import type Stripe from "stripe";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getStripe, FOUNDATION_STRIPE_PRICE_ID, FIRST_SEAT_PACK_STRIPE_PRICE_ID, VOLUME_SEAT_PACK_STRIPE_PRICE_ID } from "@/lib/stripe-billing";
 import { calculateAffiliateCommission } from "@/lib/affiliate-commission";
+export async function releaseMatureAffiliateEarnings(affiliateId: string) {
+ const admin = createSupabaseAdminClient();
+ const result = await admin.from("affiliate_earnings").update({ status: "payable", reason: "Hold period completed. Awaiting administrator payout approval." }).eq("affiliate_id", affiliateId).eq("status", "pending").lte("hold_until", new Date().toISOString()).select("invoice_id");
+ if (result.error) throw new Error(result.error.message);
+ return result.data?.length ?? 0;
+}
 export async function recordAffiliateInvoice(invoiceId: string) {
  const stripe = getStripe();
  const invoice = await stripe.invoices.retrieve(invoiceId);
@@ -35,6 +41,7 @@ export async function recordAffiliateInvoice(invoiceId: string) {
   result.status = "held";
   result.reason = "Refund, dispute or payment source needs review. No transfer authorized.";
   result.commission_cents = 0;
+  result.hold_until = null;
  }
  const saved = await admin.rpc("record_affiliate_earning", { payload: { ...result, invoice_id: invoice.id, affiliate_id: org.data.affiliate_id, organization_id: org.data.id, subscription_id: subscriptionId, livemode: invoice.livemode, currency: invoice.currency, charge_ids: charges.map(c => c.id), invoice_created_at: new Date(invoice.created * 1000).toISOString(), checked_at: new Date().toISOString() } });
  if (saved.error) throw new Error(saved.error.message);

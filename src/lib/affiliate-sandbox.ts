@@ -30,7 +30,8 @@ export async function recordSandboxInvoice(invoiceId: string) {
  if(invoice.amount_paid>0 && (!charges.length || charges.some(c=>c.livemode || c.disputed || c.amount_refunded>0 || !c.paid))) {
   result.status='held';result.commission_cents=0;result.reason='Sandbox refund, dispute or payment source requires review.';
  }
- const saved=await admin.from('affiliate_sandbox_invoices').upsert({...result,invoice_id:invoice.id,affiliate_id:row.data.affiliate_id,client_id:row.data.id,currency:invoice.currency,charge_ids:charges.map(c=>c.id),livemode:false,invoice_created_at:new Date(invoice.created*1000).toISOString(),checked_at:new Date().toISOString()},{onConflict:'invoice_id'});
+ const { hold_until: _holdUntil, ...sandboxResult } = result;
+ const saved=await admin.from('affiliate_sandbox_invoices').upsert({...sandboxResult,invoice_id:invoice.id,affiliate_id:row.data.affiliate_id,client_id:row.data.id,currency:invoice.currency,charge_ids:charges.map(c=>c.id),livemode:false,invoice_created_at:new Date(invoice.created*1000).toISOString(),checked_at:new Date().toISOString()},{onConflict:'invoice_id'});
  if(saved.error) throw new Error(saved.error.message);
  const updated=await admin.from('affiliate_sandbox_clients').update({subscription_id:sub.id}).eq('id',row.data.id);
  if(updated.error) throw new Error(updated.error.message);

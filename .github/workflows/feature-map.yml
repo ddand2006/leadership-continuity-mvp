@@ -1,0 +1,23 @@
+name: Feature map
+
+on:
+  push:
+    paths:
+      - "src/app/**"
+      - ".claude/skills/verify-leadership-continuity/**"
+      - "bin/check-feature-map.sh"
+      - "package.json"
+  pull_request:
+    paths:
+      - "src/app/**"
+      - ".claude/skills/verify-leadership-continuity/**"
+      - "bin/check-feature-map.sh"
+      - "package.json"
+
+jobs:
+  feature-map:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check feature map
+        run: bin/check-feature-map.sh

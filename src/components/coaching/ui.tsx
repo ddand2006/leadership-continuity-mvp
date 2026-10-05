@@ -21,7 +21,7 @@ export function Select({ name, label, options, value, empty }: {
     })[];
     value?: string;
     empty?: string;
-}) { return <label className="grid gap-1 text-sm font-medium">{label ?? name.replaceAll('_', ' ')}<select className="ui-input" name={name} defaultValue={value}>{empty !== undefined && <option value="">{empty}</option>}{options.map(o => { const v = typeof o === 'string' ? o : o.value; return <option key={v} value={v}>{typeof o === 'string' ? o.replaceAll('_', ' ') : o.label}</option>; })}</select></label>; }
+}) { const uniqueOptions = options.filter((option, index, all) => { const optionValue = typeof option === 'string' ? option : option.value; return all.findIndex(candidate => (typeof candidate === 'string' ? candidate : candidate.value) === optionValue) === index; }); return <label className="grid gap-1 text-sm font-medium">{label ?? name.replaceAll('_', ' ')}<select className="ui-input" name={name} defaultValue={value}>{empty !== undefined && <option value="">{empty}</option>}{uniqueOptions.map(o => { const v = typeof o === 'string' ? o : o.value; return <option key={v} value={v}>{typeof o === 'string' ? o.replaceAll('_', ' ') : o.label}</option>; })}</select></label>; }
 export function Metrics({ values }: {
     values: Record<string, number>;
 }) { return <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{Object.entries(values).map(([name, value]) => <Panel key={name}><p className="text-sm text-slate-600">{name}</p><p className="mt-2 text-3xl font-semibold text-teal-950">{Number.isInteger(value) ? value : value.toFixed(2)}</p></Panel>)}</div>; }

@@ -6,7 +6,7 @@ import { requireApiWorkspaceProfile, ApiRouteError, createApiErrorResponse } fro
 import { getAffiliateStripe } from "@/lib/affiliate-stripe";
 import { reconcileSandboxAffiliate } from "@/lib/affiliate-sandbox";
 import { getStripeBillingReturnUrl } from "@/lib/stripe-billing";
-import { recordAffiliateInvoice } from "@/lib/affiliate-commerce";
+import { recordAffiliateInvoice, releaseMatureAffiliateEarnings } from "@/lib/affiliate-commerce";
 const input = z.object({ affiliateId: z.string().uuid(), action: z.enum(["configure", "status", "onboard", "reconcile"]), email: z.string().trim().email().optional(), country: z.string().regex(/^[A-Z]{2}$/).optional() });
 export async function POST(request: Request) {
  try {
@@ -51,7 +51,8 @@ export async function POST(request: Request) {
     const invoices = await stripe.invoices.list({ customer: org.stripe_customer_id, status: "paid", limit: 20 });
     for (const invoice of invoices.data) { await recordAffiliateInvoice(invoice.id); count++; }
    }
-   return NextResponse.json({ message: `Reviewed ${count} paid invoices (up to the latest 20 per customer). No payments were transferred.` });
+   const released = await releaseMatureAffiliateEarnings(affiliate.id);
+   return NextResponse.json({ message: `Reviewed ${count} paid invoices (up to the latest 20 per customer). Released ${released} matured commission${released === 1 ? "" : "s"} to the payable queue. No payments were transferred.` });
   }
   const accountRow = await admin.from("affiliate_connect_accounts").select("*").eq("affiliate_id", affiliate.id).eq("livemode", livemode).maybeSingle();
   if (accountRow.error) throw new Error(accountRow.error.message);
@@ -90,7 +91,10 @@ export async function POST(request: Request) {
    const saved = await admin.from("affiliate_connect_accounts").update(state).eq("affiliate_id", affiliate.id).eq("livemode", livemode);
    if (saved.error) throw new Error(saved.error.message);
   }
-  const earnings = await admin.from(affiliate.is_sandbox ? "affiliate_sandbox_invoices" : "affiliate_earnings").select("invoice_id,currency,commission_cents,status,reason,renewal_number,livemode,invoice_created_at").eq("affiliate_id", affiliate.id).eq("livemode", livemode).order("invoice_created_at", { ascending: false }).limit(100);
+  if (!affiliate.is_sandbox) await releaseMatureAffiliateEarnings(affiliate.id);
+  const earningsTable = affiliate.is_sandbox ? "affiliate_sandbox_invoices" : "affiliate_earnings";
+  const earningsSelect = affiliate.is_sandbox ? "invoice_id,currency,commission_cents,status,reason,renewal_number,livemode,invoice_created_at" : "invoice_id,currency,commission_cents,status,reason,renewal_number,livemode,invoice_created_at,hold_until";
+  const earnings = await admin.from(earningsTable).select(earningsSelect).eq("affiliate_id", affiliate.id).eq("livemode", livemode).order("invoice_created_at", { ascending: false }).limit(100);
   if (earnings.error) throw new Error(earnings.error.message);
   return NextResponse.json({ name: affiliate.name, email: affiliate.payout_email, country: affiliate.payout_country, livemode, state, earnings: earnings.data, portalUrl: getStripeBillingReturnUrl(`/affiliate-payments?id=${affiliate.id}`), transfersEnabled: false });
  } catch (error) { return createApiErrorResponse(error, "Unable to update affiliate Stripe setup."); }

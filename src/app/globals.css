@@ -218,6 +218,37 @@ a {
   background: transparent;
 }
 
+/* Route-level typography and controls. These defaults give legacy screens the
+   same editorial hierarchy and calm, rounded input treatment as newer views. */
+.app-page h1,
+.app-page h2,
+.app-page h3 {
+  color: var(--color-ink-strong);
+}
+
+.app-page h1,
+.app-page h2 {
+  font-family: var(--font-display), Georgia, serif;
+}
+
+.app-page input:not([type="checkbox"]):not([type="radio"]),
+.app-page textarea,
+.app-page select {
+  border-color: var(--color-line);
+  border-radius: var(--radius-control);
+  background-color: var(--color-input);
+  color: var(--color-ink);
+}
+
+.app-page input:not([type="checkbox"]):not([type="radio"]):focus,
+.app-page textarea:focus,
+.app-page select:focus {
+  border-color: var(--color-action);
+  background-color: var(--color-input-focus);
+  outline: 3px solid rgba(29, 78, 216, 0.14);
+  outline-offset: 1px;
+}
+
 .app-page > * {
   position: relative;
   z-index: 1;
@@ -234,6 +265,29 @@ a {
   border: 1px solid rgba(126, 185, 215, 0.72);
   background: var(--page-surface-strong);
   box-shadow: var(--page-shadow);
+  backdrop-filter: blur(18px);
+}
+
+/* Affiliate portal legacy shell normalization. Keep the partner workspace in
+   the same light glass language as the organization application. */
+main > header[class*="bg-slate-950"] {
+  border: 1px solid var(--color-line);
+  background: var(--color-surface-strong) !important;
+  color: var(--color-ink) !important;
+  box-shadow: var(--shadow-panel);
+  backdrop-filter: blur(18px);
+}
+
+main > header[class*="bg-slate-950"] h1,
+main > header[class*="bg-slate-950"] p {
+  color: var(--color-ink-strong) !important;
+}
+
+main > section[class*="bg-white"][class*="rounded-2xl"],
+main > details[class*="bg-white"][class*="rounded-2xl"] {
+  border-color: var(--color-line);
+  background-color: var(--color-surface-strong);
+  box-shadow: var(--shadow-panel-soft);
   backdrop-filter: blur(18px);
 }
 
@@ -491,6 +545,28 @@ a {
   backdrop-filter: blur(18px);
 }
 
+/* Legacy workspace routes used flat slate panels. Bring those containers into
+   the shared glass-card language while leaving small status badges untouched. */
+.app-page :is(section, article, aside)[class*="bg-slate-50"][class*="rounded-[2rem]"],
+.app-page :is(section, article, aside)[class*="bg-slate-50"][class*="rounded-3xl"] {
+  border-color: var(--color-line) !important;
+  background-color: var(--color-surface-strong) !important;
+  background-image: none !important;
+  box-shadow: var(--shadow-panel) !important;
+  backdrop-filter: blur(18px);
+}
+
+/* Keep legacy green page washes from competing with the established sky
+   background; green remains reserved for success indicators and accent cards. */
+.app-page :is(section, article, aside)[class*="bg-emerald-50"][class*="rounded-[2rem]"],
+.app-page :is(section, article, aside)[class*="bg-green-50"][class*="rounded-[2rem]"] {
+  border-color: var(--color-line) !important;
+  background-color: var(--color-surface-strong) !important;
+  background-image: none !important;
+  box-shadow: var(--shadow-panel) !important;
+  backdrop-filter: blur(18px);
+}
+
 .app-page :is(section, article, aside)[class~="bg-white"][class*="shadow-"] {
   box-shadow: var(--shadow-panel-soft);
 }
@@ -582,6 +658,16 @@ a {
 .interactive-contrast[class*="bg-slate"] {
   background-color: var(--color-action) !important;
   box-shadow: 0 12px 24px rgba(29, 78, 216, 0.28);
+}
+
+/* Keep primary dark controls readable even when a component misses the
+   interactive-contrast utility. This protects links from the global `a`
+   color rule and gives the design system a safe fallback. */
+:is(a, button)[class*="bg-slate"][class*="text-white"],
+:is(a, button)[class*="bg-blue"][class*="text-white"],
+:is(a, button)[class*="bg-teal"][class*="text-white"] {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff;
 }
 
 .interactive-contrast[class*="bg-slate"]:hover {

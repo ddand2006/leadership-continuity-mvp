@@ -35,6 +35,11 @@ const resourceNavItems = [
     matchPath: "/outside-training",
   },
   {
+    href: "/reports-forms",
+    label: "Document Repository",
+    matchPath: "/reports-forms",
+  },
+  {
     href: "/mentoring?section=preparation-worksheet",
     label: "Preparation Worksheet",
     matchPath: "/mentoring",
@@ -92,6 +97,7 @@ export async function AppNav({ pathname }: { pathname: string }) {
   let isMentor = false;
   let isCandidate = false;
   let isCandidateOnly = false;
+  let candidateId: string | null = null;
   let hasContinuityAccess = true;
   let hasLeadershipHelpAccess = true;
   let hasLeadershipHelpPreviewAccess = false;
@@ -117,7 +123,6 @@ export async function AppNav({ pathname }: { pathname: string }) {
         .from("partner_applications")
         .select("status")
         .eq("auth_user_id", user.id)
-        .eq("status", "approved")
         .maybeSingle(),
     ]);
 
@@ -130,9 +135,13 @@ export async function AppNav({ pathname }: { pathname: string }) {
     }
     isApprovedPartner = Boolean(partnerResult.data);
 
+    if (partnerResult.data) {
+      return <header className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-4 p-6"><div className="flex flex-wrap items-center gap-5"><Link className="font-semibold" href="/partner-account/dashboard">Partner portal</Link><nav aria-label="Affiliate navigation" className="flex flex-wrap items-center gap-2 text-sm"><Link className="rounded-full border border-slate-300 px-3 py-2" href="/partner-account/dashboard">Dashboard</Link><Link className="rounded-full border border-slate-300 px-3 py-2" href="/partner-account/administration">Administration</Link><Link className="rounded-full border border-slate-300 px-3 py-2" href="/affiliate-payments">Referrals & payments</Link></nav></div><AccountMenu initials={getInitials(user)} displayName={getDisplayName(user)} email={user.email ?? null} accountLandingHref="/partner-account/dashboard" accountLandingLabel="Open partner dashboard"/></header>;
+    }
+
     const affiliates = !profileResult.data ? await getOwnedAffiliates(user) : [];
     if (affiliates.length || pathname === "/affiliate-payments") {
-      return <header className="mx-auto flex w-full max-w-4xl items-center justify-between gap-4 p-6"><Link className="font-semibold" href="/affiliate-payments">Affiliate portal · Free partner access</Link><AccountMenu initials={getInitials(user)} displayName={getDisplayName(user)} email={user.email ?? null} accountLandingHref="/affiliate-payments" accountLandingLabel="Open affiliate portal"/></header>;
+      return <header className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-4 p-6"><div className="flex flex-wrap items-center gap-5"><Link className="font-semibold" href="/affiliate-payments">Affiliate portal</Link><nav aria-label="Affiliate navigation" className="flex flex-wrap items-center gap-2 text-sm"><Link className="rounded-full border border-slate-300 px-3 py-2" href="/affiliate-payments">Referrals & payments</Link><Link className="rounded-full border border-slate-300 px-3 py-2" href="/partner-account/dashboard">Partner dashboard</Link><Link className="rounded-full border border-slate-300 px-3 py-2" href="/partner-account/administration">Administration</Link></nav></div><AccountMenu initials={getInitials(user)} displayName={getDisplayName(user)} email={user.email ?? null} accountLandingHref="/affiliate-payments" accountLandingLabel="Open affiliate portal"/></header>;
     }
 
     isAdmin = profileResult.data ? isAdminAppRole(profileResult.data.role) : false;
@@ -144,6 +153,7 @@ export async function AppNav({ pathname }: { pathname: string }) {
         : profileResult.data?.role === "mentor";
     isCandidate = isCandidateAppUser(accountResult.data);
     isCandidateOnly = Boolean(user && !isAdmin && !isMentor && isCandidate);
+    candidateId = accountResult.data?.candidate_id ?? null;
 
     if (profileResult.data) {
       const supportOrganization = await getActivePlatformSupportOrganization(
@@ -192,27 +202,40 @@ export async function AppNav({ pathname }: { pathname: string }) {
   if (pathname === "/affiliate-payments") return <header className="mx-auto w-full max-w-4xl p-6"><Link className="font-semibold" href="/affiliate-payments">Affiliate portal · Free partner access</Link><p>Use the email sign-in form below.</p></header>;
 
   const navItems = user
-    ? [
-        { href: "/", label: "Home" },
-        ...(hasContinuityAccess && isAdmin ? [{ href: "/roles", label: "Roles" }] : []),
-        ...(hasContinuityAccess ? [{ href: "/candidates", label: "Candidates" }] : []),
-        ...(hasContinuityAccess && (isAdmin || isMentor || isCandidate)
-          ? [{ href: "/mentoring", label: "Mentoring" }]
-          : []),
-        ...(hasContinuityAccess && (isAdmin || isMentor)
-          ? [{ href: "/dashboard", label: "Dashboard" }]
-          : []),
-        ...(hasContinuityAccess && isAdmin
-          ? [{ href: "/360-review", label: "360 Review" }]
-          : []),
-        ...((hasContinuityAccess && isAdmin) || isSystemAdmin
-          ? [{ href: "/administration", label: "Administration" }]
-          : []),
-        ...(isApprovedPartner ? [{ href: "/partner-account/administration", label: "Partner Administration" }] : []),
-        ...(isPaywallEnabled() && !hideBillingControls
-          ? [{ href: "/subscribe", label: "Access" }]
-          : []),
-      ]
+    ? isCandidateOnly
+      ? [
+          { href: candidateId ? `/candidates/${candidateId}` : "/candidates", label: "Candidate Home" },
+          { href: candidateId ? `/candidates/${candidateId}/readiness-review` : "/candidates", label: "Progress" },
+          { href: candidateId ? `/candidates/${candidateId}/development` : "/candidates", label: "Development" },
+          { href: candidateId ? `/mentoring?candidateId=${candidateId}` : "/mentoring", label: "Mentoring" },
+          { href: "/reports-forms", label: "Documents" },
+          { href: candidateId ? `/candidates/${candidateId}/development` : "/candidates", label: "Portfolio" },
+          ...(canAccessCoachingPreview(user) ? [{ href: "/coaching", label: "Coaching" }] : []),
+        ]
+      : isMentor
+        ? [
+            { href: "/dashboard", label: "Dashboard" },
+            { href: "/candidates", label: "Assigned Candidates" },
+            { href: "/mentoring", label: "Mentor Workspace" },
+          ]
+        : [
+            { href: "/", label: "Home" },
+            ...(hasContinuityAccess && isAdmin ? [{ href: "/roles", label: "Roles" }] : []),
+            ...(hasContinuityAccess ? [{ href: "/candidates", label: "Candidates" }] : []),
+            ...(hasContinuityAccess && (isAdmin || isMentor || isCandidate)
+              ? [{ href: "/mentoring", label: "Mentoring" }]
+              : []),
+            ...(hasContinuityAccess && (isAdmin || isMentor)
+              ? [{ href: "/dashboard", label: "Dashboard" }]
+              : []),
+            ...((hasContinuityAccess && isAdmin) || isSystemAdmin
+              ? [{ href: "/administration", label: "Administration" }]
+              : []),
+            ...(isApprovedPartner ? [{ href: "/partner-account/administration", label: "Partner Administration" }] : []),
+            ...(isPaywallEnabled() && !hideBillingControls
+              ? [{ href: "/subscribe", label: "Access" }]
+              : []),
+          ]
     : [
         { href: "/", label: "Home" },
         ...(isPaywallEnabled() ? [{ href: "/subscribe", label: "Access" }] : []),
@@ -290,7 +313,7 @@ export async function AppNav({ pathname }: { pathname: string }) {
             initialPathname={pathname}
             navItems={navItems}
             resourceNavItems={resourceNavItems}
-            showResources={hasContinuityAccess && (isAdmin || isMentor)}
+            showResources={hasContinuityAccess && (isAdmin || isMentor || isCandidateOnly)}
             trailingNavItems={trailingNavItems}
           />
         </div>

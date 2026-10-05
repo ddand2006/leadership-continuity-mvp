@@ -11,7 +11,7 @@ export async function loadOrganizationAwardSummary(options: {
   organizationId: string;
 }) {
   const [rolesResult, candidatesResult, considerationsResult, assignmentsResult, competenciesResult, panelsResult, scoresResult, developmentRecordsResult] = await Promise.all([
-    options.admin.from("roles").select("id, title").eq("organization_id", options.organizationId).is("deleted_at", null).order("created_at"),
+    options.admin.from("roles").select("id, title, readiness_weighting").eq("organization_id", options.organizationId).is("deleted_at", null).order("created_at"),
     options.admin.from("candidates").select("id, target_role_id, status").eq("organization_id", options.organizationId).is("deleted_at", null),
     options.admin.from("candidate_role_considerations").select("candidate_id, role_id, status").eq("organization_id", options.organizationId),
     options.admin.from("mentor_role_assignments").select("candidate_id, role_id, status").eq("organization_id", options.organizationId),
@@ -66,7 +66,10 @@ export async function loadOrganizationAwardSummary(options: {
         if (candidate.target_role_id) roleIds.add(candidate.target_role_id);
         if (!roleIds.has(role.id)) return [];
         const key = trackKey(candidate.id, role.id);
-        const readinessPercent = computeRoleGoalReadiness(buildCompetencyAssessments(competenciesByRole.get(role.id) ?? [], scoresByTrack.get(key) ?? [])).readinessPercent;
+        const readinessPercent = computeRoleGoalReadiness(
+          buildCompetencyAssessments(competenciesByRole.get(role.id) ?? [], scoresByTrack.get(key) ?? []),
+          { weighting: role.readiness_weighting === "role" ? "role" : "equal" },
+        ).readinessPercent;
         const records = recordsByTrack.get(key) ?? [];
         return [computeCandidateAward({ readinessPercent, hasMentorAssigned: activeMentorTracks.has(key), hasDevelopmentRecord: records.length > 0, hasCompletedMentorReview: records.some((record) => Boolean(record.mentor_review_date)) })];
       });

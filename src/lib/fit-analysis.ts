@@ -185,7 +185,12 @@ export function computeOverallReadiness(assessments: CompetencyAssessment[]) {
 }
 
 export function computeRoleGoalReadiness(
-  assessments: Array<Pick<CompetencyAssessment, "averageScore" | "targetScore">>,
+  assessments: Array<
+    Pick<CompetencyAssessment, "averageScore" | "targetScore"> & {
+      weight?: number;
+    }
+  >,
+  options: { weighting?: "equal" | "role" } = {},
 ) {
   if (assessments.length === 0) {
     return {
@@ -195,16 +200,25 @@ export function computeRoleGoalReadiness(
     };
   }
 
+  const useRoleWeights = options.weighting === "role";
+  const totalWeight = useRoleWeights
+    ? assessments.reduce((sum, assessment) => sum + Math.max(assessment.weight ?? 0, 0), 0)
+    : assessments.length;
+  const denominator = totalWeight > 0 ? totalWeight : assessments.length;
+
   const totalProgress = assessments.reduce((sum, assessment) => {
+    const itemWeight = useRoleWeights
+      ? Math.max(assessment.weight ?? 0, 0) || 0
+      : 1;
     if (assessment.targetScore <= 0) {
-      return sum + 1;
+      return sum + itemWeight;
     }
 
-    return sum + Math.min(assessment.averageScore / assessment.targetScore, 1);
+    return sum + Math.min(assessment.averageScore / assessment.targetScore, 1) * itemWeight;
   }, 0);
 
   return {
-    readinessPercent: Number(((totalProgress / assessments.length) * 100).toFixed(1)),
+    readinessPercent: Number(((totalProgress / denominator) * 100).toFixed(1)),
     metGoalCount: assessments.filter(
       (assessment) => assessment.averageScore >= assessment.targetScore,
     ).length,

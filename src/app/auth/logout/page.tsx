@@ -25,7 +25,9 @@ export default function LogoutPage() {
       }
 
       if (isActive) {
-        window.location.replace("/auth?message=You+have+been+signed+out.");
+        const next = new URLSearchParams(window.location.search).get("next");
+        const destination = next?.startsWith("/auth") ? next : "/auth?message=You+have+been+signed+out.";
+        window.location.replace(destination);
       }
     }
 

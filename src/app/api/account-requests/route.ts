@@ -75,7 +75,7 @@ export async function POST() {
         leadership_help_tier: "none",
         included_seats: 10,
       })
-      .select("id")
+      .select("id, affiliate_attributed_at, affiliate_attribution_expires_at")
       .single();
     if (organizationResult.error) throw organizationResult.error;
 

@@ -60,6 +60,7 @@ export type RoleCompositeDocumentContent = z.infer<
 >;
 
 const condensedRoleCompositeDocumentSchema = z.object({
+  role_title: z.string().min(1).max(180),
   position_summary: z.string().min(1).max(700),
   core_competencies: z
     .array(
@@ -261,7 +262,7 @@ export async function generateCondensedRoleCompositeDocumentContent(options: {
       {
         role: "system",
         content:
-          "Create a concise leadership role profile for hiring and succession use. Use the job description to define the work and outcomes, while treating the structured competencies as the primary framework for how a person develops to perform that work. Use clear business language and only the supplied role data. Make it much shorter than a full role composite. State minimum requirements as practical requirements, preferred knowledge as helpful but nonessential knowledge, and disqualifiers as observable concerns. Do not invent credentials, laws, years of experience, or technical requirements that are not supported by the role data. Do not mention AI or the generation process.",
+          "Create a concise leadership role profile for hiring and succession use. The selected role title in the user input is authoritative: return that exact title in role_title and never substitute a title or content from another role, even if the job description or competencies appear to conflict. Use the job description to define the work and outcomes, while treating the structured competencies as the primary framework for how a person develops to perform that work. Use clear business language and only the supplied role data. Make it much shorter than a full role composite. State minimum requirements as practical requirements, preferred knowledge as helpful but nonessential knowledge, and disqualifiers as observable concerns. Do not invent credentials, laws, years of experience, or technical requirements that are not supported by the role data. Do not mention AI or the generation process.",
       },
       {
         role: "user",
@@ -276,6 +277,7 @@ export async function generateCondensedRoleCompositeDocumentContent(options: {
           ideal_candidate_competencies: options.idealCompetencies,
           structured_role_competencies: options.roleCompetencies,
           document_format: {
+            role_title: "Repeat the selected role.title exactly and do not use another role title.",
             position_summary: "A short paragraph explaining the role and the ideal person.",
             core_competencies:
               "4 to 6 competency rows. Each row has a concise competency and what success looks like.",
@@ -298,6 +300,18 @@ export async function generateCondensedRoleCompositeDocumentContent(options: {
 
   if (!response.output_parsed) {
     throw new Error("OpenAI returned no condensed role composite document content.");
+  }
+
+  const normalizeRoleTitle = (value: string) =>
+    value.trim().toLowerCase().replace(/\s+/g, " ");
+
+  if (
+    normalizeRoleTitle(response.output_parsed.role_title) !==
+    normalizeRoleTitle(options.roleTitle)
+  ) {
+    throw new Error(
+      `Generated profile was identified as "${response.output_parsed.role_title}" instead of the selected role "${options.roleTitle}". No document was created. Check the selected role's source documents and try again.`,
+    );
   }
 
   return response.output_parsed;

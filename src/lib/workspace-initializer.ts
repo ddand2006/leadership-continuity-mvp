@@ -27,7 +27,6 @@ export async function initializeWorkspaceForUser(options: {
   industryName: string;
   seedDemoData?: boolean;
 }) {
-  console.log("initializeWorkspace:start");
   const admin = createSupabaseAdminClient();
   const {
     userId,
@@ -41,19 +40,11 @@ export async function initializeWorkspaceForUser(options: {
   const [firstName, ...remainingNameParts] = trimmedName.split(/\s+/);
   const lastName = remainingNameParts.join(" ") || "Admin";
 
-  console.log("initializeWorkspace:user", {
-    userId,
-    email,
-    organizationName,
-    industryName,
-  });
-
   const existingProfileResult = await admin
     .from("profiles")
     .select("id, organization_id")
     .eq("auth_user_id", userId)
     .maybeSingle();
-  console.log("initializeWorkspace:profileLookup");
 
   if (existingProfileResult.error) {
     throw new Error(existingProfileResult.error.message);
@@ -65,6 +56,15 @@ export async function initializeWorkspaceForUser(options: {
 
   const identity = await admin.auth.admin.getUserById(userId);
   if (identity.error) throw identity.error;
+  const partnerApplication = await admin
+    .from('partner_applications')
+    .select('id,status')
+    .eq('auth_user_id', userId)
+    .maybeSingle();
+  if (partnerApplication.error) throw partnerApplication.error;
+  if (partnerApplication.data) {
+    throw new Error('Partner accounts use the partner portal and cannot initialize a company workspace.');
+  }
   if ((await getOwnedAffiliates(identity.data.user)).length) {
     throw new Error("Affiliate accounts use the free affiliate portal. Program access must be assigned separately by an administrator.");
   }
@@ -98,7 +98,6 @@ export async function initializeWorkspaceForUser(options: {
     : null;
 
   if (!organizationId) {
-    console.log("initializeWorkspace:createOrganization");
     const organizationInsertResult = await admin
       .from("organizations")
       .insert(
@@ -139,7 +138,6 @@ export async function initializeWorkspaceForUser(options: {
     })
     .select("id")
     .single();
-  console.log("initializeWorkspace:profileInsert");
 
   if (profileInsertResult.error) {
     throw new Error(profileInsertResult.error.message);
@@ -207,7 +205,6 @@ export async function initializeWorkspaceForUser(options: {
   }
 
   if (!seedDemoData) {
-    console.log("initializeWorkspace:complete_without_demo_data");
     return "Workspace initialized with your admin profile. No demo candidate data was added.";
   }
 
@@ -492,6 +489,5 @@ export async function initializeWorkspaceForUser(options: {
     }
   }
 
-  console.log("initializeWorkspace:complete");
   return "Workspace initialized with your admin profile and demo organization data.";
 }

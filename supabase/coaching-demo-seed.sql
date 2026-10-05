@@ -1,4 +1,15 @@
 -- Development/demo use only. Fictional profiles are not seeded into production migrations.
+-- Keep the local plus-addressed administrator inside the local coaching preview.
+-- This file is run manually for local demo data and is not a production migration.
+create or replace function public.coaching_preview_allowed() returns boolean
+language sql stable security definer set search_path=public as $function$
+  select exists(
+    select 1 from auth.users
+    where id = auth.uid()
+      and lower(trim(email)) in ('david@cycleofbusiness.com', 'david+local@cycleofbusiness.com')
+  )
+$function$;
+
 insert into public.coach_profiles(id,display_name,headline,short_bio,icf_credential,years_coaching,years_leadership_experience,profile_status,availability_status,approved_at) values
 ('cc000000-0000-0000-0000-000000000001','Alex Example (Demo)','Executive transitions','Fictional demonstration profile.','acc',5,12,'approved','available',now()),
 ('cc000000-0000-0000-0000-000000000002','Jordan Sample (Demo)','Leadership development','Fictional demonstration profile.','pcc',12,20,'approved','limited',now()),

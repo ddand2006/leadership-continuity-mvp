@@ -25,6 +25,8 @@
     "start": "next start -H 0.0.0.0 -p ${PORT:-3000}",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
+    "verify:map": "bin/check-feature-map.sh",
+    "verify:app": "bin/control-app.sh doctor",
     "db:push": "npx supabase db push",
     "db:seed": "npx supabase db reset"
   },
@@ -63,6 +65,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.5",
+    "supabase": "^2.118.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

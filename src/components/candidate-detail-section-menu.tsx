@@ -100,7 +100,7 @@ export function CandidateDetailSectionMenu({
             setActiveDetailSectionId("");
             updateSectionInUrl("overview");
           }}
-          className="w-fit cursor-pointer rounded-lg text-sm font-semibold text-teal-800 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-700"
+          className="interactive-contrast w-fit cursor-pointer rounded-full bg-blue-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-700"
         >
           ← Back to Candidate Overview
         </button>

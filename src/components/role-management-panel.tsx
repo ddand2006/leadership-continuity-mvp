@@ -12,11 +12,13 @@ type RoleOption = {
   department: string | null;
   description: string | null;
   status: "draft" | "active";
+  readinessWeighting: "equal" | "role";
   primaryMentorProfileId: string | null;
   idealCompetencyCount: number;
   roleCompositeCount: number;
   compositeDocumentSource: "generated" | "manual" | null;
   compositeDocumentFileName: string | null;
+  compositeNeedsRegeneration: boolean;
   talents: string[];
   skills: string[];
   behaviors: string[];
@@ -83,17 +85,6 @@ async function readApiResult(response: Response): Promise<ApiResult> {
   }
 }
 
-function haveSameCharacteristics(left: string[], right: string[]) {
-  return (
-    left.length === right.length &&
-    left.every(
-      (characteristic, index) =>
-        characteristic.trim().toLowerCase() ===
-        right[index]?.trim().toLowerCase(),
-    )
-  );
-}
-
 export function RoleManagementPanel({
   roles,
   sharedLibrary,
@@ -147,6 +138,9 @@ export function RoleManagementPanel({
   const [status, setStatus] = useState<"draft" | "active">(
     initialEditorRole?.status ?? "draft",
   );
+  const [readinessWeighting, setReadinessWeighting] = useState<"equal" | "role">(
+    initialEditorRole?.readinessWeighting ?? "equal",
+  );
   const [mentorProfileId, setMentorProfileId] = useState(
     initialEditorRole?.primaryMentorProfileId ?? "",
   );
@@ -171,8 +165,6 @@ export function RoleManagementPanel({
   const [selectedMasterTemplateId, setSelectedMasterTemplateId] = useState("");
   const [isEditingCompetencies, setIsEditingCompetencies] = useState(false);
   const [isCreatePending, startCreateTransition] = useTransition();
-  const [isSaveAndGeneratePending, startSaveAndGenerateTransition] =
-    useTransition();
   const [isUploadCharacteristicsPending, startUploadCharacteristicsTransition] = useTransition();
   const [isUploadRoleDocumentPending, startUploadRoleDocumentTransition] = useTransition();
   const [isEditCompetenciesPending, startEditCompetenciesTransition] = useTransition();
@@ -225,20 +217,6 @@ export function RoleManagementPanel({
     filteredSharedLibraryByCategory.talents.length +
     filteredSharedLibraryByCategory.skills.length +
     filteredSharedLibraryByCategory.behaviors.length;
-  const currentTalents = parseCharacteristicsTextarea("talent", talentsValue).map(
-    (item) => item.characteristic,
-  );
-  const currentSkills = parseCharacteristicsTextarea("skill", skillsValue).map(
-    (item) => item.characteristic,
-  );
-  const currentBehaviors = parseCharacteristicsTextarea(
-    "behavior",
-    behaviorsValue,
-  ).map((item) => item.characteristic);
-  const hasCompetencyChanges =
-    !haveSameCharacteristics(currentTalents, selectedEditorRole?.talents ?? []) ||
-    !haveSameCharacteristics(currentSkills, selectedEditorRole?.skills ?? []) ||
-    !haveSameCharacteristics(currentBehaviors, selectedEditorRole?.behaviors ?? []);
   const normalizedEditorTitle = title.trim().toLowerCase();
   const orderedMasterRoleTemplates = [...masterRoleTemplates].sort((left, right) => {
     const leftIndustryScore = left.industry ? 0 : 1;
@@ -342,6 +320,7 @@ export function RoleManagementPanel({
     setDepartment("");
     setDescription("");
     setStatus("draft");
+    setReadinessWeighting("equal");
     setMentorProfileId("");
     setTalentsValue("");
     setSkillsValue("");
@@ -567,6 +546,7 @@ export function RoleManagementPanel({
         department,
         description,
         status,
+        readinessWeighting,
         mentorProfileId: mentorProfileId || undefined,
         talents: parseCharacteristicsTextarea(
           "talent",
@@ -606,78 +586,6 @@ export function RoleManagementPanel({
       }
 
       setCreateSuccess(result.message ?? "Role saved.");
-      router.refresh();
-    });
-  }
-
-  function handleSaveAndGenerateComposite() {
-    if (!editorFormRef.current?.reportValidity()) {
-      return;
-    }
-
-    setCreateError(null);
-    setCreateSuccess(null);
-
-    startSaveAndGenerateTransition(async () => {
-      const payload = {
-        roleId: editorRoleId || undefined,
-        title,
-        department,
-        description,
-        status,
-        mentorProfileId: mentorProfileId || undefined,
-        talents: parseCharacteristicsTextarea("talent", talentsValue).map(
-          (item) => item.characteristic,
-        ),
-        skills: parseCharacteristicsTextarea("skill", skillsValue).map(
-          (item) => item.characteristic,
-        ),
-        behaviors: parseCharacteristicsTextarea("behavior", behaviorsValue).map(
-          (item) => item.characteristic,
-        ),
-      };
-      const saveResponse = await fetch("/api/roles", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-      const saveResult = (await saveResponse.json()) as ApiResult;
-
-      if (!saveResponse.ok || !saveResult.roleId) {
-        setCreateError(saveResult.error ?? "Unable to save role.");
-        return;
-      }
-
-      const generateResponse = await fetch("/api/roles/generate-composite", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          roleId: saveResult.roleId,
-          regenerate: selectedEditorRole?.compositeDocumentSource === "generated",
-        }),
-      });
-      const generateResult = (await generateResponse.json()) as ApiResult;
-
-      if (!generateResponse.ok) {
-        setEditorRoleId(saveResult.roleId);
-        setCreateError(
-          generateResult.error
-            ? `Role saved, but the role composite could not be generated: ${generateResult.error}`
-            : "Role saved, but the role composite could not be generated.",
-        );
-        router.refresh();
-        return;
-      }
-
-      setEditorRoleId(saveResult.roleId);
-      setCreateSuccess(
-        generateResult.message ?? "Role saved and role composite generated.",
-      );
-      setPrintableReminderRoleId(saveResult.roleId);
       router.refresh();
     });
   }
@@ -887,6 +795,9 @@ export function RoleManagementPanel({
         },
         body: JSON.stringify({
           roleId: selectedCompetencyRoleId,
+          regenerate:
+            selectedCompetencyRole?.compositeDocumentSource === "generated" &&
+            selectedCompetencyRole.compositeNeedsRegeneration,
         }),
       });
       const result = (await response.json()) as { error?: string; message?: string };
@@ -1157,6 +1068,24 @@ export function RoleManagementPanel({
                   <option value="active">Active</option>
                 </select>
               </label>
+              <label className="block lg:col-start-1 lg:row-start-4" style={{ display: mode === "manual" ? "none" : undefined }}>
+                <span className="mb-2 block text-sm font-semibold text-slate-700">
+                  Readiness scoring
+                </span>
+                <select
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:bg-white"
+                  value={readinessWeighting}
+                  onChange={(event) =>
+                    setReadinessWeighting(event.currentTarget.value as "equal" | "role")
+                  }
+                >
+                  <option value="equal">Equal competency weighting</option>
+                  <option value="role">Role-weighted competency scoring</option>
+                </select>
+                <span className="mt-2 block text-xs leading-5 text-slate-500">
+                  Choose whether each competency counts equally or follows the weights in this role’s composite.
+                </span>
+              </label>
 
               </div>
 
@@ -1256,11 +1185,11 @@ export function RoleManagementPanel({
                   gather input through a survey, or enter everything yourself.
                 </p>
 
-                <div className="mt-5 grid gap-3 md:grid-cols-3">
+                <div className="order-colored-grid mt-5 grid gap-3 md:grid-cols-3">
                   <button
                     type="button"
                     onClick={openCompetencyImport}
-                    className="group rounded-2xl border border-yellow-300 bg-yellow-50/80 p-4 text-left transition hover:border-yellow-400 hover:bg-yellow-50"
+                    className="workspace-card order-card-1 group rounded-2xl border !border-yellow-300 !bg-yellow-100/80 p-4 text-left transition"
                   >
                     <span className="flex items-center gap-3">
                       <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-yellow-500 text-sm font-bold text-slate-950">1</span>
@@ -1272,7 +1201,7 @@ export function RoleManagementPanel({
 
                   <Link
                     href={editorRoleId ? `/roles?roleId=${editorRoleId}&mode=import&tool=survey#role-survey-tools` : "#role-survey-tools"}
-                    className="group rounded-2xl border border-emerald-300 bg-emerald-50/80 p-4 text-left transition hover:border-emerald-400 hover:bg-emerald-50"
+                    className="workspace-card order-card-2 group rounded-2xl border !border-emerald-300 !bg-emerald-100/80 p-4 text-left transition"
                   >
                     <span className="flex items-center gap-3">
                       <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-600 text-sm font-bold text-white">2</span>
@@ -1297,7 +1226,7 @@ export function RoleManagementPanel({
 
                   <a
                     href={editorRoleId ? `/roles?roleId=${editorRoleId}&mode=manual` : "#manual-competencies"}
-                    className="group rounded-2xl border border-rose-300 bg-rose-50/80 p-4 text-left transition hover:border-rose-400 hover:bg-rose-50"
+                    className="workspace-card order-card-3 group rounded-2xl border !border-rose-300 !bg-rose-100/80 p-4 text-left transition"
                   >
                     <span className="flex items-center gap-3">
                       <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-600 text-sm font-bold text-white">3</span>
@@ -1502,38 +1431,26 @@ export function RoleManagementPanel({
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={handleSaveAndGenerateComposite}
-                  disabled={
-                    isCreatePending ||
-                    isSaveAndGeneratePending ||
-                    !canGenerateComposite ||
-                    !hasCompetencyChanges ||
-                    selectedEditorRole?.compositeDocumentSource === "manual"
-                  }
-                  className="interactive-contrast rounded-full bg-teal-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-600 disabled:cursor-not-allowed disabled:bg-teal-900/40"
-                >
-                  {isSaveAndGeneratePending
-                    ? "Saving and generating role composite..."
-                    : "Save and Regenerate Composite"}
-                </button>
-              </div>
-              {!canGenerateComposite ? (
-                <p className="text-sm text-slate-600">
-                  Add `OPENAI_API_KEY` to enable role composite generation.
-                </p>
-              ) : selectedEditorRole?.compositeDocumentSource === "manual" ? (
+              {selectedEditorRole?.compositeDocumentSource === "manual" ? (
                 <p className="text-sm text-slate-600">
                   This role already has a composite. Download it, edit it in Word,
                   and upload the corrected version instead of generating another.
                 </p>
-              ) : !hasCompetencyChanges ? (
-                <p className="text-sm text-slate-600">
-                  Update at least one talent, skill, or behavior to re-generate the
-                  role composite.
-                </p>
+              ) : null}
+              {mode === "manual" ? (
+                <div className="flex flex-wrap items-center gap-3 pt-2">
+                  <button
+                    type="submit"
+                    disabled={isCreatePending}
+                    className="interactive-contrast rounded-full bg-teal-800 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isCreatePending ? "Saving competency changes..." : "Save competency changes"}
+                  </button>
+                  <p className="text-sm text-slate-600">
+                    Save updates here, then generate or regenerate the composite from
+                    the Composite workflow.
+                  </p>
+                </div>
               ) : null}
             </form>
 
@@ -1617,6 +1534,25 @@ export function RoleManagementPanel({
                   : "Upload a spreadsheet or enter them manually below."}
               </p>
             </article>
+          ) : null}
+          {selectedCompetencyRole &&
+          selectedCompetencyRole.idealCompetencyCount > 0 &&
+          selectedCompetencyRole.compositeDocumentSource === null ? (
+            <div className="rounded-2xl border border-teal-200 bg-teal-50 px-4 py-4">
+              <p className="text-sm font-semibold text-teal-950">
+                Competencies are ready for the next step.
+              </p>
+              <p className="mt-1 text-sm leading-6 text-teal-900">
+                Generate the role composite to create the role-specific documents
+                and unlock the remaining workflow.
+              </p>
+              <Link
+                href={`/roles?roleId=${selectedCompetencyRole.id}&mode=composite`}
+                className="interactive-contrast mt-4 inline-flex rounded-full bg-teal-800 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-700"
+              >
+                Generate Role Composite
+              </Link>
+            </div>
           ) : null}
           <FileDropInput
             key={uploadCharacteristicsResetKey}
@@ -1743,13 +1679,17 @@ export function RoleManagementPanel({
                   disabled={
                     isGenerateCompositePending ||
                     selectedCompetencyRole.idealCompetencyCount === 0 ||
-                    selectedCompetencyRole.compositeDocumentSource !== null ||
+                    (selectedCompetencyRole.compositeDocumentSource !== null &&
+                      !selectedCompetencyRole.compositeNeedsRegeneration) ||
+                    selectedCompetencyRole.compositeDocumentSource === "manual" ||
                     !canGenerateComposite
                   }
                 >
                   {isGenerateCompositePending
                     ? "Generating role composite..."
-                    : "Generate Role Composite"}
+                    : selectedCompetencyRole.compositeDocumentSource === null
+                      ? "Generate Role Composite"
+                      : "Regenerate Role Composite"}
                 </button>
                 <button
                   className="interactive-contrast rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-900 disabled:cursor-not-allowed disabled:bg-slate-300"

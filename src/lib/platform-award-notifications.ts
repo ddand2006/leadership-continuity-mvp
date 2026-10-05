@@ -16,7 +16,7 @@ export type PlatformAwardNotification = {
 };
 
 type Organization = { id: string; name: string };
-type Role = { id: string; organization_id: string; title: string; created_at: string };
+type Role = { id: string; organization_id: string; title: string; created_at: string; readiness_weighting?: string | null };
 type Candidate = { id: string; organization_id: string; target_role_id: string | null; status: string };
 type Consideration = { candidate_id: string; role_id: string; status: string };
 type MentorAssignment = { candidate_id: string; role_id: string; status: string | null };
@@ -39,7 +39,7 @@ export async function syncPlatformAwardNotifications(options: {
 }) {
   const [organizationsResult, rolesResult, candidatesResult, considerationsResult, assignmentsResult, competenciesResult, panelsResult, scoresResult, developmentRecordsResult, eventsResult] = await Promise.all([
     options.admin.from("organizations").select("id, name").order("name"),
-    options.admin.from("roles").select("id, organization_id, title, created_at").order("created_at"),
+    options.admin.from("roles").select("id, organization_id, title, created_at, readiness_weighting").order("created_at"),
     options.admin.from("candidates").select("id, organization_id, target_role_id, status"),
     options.admin.from("candidate_role_considerations").select("candidate_id, role_id, status"),
     options.admin.from("mentor_role_assignments").select("candidate_id, role_id, status"),
@@ -124,6 +124,7 @@ export async function syncPlatformAwardNotifications(options: {
             roleCompetencies,
             scoresByTrack.get(key) ?? [],
           ),
+          { weighting: role.readiness_weighting === "role" ? "role" : "equal" },
         ).readinessPercent;
         const records = developmentRecordsByTrack.get(key) ?? [];
         const award = computeCandidateAward({

@@ -98,6 +98,7 @@ type DashboardRole = {
   title: string;
   department: string | null;
   status: string;
+  readiness_weighting?: "equal" | "role" | null;
 };
 
 type DashboardMentor = {
@@ -1001,6 +1002,7 @@ function buildDashboardIntelligence(options: {
                   rationale: assessment.rationale,
                 })),
               ),
+              { weighting: role.readiness_weighting === "role" ? "role" : "equal" },
             ).readinessPercent
           : null;
 
@@ -1926,7 +1928,7 @@ async function getDashboardSnapshot(
   ] = await Promise.all([
     admin
       .from("roles")
-      .select("id, title, department, status")
+      .select("id, title, department, status, readiness_weighting")
       .eq("organization_id", organizationId)
       .order("created_at", { ascending: true }),
     admin
@@ -2378,6 +2380,12 @@ export default async function DashboardPage({
   searchParams,
 }: DashboardPageProps) {
   const user = await requireUser();
+  const partnerApplication = await createSupabaseAdminClient()
+    .from('partner_applications')
+    .select('id')
+    .eq('auth_user_id', user.id)
+    .maybeSingle();
+  if (partnerApplication.data) redirect('/partner-account/dashboard');
   const resolvedSearchParams = await searchParams;
   const filters = parseDashboardFilters(resolvedSearchParams);
   const setupToken = createWorkspaceSetupToken({
