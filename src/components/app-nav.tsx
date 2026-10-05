@@ -309,15 +309,13 @@ export async function AppNav({ pathname }: { pathname: string }) {
             )}
           </div>
 
-          {!isMentor && (
-            <AppNavLinks
-              initialPathname={pathname}
-              navItems={navItems}
-              resourceNavItems={resourceNavItems}
-              showResources={hasContinuityAccess && (isAdmin || isMentor || isCandidateOnly)}
-              trailingNavItems={trailingNavItems}
-            />
-          )}
+          <AppNavLinks
+            initialPathname={pathname}
+            navItems={navItems}
+            resourceNavItems={resourceNavItems}
+            showResources={hasContinuityAccess && (isAdmin || isMentor || isCandidateOnly)}
+            trailingNavItems={trailingNavItems}
+          />
         </div>
       </div>
     </header>
