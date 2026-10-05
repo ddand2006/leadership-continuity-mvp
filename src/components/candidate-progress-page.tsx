@@ -29,22 +29,31 @@ export async function CandidateProgressPage({ candidateId }: CandidateProgressPa
   const [rolesResult, competenciesResult, panelsResult, assignmentsResult, recordsResult] = await Promise.all([
     roleIds.length ? supabase.from("roles").select("id, title").eq("organization_id", organizationId).in("id", roleIds) : Promise.resolve({ data: [], error: null }),
     roleIds.length ? supabase.from("role_competencies").select("id, role_id, name, target_score").eq("organization_id", organizationId).in("role_id", roleIds).is("deleted_at", null).order("name") : Promise.resolve({ data: [], error: null }),
-    supabase.from("interview_panels").select("id, role_id, date_completed, created_at, interview_scores(competency_id, score_numeric)").eq("organization_id", organizationId).eq("candidate_id", candidateId).order("date_completed", { ascending: false }),
-    supabase.from("candidate_project_assignments").select("id, status, due_date, start_date, mentor_notes, evidence_notes, development_projects(id, title, description, competencies_developed)").eq("organization_id", organizationId).eq("candidate_id", candidateId).order("created_at", { ascending: false }),
+    supabase.from("interview_panels").select("id, role_id, date_completed, created_at").eq("organization_id", organizationId).eq("candidate_id", candidateId).order("date_completed", { ascending: false }),
+    supabase.from("candidate_project_assignments").select("id, status, due_date, start_date, mentor_notes, evidence_notes, development_project_id").eq("organization_id", organizationId).eq("candidate_id", candidateId).order("created_at", { ascending: false }),
     supabase.from("development_records").select("id, role_id, experience_title, status, mentor_review_date, mentor_improvement_observed, development_record_competencies(competency_name, baseline_score, current_score, target_score)").eq("organization_id", organizationId).eq("candidate_id", candidateId).is("archived_at", null).order("created_at", { ascending: false }),
   ]);
   for (const result of [considerationsResult, rolesResult, competenciesResult, panelsResult, assignmentsResult, recordsResult]) if (result.error) throw new Error(result.error.message);
+  const panelIds = (panelsResult.data ?? []).map((panel) => panel.id);
+  const projectIds = (assignmentsResult.data ?? []).map((assignment) => assignment.development_project_id);
+  const [scoresResult, projectsResult] = await Promise.all([
+    panelIds.length ? supabase.from("interview_scores").select("panel_id, competency_id, score_numeric").in("panel_id", panelIds) : Promise.resolve({ data: [], error: null }),
+    projectIds.length ? supabase.from("development_projects").select("id, title, description, competencies_developed").in("id", projectIds) : Promise.resolve({ data: [], error: null }),
+  ]);
+  if (scoresResult.error || projectsResult.error) throw new Error(scoresResult.error?.message ?? projectsResult.error?.message);
 
   const roles = rolesResult.data ?? [];
   const competencies = competenciesResult.data ?? [];
   const records = recordsResult.data ?? [];
+  const projectMap = new Map((projectsResult.data ?? []).map((item) => [item.id, item]));
   const projects = (assignmentsResult.data ?? []).map((item) => ({
     ...item,
-    project: Array.isArray(item.development_projects) ? item.development_projects[0] : item.development_projects,
+    project: projectMap.get(item.development_project_id),
   }));
   const roleTitle = new Map(roles.map((item) => [item.id, item.title]));
   const latestLegacy = new Map<string, number>();
-  for (const panel of panelsResult.data ?? []) for (const item of panel.interview_scores ?? []) if (!latestLegacy.has(`${panel.role_id}:${item.competency_id}`)) latestLegacy.set(`${panel.role_id}:${item.competency_id}`, Number(item.score_numeric));
+  const panelRoles = new Map((panelsResult.data ?? []).map((panel) => [panel.id, panel.role_id]));
+  for (const item of scoresResult.data ?? []) { const roleId = panelRoles.get(item.panel_id); if (roleId && !latestLegacy.has(`${roleId}:${item.competency_id}`)) latestLegacy.set(`${roleId}:${item.competency_id}`, Number(item.score_numeric)); }
   const recordsByRole = new Map<string, typeof records>();
   for (const record of records) { const list = recordsByRole.get(record.role_id ?? "") ?? []; list.push(record); recordsByRole.set(record.role_id ?? "", list); }
   const roleSections = roles.map((role) => {
