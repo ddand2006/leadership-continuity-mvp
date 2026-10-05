@@ -56,6 +56,7 @@ export async function LiveRoleWorkspace({ role, section = "home", candidateId }:
   const cards = role === "candidate"
     ? [
         ["My Role Profile", `Your target role is ${title}. Review readiness, role considerations, assessments, strengths, and the competencies that define success.`, `/candidates/${candidate?.id ?? ""}?roleId=${roleResult.data?.id ?? ""}&section=role-fit&viewAs=candidate`],
+        ["Progress", "Review legacy scores, mentor-rated proficiency, and completed or active projects by role.", `/candidates/${candidate?.id ?? ""}/progress?roleId=${roleResult.data?.id ?? ""}&viewAs=candidate`],
         ["Mentoring Track", assignment ? "Open your assigned preparation worksheet and complete the mentoring track." : "No mentor assignment is attached yet.", preparationHref],
       ]
     : [
