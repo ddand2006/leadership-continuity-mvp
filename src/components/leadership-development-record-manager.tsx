@@ -858,14 +858,7 @@ export function LeadershipDevelopmentRecordManager({
             nextRecord
               ? withAssignmentCompetencyDefaults(
                   syncRecordWithAssignment(
-                    hasTransferredProjectDetails(nextRecord) || !matchingSourceProject
-                      ? nextRecord
-                      : {
-                          ...nextRecord,
-                          ...buildLeadershipDevelopmentRecordProjectDetails(
-                            matchingSourceProject,
-                          ),
-                        },
+                    nextRecord,
                     selectedAssignment,
                   ),
                   competencyOptions,
