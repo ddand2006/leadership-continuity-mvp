@@ -62,7 +62,6 @@ export async function LiveRoleWorkspace({ role, section = "home", candidateId }:
     : [
         ["Assigned Candidate", candidate ? `${name} · ${candidate.current_title || "Current role not recorded"}` : "No candidate-role assignment is available.", `/candidates/${candidate?.id ?? ""}?roleId=${roleResult.data?.id ?? ""}`],
         ["Mentoring Track", assignment ? `Guide ${name} toward ${title} through the assigned development track.` : "Assign a candidate and role to begin mentoring.", `/mentoring?candidateId=${candidate?.id ?? ""}&roleId=${roleResult.data?.id ?? ""}`],
-        ["Role Competencies", `${competencies.data?.length ?? 0} role competencies are available to shape the mentoring conversation.`, `/candidates/${candidate?.id ?? ""}?roleId=${roleResult.data?.id ?? ""}`],
       ];
   const sectionTitles: Record<string, string> = {
     candidates: "My Candidates",
