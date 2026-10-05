@@ -206,7 +206,7 @@ export async function AppNav({ pathname }: { pathname: string }) {
       ? [
           { href: candidateId ? `/candidates/${candidateId}` : "/candidates", label: "Candidate Home" },
           { href: candidateId ? `/candidates/${candidateId}/readiness-review` : "/candidates", label: "Progress" },
-          { href: candidateId ? `/candidates/${candidateId}/development` : "/candidates", label: "Development" },
+          { href: candidateId ? `/candidates/${candidateId}/development-intelligence` : "/candidates", label: "Development" },
           { href: candidateId ? `/mentoring?candidateId=${candidateId}` : "/mentoring", label: "Mentoring" },
           { href: "/reports-forms", label: "Documents" },
           { href: candidateId ? `/candidates/${candidateId}/development` : "/candidates", label: "Portfolio" },
