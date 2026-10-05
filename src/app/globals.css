@@ -336,26 +336,26 @@ main > details[class*="bg-white"][class*="rounded-2xl"] {
    turning each card into a different component. */
 .workspace-card.accent-card-gold,
 .accent-card-gold.workspace-card {
-  border-color: var(--color-accent-yellow-border);
-  background-color: var(--color-accent-yellow);
+  border-color: var(--color-accent-yellow-border) !important;
+  background-color: var(--color-accent-yellow) !important;
 }
 
 .workspace-card.accent-card-green,
 .accent-card-green.workspace-card {
-  border-color: var(--color-accent-green-border);
-  background-color: var(--color-accent-green);
+  border-color: var(--color-accent-green-border) !important;
+  background-color: var(--color-accent-green) !important;
 }
 
 .workspace-card.accent-card-coral,
 .accent-card-coral.workspace-card {
-  border-color: var(--color-accent-red-border);
-  background-color: var(--color-accent-red);
+  border-color: var(--color-accent-red-border) !important;
+  background-color: var(--color-accent-red) !important;
 }
 
 .workspace-card.accent-card-blue,
 .accent-card-blue.workspace-card {
-  border-color: var(--color-accent-blue-border);
-  background-color: var(--color-accent-blue);
+  border-color: var(--color-accent-blue-border) !important;
+  background-color: var(--color-accent-blue) !important;
 }
 
 .workspace-card > :last-child {
