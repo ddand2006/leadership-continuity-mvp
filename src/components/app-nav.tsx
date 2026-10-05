@@ -212,11 +212,12 @@ export async function AppNav({ pathname }: { pathname: string }) {
           { href: candidateId ? `/candidates/${candidateId}/development` : "/candidates", label: "Portfolio" },
           ...(canAccessCoachingPreview(user) ? [{ href: "/coaching", label: "Coaching" }] : []),
         ]
-      : isMentor
+        : isMentor
         ? [
             { href: "/dashboard", label: "Dashboard" },
             { href: "/candidates", label: "Assigned Candidates" },
             { href: "/mentoring", label: "Mentor Workspace" },
+            ...(isAdmin ? [{ href: "/administration", label: "Administration" }] : []),
           ]
         : [
             { href: "/", label: "Home" },
