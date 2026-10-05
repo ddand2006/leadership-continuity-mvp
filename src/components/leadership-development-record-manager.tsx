@@ -2631,19 +2631,19 @@ export function LeadershipDevelopmentRecordManager({
                                 />
                               </label>
                             ))}
-                            <article className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
-                              <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                            <article className="block">
+                              <p className="mb-2 block text-sm font-semibold text-slate-700">
                                 Improvement
                               </p>
-                              <p className="mt-2 font-semibold text-slate-900">
+                              <p className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900">
                                 {formatLeadershipDevelopmentScoreDelta(improvement)}
                               </p>
                             </article>
-                            <article className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
-                              <p className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                            <article className="block">
+                              <p className="mb-2 block text-sm font-semibold text-slate-700">
                                 Gap Remaining
                               </p>
-                              <p className="mt-2 font-semibold text-slate-900">
+                              <p className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900">
                                 {formatLeadershipDevelopmentScoreDelta(gapRemaining)}
                               </p>
                             </article>
