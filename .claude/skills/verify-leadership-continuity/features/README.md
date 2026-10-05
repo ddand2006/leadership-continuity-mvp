@@ -1,5 +1,7 @@
 # Leadership Continuity feature map
 
+The route map is validated in CI on every feature-map change.
+
 ## Baseline
 
 Use the local Next app at `http://localhost:3000` with local Supabase running. The verification account must be signed in before authenticated routes are driven. The imported demo-hospital fixture is the current local dataset; mutating journeys must run serially.
