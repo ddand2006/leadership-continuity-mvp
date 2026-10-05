@@ -2876,14 +2876,9 @@ export function LeadershipDevelopmentRecordManager({
             ].sort((left, right) => {
               const order = { "candidate-information": 1, "development-focus": 2, "development-experience": 3, "competency-scoring": 4, "leader-feedback": 5, "mentor-review": 6 } as Record<string, number>;
               return (order[left.id] ?? 99) - (order[right.id] ?? 99);
-            }).map((section, index) => (
+            }).map((section) => (
               <div key={section.id}>
-              <article className={`rounded-[1.5rem] border ${[
-                "border-amber-200 bg-amber-50",
-                "border-emerald-200 bg-emerald-50",
-                "border-rose-200 bg-rose-50",
-                "border-blue-200 bg-blue-50",
-              ][index % 4]}`}>
+              <article className={`rounded-[1.5rem] border ${section.id === "candidate-information" ? "border-amber-200 bg-amber-50" : section.id === "development-focus" ? "border-emerald-200 bg-emerald-50" : section.id === "development-experience" ? "border-rose-200 bg-rose-50" : section.id === "competency-scoring" ? "border-amber-200 bg-amber-50" : section.id === "leader-feedback" ? "border-emerald-200 bg-emerald-50" : "border-rose-200 bg-rose-50"}`}>
                 <button
                   type="button"
                   onClick={() => toggleSection(section.id)}
