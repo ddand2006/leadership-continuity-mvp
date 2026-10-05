@@ -74,6 +74,8 @@ Use visible labels and links in the browser. Use `bin/control-app.sh goto <route
 | `/platform-operations/support/[organizationId]` | Platform operator workflow is deferred. |
 | `/platform-operations/support/[organizationId]/award` | Platform operator workflow is deferred. |
 | `/platform-operations/affiliates` | Affiliate workflow is deferred. |
+| `/platform-operations/affiliate-payouts` | Affiliate workflow is deferred. |
+| `/platform-operations/partner-applications` | Partner workflow is outside this organization’s first slice. |
 | `/affiliate-payments` | Affiliate workflow is deferred. |
 | `/personal-development/coaching` | Candidate coaching forms are still being built. |
 | `/personal-development/composite` | Candidate coaching forms are still being built. |
