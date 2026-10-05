@@ -6,7 +6,6 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 // Deliberately never use the support-mode/service-role workspace client here.
 export async function coachingContext() {
     const user = await requireUser();
-    if (!canAccessCoachingPreview(user)) notFound();
     const db = await createSupabaseServerClient();
     const [profile, coach] = await Promise.all([
         db.from('profiles').select('id,organization_id,role,full_name').eq('auth_user_id', user.id).is('deleted_at', null).maybeSingle(),
@@ -16,6 +15,11 @@ export async function coachingContext() {
         throw new Error(profile.error.message);
     if (coach.error)
         throw new Error(coach.error.message);
+    // Keep the private coaching preview restricted for administrators, but
+    // allow authenticated candidates and mentors to use their own workspace.
+    // Candidate-facing development routes rely on this context as well.
+    const role = profile.data?.role ?? '';
+    if (!canAccessCoachingPreview(user) && !['candidate', 'mentor'].includes(role)) notFound();
     const active = profile.data ? await db.rpc('coaching_enabled', { org: profile.data.organization_id }) : { data: false, error: null };
     if (active.error)
         throw new Error(active.error.message);
