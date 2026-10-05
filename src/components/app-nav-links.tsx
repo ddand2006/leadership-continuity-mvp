@@ -46,7 +46,7 @@ export function AppNavLinks({
   const searchParams = useSearchParams();
   const currentPath = pathname ?? initialPathname;
   const currentSection = searchParams.get("section");
-  const resourcesIsActive = resourceNavItems.some((item) => {
+  const resourceRouteIsActive = resourceNavItems.some((item) => {
     if (currentPath !== item.matchPath) {
       return false;
     }
@@ -57,6 +57,10 @@ export function AppNavLinks({
 
     return currentSection === item.matchSection;
   });
+  const primaryRouteIsActive = navItems.some((item) =>
+    isActiveNavItem(currentPath, item),
+  );
+  const resourcesIsActive = resourceRouteIsActive && !primaryRouteIsActive;
 
   useEffect(() => {
     if (!isResourcesOpen) {
