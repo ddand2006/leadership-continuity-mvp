@@ -14,10 +14,11 @@ Open **Candidates**, select a candidate, then choose the role or readiness secti
 
 ```bash
 bin/control-app.sh goto /candidates
+bin/control-app.sh goto /candidates/[candidateId]
 bin/control-app.sh dump /candidates artifacts/verification/candidates-baseline.html
 ```
 
-Use a real candidate ID from the local fixture for the detail route and capture both list and detail states.
+Replace `[candidateId]` with a real candidate ID from the local fixture before running the detail-route command, then capture both list and detail states.
 
 ## Gotchas
 

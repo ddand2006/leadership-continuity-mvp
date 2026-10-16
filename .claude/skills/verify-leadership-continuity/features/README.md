@@ -8,7 +8,7 @@ Use the local Next app at `http://localhost:3000` with local Supabase running. T
 
 ## Seeded roles
 
-The live local fixture contains administrator, candidate, and mentor records imported from the demo hospital. Coaches and sharing permissions are not yet represented as a completed end-to-end journey and remain an explicit gap.
+The live local fixture contains administrator, candidate, and mentor records imported from the demo hospital. Partner checks require separate fictional coach, partner-owner, platform-operator, and referred-organization accounts created for an isolated run; do not assume the baseline fixture includes them.
 
 ## Features
 
@@ -18,10 +18,17 @@ The live local fixture contains administrator, candidate, and mentor records imp
 | Candidate readiness | `/candidates` | `candidate-readiness.md` |
 | Candidate detail | `/candidates/[candidateId]` | `candidate-readiness.md` |
 | Mentoring | `/mentoring` | `mentoring-and-sharing.md` |
+| Partner workspace | `/partner-account` | `partner-affiliate-workflows.md` |
+| Partner administration | `/partner-account/administration` | `partner-affiliate-workflows.md` |
+| Partner dashboard | `/partner-account/dashboard` | `partner-affiliate-workflows.md` |
+| Affiliate payments | `/affiliate-payments` | `partner-affiliate-workflows.md` |
+| Affiliate administration | `/platform-operations/affiliates` | `partner-affiliate-workflows.md` |
+| Partner applications | `/platform-operations/partner-applications` | `partner-affiliate-workflows.md` |
+| Payout approvals | `/platform-operations/affiliate-payouts` | `partner-affiliate-workflows.md` |
 
 ## Full-sweep order
 
-Start with read-only role design, then candidate list/detail and readiness, then mentoring. Run project creation, role assignment, sharing, and AI actions only after capturing a baseline and confirming the fixture can be restored.
+Start with read-only role design, then candidate list/detail and readiness, mentoring, the partner workspace, and affiliate payment history. Run project creation, role assignment, sharing, partner approval, coach affiliation, payout approval, and AI actions only after capturing a baseline and confirming the fixture can be restored.
 
 ## Driving conventions
 
@@ -53,9 +60,7 @@ Use visible labels and links in the browser. Use `bin/control-app.sh goto <route
 | `/outside-training` | External training is outside the first verification slice. |
 | `/reports-forms` | Printable/report outputs are deferred. |
 | `/subscribe` | Billing is not part of local workflow verification. |
-| `/partner-account` | Partner workflow is outside this organization’s first slice. |
 | `/platform-operations` | Platform operator workflow needs a separate privileged fixture. |
-| `/affiliate-payments` | Affiliate commerce is outside this workflow. |
 | `/leadership-help` | Support preview is not part of the first sweep. |
 | `/role-surveys/[token]` | Requires a generated survey token. |
 | `/360-review/survey/[token]` | Requires a generated survey token. |
@@ -64,21 +69,16 @@ Use visible labels and links in the browser. Use `bin/control-app.sh goto <route
 | `/candidates/[candidateId]/competencies/[competencyId]/evidence` | Evidence editing is covered after candidate readiness baseline. |
 | `/candidates/[candidateId]/development` | Covered through candidate detail first. |
 | `/candidates/[candidateId]/readiness-review` | Covered through candidate detail first. |
+| `/candidates/[candidateId]/progress` | Progress editing is covered after the candidate readiness baseline. |
 | `/candidates/[candidateId]/development-intelligence` | AI workflow requires a separate cost-controlled run. |
 | `/coaching/[...path]` | Coach workflow is not yet complete end to end. |
 | `/admin/coaching` | Coach administration is deferred. |
 | `/admin/coaching/[section]` | Coach administration is deferred. |
 | `/view-as/[role]/[[...section]]` | Preview mode is not evidence of real permissions. |
-| `/partner-account/administration` | Partner workflow is outside this organization’s first slice. |
-| `/partner-account/dashboard` | Partner workflow is outside this organization’s first slice. |
 | `/partner-account/register` | Partner workflow is outside this organization’s first slice. |
 | `/partners/[slug]` | Public partner page is not part of the first sweep. |
 | `/platform-operations/support/[organizationId]` | Platform operator workflow is deferred. |
 | `/platform-operations/support/[organizationId]/award` | Platform operator workflow is deferred. |
-| `/platform-operations/affiliates` | Affiliate workflow is deferred. |
-| `/platform-operations/affiliate-payouts` | Affiliate workflow is deferred. |
-| `/platform-operations/partner-applications` | Partner workflow is outside this organization’s first slice. |
-| `/affiliate-payments` | Affiliate workflow is deferred. |
 | `/personal-development/coaching` | Candidate coaching forms are still being built. |
 | `/personal-development/composite` | Candidate coaching forms are still being built. |
 | `/personal-development/growth-plan` | Candidate coaching forms are still being built. |
