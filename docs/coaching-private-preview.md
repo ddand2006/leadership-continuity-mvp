@@ -1,3 +1,8 @@
+> Superseded on 2026-10-13 by `202610130001_partner_accounts_and_coach_rosters.sql`.
+> Verified organization-role users and coach accounts now enter their authorized workspaces.
+> Organization entitlements, suspensions, engagement ownership, and consents still apply.
+> See [Partner workflows](partner-workflows.md) for the current rollout and verification.
+
 # Coaching private preview
 
 The Sprints 1–5 release is limited to the authenticated account `david@cycleofbusiness.com`. Coaching stays last in the top navigation. Other users cannot open coaching or development intelligence routes or exports, and do not see the new candidate or organization dashboard links. Existing personal development remains available.

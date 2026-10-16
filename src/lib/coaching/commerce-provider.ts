@@ -16,7 +16,7 @@ export async function provider(operation: string, payload: Record<string, unknow
     return data;
 }
 function testStripe() {
-    if (!process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_'))
+    if (!/^(sk|rk)_test_/.test(process.env.STRIPE_SECRET_KEY ?? ''))
         throw new Error('Coaching commerce requires a Stripe test-mode key in this release.');
     return getStripe();
 }
@@ -43,6 +43,7 @@ export async function coachingCheckout(id: string) {
     }
     const metadata = { coaching_payment_id: id, domain: 'coaching' };
     const session = await stripe.checkout.sessions.create({ mode: 'payment', customer, client_reference_id: id, metadata,
+        managed_payments: { enabled: false },
         payment_intent_data: { metadata }, invoice_creation: { enabled: true, invoice_data: { metadata } },
         line_items: [{ quantity: 1, price_data: { currency: String(p.currency).toLowerCase(), unit_amount: cents(p.amount), product_data: { name: String(p.package_name) } } }],
         success_url: getStripeBillingReturnUrl(`/coaching/checkout/${p.engagement_id}?payment=submitted`), cancel_url: getStripeBillingReturnUrl(`/coaching/checkout/${p.engagement_id}`),
@@ -63,6 +64,25 @@ export async function coachingConnect(coachId: string) {
     }
     const link = await stripe.accountLinks.create({ account: accountId, refresh_url: getStripeBillingReturnUrl('/coaching/earnings?setup=retry'), return_url: getStripeBillingReturnUrl('/coaching/earnings?setup=returned'), type: 'account_onboarding' });
     return link.url;
+}
+const coachingAccountStatus = (account: Stripe.Account) => ({
+    charges_enabled: account.charges_enabled,
+    payouts_enabled: account.payouts_enabled,
+    account_status: account.payouts_enabled ? 'active' : account.requirements?.disabled_reason ? 'restricted' : account.details_submitted ? 'pending_verification' : 'onboarding',
+});
+export async function refreshCoachingConnectStatus(coachId: string) {
+    const row = await provider('connect', { coach_id: coachId });
+    const accountId = row.stripe_connect_account_id as string | undefined;
+    if (!accountId || row.account_status === 'active' && row.payouts_enabled)
+        return row;
+    const account = await testStripe().accounts.retrieve(accountId);
+    const changes: Record<string, unknown> = coachingAccountStatus(account);
+    if (account.details_submitted && !row.onboarding_completed_at)
+        changes.onboarding_completed_at = new Date().toISOString();
+    const { error } = await createSupabaseAdminClient().from('coach_payment_accounts').update(changes).eq('coach_id', coachId).eq('stripe_connect_account_id', accountId);
+    if (error)
+        throw new Error(error.message);
+    return { ...row, ...changes };
 }
 export async function coachingRefund(id: string) {
     const stripe = testStripe();
@@ -87,7 +107,7 @@ async function processCoachingStripeEvent(event: Stripe.Event): Promise<boolean>
     const payload: Record<string, unknown> = { event_id: event.id, event_type: event.type };
     if (event.type === 'account.updated') {
         const a = event.data.object;
-        Object.assign(payload, { account_id: a.id, charges_enabled: a.charges_enabled, payouts_enabled: a.payouts_enabled, details_submitted: a.details_submitted, account_status: a.payouts_enabled ? 'active' : a.requirements?.disabled_reason ? 'restricted' : a.details_submitted ? 'pending_verification' : 'onboarding' });
+        Object.assign(payload, { account_id: a.id, details_submitted: a.details_submitted, ...coachingAccountStatus(a) });
     }
     else if (event.type === 'checkout.session.completed' || event.type === 'checkout.session.async_payment_succeeded' || event.type === 'checkout.session.async_payment_failed') {
         const s = event.data.object;

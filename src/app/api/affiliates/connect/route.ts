@@ -4,8 +4,11 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { requireApiWorkspaceProfile, ApiRouteError, createApiErrorResponse } from "@/lib/api-route";
 import { getAffiliateStripe } from "@/lib/affiliate-stripe";
+import { affiliatePaymentsLive } from "@/lib/affiliate-payment-mode";
 import { reconcileSandboxAffiliate } from "@/lib/affiliate-sandbox";
 import { getStripeBillingReturnUrl } from "@/lib/stripe-billing";
+import { resolvePartnerInvitee } from "@/lib/partner-account";
+import { getAffiliateMemberRole, canViewPartnerFinance } from "@/lib/affiliate-access";
 import { recordAffiliateInvoice, releaseMatureAffiliateEarnings } from "@/lib/affiliate-commerce";
 const input = z.object({ affiliateId: z.string().uuid(), action: z.enum(["configure", "status", "onboard", "reconcile"]), email: z.string().trim().email().optional(), country: z.string().regex(/^[A-Z]{2}$/).optional() });
 export async function POST(request: Request) {
@@ -19,8 +22,10 @@ export async function POST(request: Request) {
   if (result.error || !result.data) throw new ApiRouteError("Affiliate unavailable.", 404);
   const affiliate = result.data;
   const isOwner = affiliate.payout_email?.toLowerCase() === user.email.toLowerCase();
+  const memberRole = await getAffiliateMemberRole(affiliate.id,user.id);
+  const canReadFinance = memberRole !== null && canViewPartnerFinance(memberRole);
   let isPlatformAdmin = false;
-  if (affiliate.is_sandbox || p.action === "configure" || p.action === "reconcile" || !isOwner) {
+  if (affiliate.is_sandbox || p.action === "configure" || p.action === "reconcile" || !canReadFinance) {
    const context = await requireApiWorkspaceProfile({ requirePaid: false });
    isPlatformAdmin = context.profile.role === "system_admin";
    if (!isPlatformAdmin) throw new ApiRouteError("Only the payout contact or platform administrator can access this account.", 403);
@@ -28,15 +33,23 @@ export async function POST(request: Request) {
   if (p.action === "configure") {
    if (affiliate.is_sandbox) throw new ApiRouteError("Sandbox accounts use simulated business details, not a real payout contact.", 400);
    if (!p.email || !p.country) throw new ApiRouteError("Enter the payout contact email and business country.", 400);
-   const existing = await admin.from("affiliate_connect_accounts").select("affiliate_id").eq("affiliate_id", affiliate.id).limit(1);
+   const existing = await admin.from("affiliate_connect_accounts").select("affiliate_id").eq("affiliate_id", affiliate.id).or("account_id.not.is.null,onboarding_started_at.not.is.null").limit(1);
    if (existing.error) throw new Error(existing.error.message);
    if (existing.data?.length) throw new ApiRouteError("Stripe setup has started. Contact the platform administrator to review any ownership or country changes.", 409);
-   const saved = await admin.from("affiliates").update({ payout_email: p.email.toLowerCase(), payout_country: p.country }).eq("id", affiliate.id);
+   const identity = await resolvePartnerInvitee(p.email, `/affiliate-payments?id=${affiliate.id}`, affiliate.name);
+   const contactMembership = await admin.from("affiliate_memberships").select("status").eq("affiliate_id",affiliate.id).eq("user_id",identity.userId).maybeSingle();
+   if(contactMembership.error)throw new Error(contactMembership.error.message);
+   if(contactMembership.data?.status==="inactive")throw new ApiRouteError("This contact’s portal access was revoked. Review their team membership before configuring payouts.",409);
+   const members = await admin.from("affiliate_memberships").select("user_id").eq("affiliate_id",affiliate.id).limit(1);
+   if(members.error)throw new Error(members.error.message);
+   const membership = await admin.from("affiliate_memberships").upsert({affiliate_id:affiliate.id,user_id:identity.userId,role:members.data?.length?"finance":"owner",status:"active"},{onConflict:"affiliate_id,user_id",ignoreDuplicates:true});
+   if(membership.error)throw new Error(membership.error.message);
+   const saved = await admin.from("affiliates").update({ payout_email: p.email.toLowerCase(), payout_country: p.country }).eq("id", affiliate.id).select("id").single();
    if (saved.error) throw new Error(saved.error.message);
-   return NextResponse.json({ message: "Payout contact saved. Share the secure setup page with that contact.", portalUrl: getStripeBillingReturnUrl(`/affiliate-payments?id=${affiliate.id}`) });
+   return NextResponse.json({ message: identity.invitationSent ? "Payout contact saved and a portal invitation sent. Existing ownership is preserved." : "Payout contact saved and portal access connected. Existing ownership is preserved.", portalUrl: getStripeBillingReturnUrl(`/affiliate-payments?id=${affiliate.id}`) });
   }
   const stripe = getAffiliateStripe(affiliate.is_sandbox === true);
-  const livemode = !affiliate.is_sandbox;
+  const livemode = affiliate.is_sandbox ? false : affiliatePaymentsLive();
   if (p.action === "reconcile") {
    if (affiliate.is_sandbox) {
     const count = await reconcileSandboxAffiliate(affiliate.id);
@@ -49,7 +62,7 @@ export async function POST(request: Request) {
     if (!org.stripe_customer_id) continue;
     // Bounded synchronous reconciliation; older history remains a separate operation.
     const invoices = await stripe.invoices.list({ customer: org.stripe_customer_id, status: "paid", limit: 20 });
-    for (const invoice of invoices.data) { await recordAffiliateInvoice(invoice.id); count++; }
+    for (const invoice of [...invoices.data].reverse()) { await recordAffiliateInvoice(invoice.id); count++; }
    }
    const released = await releaseMatureAffiliateEarnings(affiliate.id);
    return NextResponse.json({ message: `Reviewed ${count} paid invoices (up to the latest 20 per customer). Released ${released} matured commission${released === 1 ? "" : "s"} to the payable queue. No payments were transferred.` });
@@ -59,12 +72,10 @@ export async function POST(request: Request) {
   let accountId = accountRow.data?.account_id as string | undefined;
   if (p.action === "onboard") {
    // A platform administrator may configure the contact but may not impersonate it.
-   if (!isOwner && !(affiliate.is_sandbox && isPlatformAdmin)) throw new ApiRouteError(`You are signed in as ${user.email}. Sign in using the designated payout email before continuing to Stripe.`, 403);
+   if ((!isOwner || !canReadFinance) && !(affiliate.is_sandbox && isPlatformAdmin)) throw new ApiRouteError(`You are signed in as ${user.email}. Sign in using the designated payout email before continuing to Stripe.`, 403);
    if (!affiliate.is_sandbox && !affiliate.payout_country) throw new ApiRouteError("Your business country must be configured first.", 409);
    if (!accountId) {
-    const reserved = await admin.from("affiliate_connect_accounts").upsert({ affiliate_id: affiliate.id, livemode }, { onConflict: "affiliate_id,livemode", ignoreDuplicates: true });
-    if (reserved.error) throw new Error(reserved.error.message);
-    const row = await admin.from("affiliate_connect_accounts").select("account_id,requested_at,creation_retry_key").eq("affiliate_id", affiliate.id).eq("livemode", livemode).single();
+    const row = await admin.rpc("begin_affiliate_connect",{affiliate:affiliate.id,live:livemode});
     if (row.error) throw new Error(row.error.message);
     const current = await admin.from("affiliates").select("payout_email,payout_country").eq("id", affiliate.id).single();
     if (current.error) throw new Error(current.error.message);
@@ -93,9 +104,9 @@ export async function POST(request: Request) {
   }
   if (!affiliate.is_sandbox) await releaseMatureAffiliateEarnings(affiliate.id);
   const earningsTable = affiliate.is_sandbox ? "affiliate_sandbox_invoices" : "affiliate_earnings";
-  const earningsSelect = affiliate.is_sandbox ? "invoice_id,currency,commission_cents,status,reason,renewal_number,livemode,invoice_created_at" : "invoice_id,currency,commission_cents,status,reason,renewal_number,livemode,invoice_created_at,hold_until";
+  const earningsSelect = affiliate.is_sandbox ? "invoice_id,currency,commission_cents,status,reason,renewal_number,livemode,invoice_created_at" : "invoice_id,currency,commission_cents,status,reason,renewal_number,livemode,invoice_created_at,hold_until,paid_at,adjustment_cents,reconciliation_required";
   const earnings = await admin.from(earningsTable).select(earningsSelect).eq("affiliate_id", affiliate.id).eq("livemode", livemode).order("invoice_created_at", { ascending: false }).limit(100);
   if (earnings.error) throw new Error(earnings.error.message);
-  return NextResponse.json({ name: affiliate.name, email: affiliate.payout_email, country: affiliate.payout_country, livemode, state, earnings: earnings.data, portalUrl: getStripeBillingReturnUrl(`/affiliate-payments?id=${affiliate.id}`), transfersEnabled: false });
+  return NextResponse.json({ name: affiliate.name, email: affiliate.payout_email, country: affiliate.payout_country, livemode, state, earnings: earnings.data, portalUrl: getStripeBillingReturnUrl(`/affiliate-payments?id=${affiliate.id}`), transfersEnabled: Boolean(state?.payouts_enabled && state?.transfers_active) });
  } catch (error) { return createApiErrorResponse(error, "Unable to update affiliate Stripe setup."); }
 }

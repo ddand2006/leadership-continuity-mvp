@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const ts = require('typescript');
 
-function setup({ organizationId = 'private-org', coupon = {}, total = 0, affiliateId }  = {}) {
+function setup({ organizationId = 'private-org', coupon = {}, total = 0, affiliateId, staging = false, managedPaymentsDefault = false }  = {}) {
   const calls = [];
   class ApiRouteError extends Error {
     constructor(message, status) { super(message); this.status = status; }
@@ -16,12 +16,14 @@ function setup({ organizationId = 'private-org', coupon = {}, total = 0, affilia
     checkout: { sessions: {
       create: async params => {
         calls.push({ checkout: params });
+        if (managedPaymentsDefault && params.managed_payments?.enabled !== false) throw new Error('product tax code is missing: Managed Payments enabled by default');
         return { id: 'cs_verification', url: 'https://checkout.stripe.com/example', amount_total: total };
       },
       expire: async id => { calls.push({ expired: id }); },
     } },
   };
   const imports = {
+    '@/lib/affiliate-payment-mode': { affiliatePaymentsLive: () => !staging },
     'next/server': { NextResponse: { json: body => ({ status: 200, body }) } },
     '@/lib/api-route': {
       ApiRouteError,
@@ -56,6 +58,18 @@ test('private workspace receives full recurring discount without requiring a car
   assert.equal(checkout.payment_method_collection, 'if_required');
   assert.equal(checkout.subscription_data.metadata.organization_id, 'private-org');
   assert.equal(checkout.line_items.length, 3);
+});
+
+test('isolated staging uses direct payments even when the sandbox defaults to Managed Payments', async () => {
+  const t = setup({ organizationId: 'paying-org', total: 300000, staging: true, managedPaymentsDefault: true });
+  assert.equal((await t.run()).status, 200);
+  assert.deepEqual(t.calls.find(c => c.checkout).checkout.managed_payments, { enabled: false });
+});
+
+test('ordinary checkout retains account defaults and ignores client payment-mode overrides', async () => {
+  const t = setup({ organizationId: 'paying-org', total: 300000 });
+  assert.equal((await t.run({ managed_payments: { enabled: false }, AFFILIATE_PAYMENT_MODE: 'staging' })).status, 200);
+  assert.equal(t.calls.find(c => c.checkout).checkout.managed_payments, undefined);
 });
 
 test('other workspaces cannot request the private discount through client data', async () => {

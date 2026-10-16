@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { affiliatePaymentsLive } from "@/lib/affiliate-payment-mode";
 import {
   ApiRouteError,
   createApiErrorResponse,
@@ -81,6 +82,9 @@ export async function POST(request: Request) {
     }
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
+      // Rehearse the platform's direct charge and transfer flow, independent of
+      // the Stripe sandbox's Managed Payments default. Production keeps its settings.
+      ...(!affiliatePaymentsLive() ? { managed_payments: { enabled: false } } : {}),
       ...(isVerification ? {
         discounts: [{ coupon: verificationCouponId }],
         payment_method_collection: "if_required" as const,

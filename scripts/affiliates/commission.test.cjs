@@ -1,9 +1,10 @@
 const test=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const ts=require('typescript');
 const mod={exports:{}};new Function('require','module','exports',ts.transpileModule(fs.readFileSync('src/lib/affiliate-commission.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText)(require,mod,mod.exports);
 const calculate=mod.exports.calculateAffiliateCommission;
+const disputeBlocks=mod.exports.affiliateDisputeBlocksCommission;
 const start=Date.parse('2026-09-17T00:00:00Z')/1000;
 const terms={initial_bps:2000,renewal_bps:1000,renewal_years:2,attributed_at:'2026-09-17T00:00:00Z'};
-const invoice={status:'paid',amount_remaining:0,currency:'usd',billing_reason:'subscription_create',total_excluding_tax:240000,total:264000,amount_paid:264000};
+const invoice={created:start,status:'paid',amount_remaining:0,currency:'usd',billing_reason:'subscription_create',total_excluding_tax:240000,total:264000,amount_paid:264000};
 const line={amount:300000,pricing:{price_details:{price:'foundation'}},period:{start,end:start+365*86400},parent:{subscription_item_details:{proration:false}}};
 test('initial commission excludes tax and uses discounted revenue',()=>{assert.equal(calculate(invoice,[line],terms,['foundation']).commission_cents,48000);});
 test('annual renewal uses individual frozen renewal rate',()=>{const renewal={...line,period:{start:start+365*86400,end:start+730*86400}};const r=calculate({...invoice,billing_reason:'subscription_cycle'},[renewal],terms,['foundation']);assert.equal(r.commission_cents,24000);assert.equal(r.renewal_number,1);});
@@ -16,3 +17,27 @@ test('manual adjustments, unknown products, prorations, unpaid and credit balanc
 test('fractional cents are rounded and zero invoices earn zero',()=>{assert.equal(calculate({...invoice,total_excluding_tax:101,total:101,amount_paid:101},[line],terms,['foundation']).commission_cents,20);assert.equal(calculate({...invoice,total_excluding_tax:0,total:0,amount_paid:0},[line],terms,['foundation']).commission_cents,0);});
 
 test('database timestamp offsets are accepted',()=>{assert.equal(calculate(invoice,[line],{...terms,attributed_at:'2026-09-17T00:00:00+00:00'},['foundation']).commission_cents,48000);});
+
+test('configured fee exclusions use actual fees and hold unknown fee amounts',()=>{
+ const t={...terms,commission_exclusions:['tax','discounts','refunds','stripe_fees']};
+ assert.equal(calculate(invoice,[line],t,['foundation']).status,'held');
+ assert.equal(calculate(invoice,[line],t,['foundation'],{processingFeeCents:7000}).commission_cents,46600);
+});
+test('first paid invoice must convert before attribution expires; later renewals retain rights',()=>{
+ const t={...terms,attribution_expires_at:'2026-10-17T00:00:00Z'};
+ const late={...invoice,created:start+40*86400,status_transitions:{paid_at:start+40*86400}};
+ assert.equal(calculate(late,[line],t,['foundation']).status,'ineligible');
+ const first={...line,period:{start:start+20*86400,end:start+385*86400}};
+ const converted=calculate({...invoice,created:first.period.start},[first],t,['foundation']);
+ assert.equal(converted.renewal_number,0);
+ const renewal={...line,period:{start:first.period.start+365*86400,end:first.period.start+730*86400}};
+ assert.equal(calculate({...invoice,billing_reason:'subscription_cycle'},[renewal],t,['foundation'],{conversionStart:converted.billing_period_start}).renewal_number,1);
+});
+test('partial refunds adjust the revenue basis proportionally and disputes hold commission',()=>{
+ assert.equal(calculate(invoice,[line],terms,['foundation'],{chargedCents:264000,refundedCents:132000}).commission_cents,24000);
+ assert.equal(calculate(invoice,[line],terms,['foundation'],{disputed:true}).status,'held');
+});
+test('won or prevented disputes release commission while open or lost disputes remain blocked',()=>{
+ for(const status of ['won','prevented','warning_closed'])assert.equal(disputeBlocks(status),false,status);
+ for(const status of ['needs_response','under_review','warning_needs_response','warning_under_review','lost'])assert.equal(disputeBlocks(status),true,status);
+});

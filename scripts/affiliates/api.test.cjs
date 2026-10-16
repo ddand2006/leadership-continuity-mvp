@@ -8,7 +8,7 @@ function load(path, imports = {}) {
  return mod.exports;
 }
 const model = load('src/lib/affiliates.ts');
-const payload = { name:'Partner',slug:'partner', branding:{displayName:'Partner',headline:'Build leaders',description:'Leadership development for your entire team.',contactEmail:'partner@example.com',color:'#0f766e',logoUrl:''},initialPercent:20,renewalPercent:10,renewalYears:null,action:'save' };
+const payload = { name:'Partner',slug:'partner', branding:{displayName:'Partner',headline:'Build leaders',description:'Leadership development for your entire team.',contactEmail:'partner@example.com',color:'#0f766e',logoUrl:''},commissionExclusions:['tax','refunds','discounts','stripe_fees'],payoutHoldDays:14,attributionDays:30,agreementAccepted:false,initialPercent:20,renewalPercent:10,renewalYears:null,action:'save' };
 function setup(role) {
  const writes=[];
  class ApiRouteError extends Error {constructor(message,status){super(message);this.status=status;}}
@@ -16,7 +16,7 @@ function setup(role) {
  const route=load('src/app/api/affiliates/route.ts',{
  'next/server':{NextResponse:{json:body=>({status:200,body})}},
  '@/lib/affiliates':model,
- '@/lib/api-route':{ApiRouteError,createApiErrorResponse:e=>({status:e.status||500}),requireApiWorkspaceProfile:async()=>({profile:{role},admin:{from:()=>query}})},
+ '@/lib/api-route':{ApiRouteError,createApiErrorResponse:e=>({status:e.status||500}),requireApiWorkspaceProfile:async()=>({profile:{role},user:{id:'admin'},admin:{from:()=>query}})},
  });
  return {writes,run:p=>route.POST({json:async()=>p})};
 }

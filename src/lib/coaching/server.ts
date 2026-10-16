@@ -1,5 +1,5 @@
 import {notFound} from 'next/navigation';
-import {canAccessCoachingPreview} from './preview';
+import {canAccessCoachingWorkspace} from './preview';
 import 'server-only';
 import { requireUser } from '@/lib/auth';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
@@ -7,6 +7,8 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 export async function coachingContext() {
     const user = await requireUser();
     const db = await createSupabaseServerClient();
+    const onboarding = await db.rpc('partner_complete_coach_onboarding');
+    if (onboarding.error) throw new Error(onboarding.error.message);
     const [profile, coach] = await Promise.all([
         db.from('profiles').select('id,organization_id,role,full_name').eq('auth_user_id', user.id).is('deleted_at', null).maybeSingle(),
         db.from('coach_profiles').select('*').eq('user_id', user.id).maybeSingle(),
@@ -15,11 +17,8 @@ export async function coachingContext() {
         throw new Error(profile.error.message);
     if (coach.error)
         throw new Error(coach.error.message);
-    // Keep the private coaching preview restricted for administrators, but
-    // allow authenticated candidates and mentors to use their own workspace.
-    // Candidate-facing development routes rely on this context as well.
     const role = profile.data?.role ?? '';
-    if (!canAccessCoachingPreview(user) && !['candidate', 'mentor'].includes(role)) notFound();
+    if (!user.email_confirmed_at || !canAccessCoachingWorkspace(role, Boolean(coach.data && !['suspended', 'inactive'].includes(coach.data.profile_status)))) notFound();
     const active = profile.data ? await db.rpc('coaching_enabled', { org: profile.data.organization_id }) : { data: false, error: null };
     if (active.error)
         throw new Error(active.error.message);

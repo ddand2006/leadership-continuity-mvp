@@ -12,11 +12,13 @@ type ConfirmationState =
   | "done"
   | "error";
 
-type VerifyOtpType = "email" | "recovery" | "invite" | "email_change";
+type VerifyOtpType = "email" | "signup" | "magiclink" | "recovery" | "invite" | "email_change";
 
 function isVerifyOtpType(value: string | null): value is VerifyOtpType {
   return (
     value === "email" ||
+    value === "signup" ||
+    value === "magiclink" ||
     value === "recovery" ||
     value === "invite" ||
     value === "email_change"
@@ -66,7 +68,9 @@ export default function AuthConfirmPage() {
         ? "invite"
         : type === "recovery"
           ? "recovery"
-          : null;
+          : type === "signup"
+            ? "signup"
+            : null;
 
   useEffect(() => {
     let active = true;
@@ -102,6 +106,9 @@ export default function AuthConfirmPage() {
 
       try {
         const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+        if (searchParams.get("error") || hashParams.get("error")) {
+          throw new Error("This email link is invalid or has expired. Request a fresh email link and open the newest message.");
+        }
         const hashAccessToken = hashParams.get("access_token");
         const hashRefreshToken = hashParams.get("refresh_token");
         const hashType = hashParams.get("type");
@@ -166,11 +173,11 @@ export default function AuthConfirmPage() {
           }
         }
 
-        if (flowMode === "invite" || flowMode === "recovery") {
+        if (flowMode === "invite" || flowMode === "recovery" || flowMode === "signup") {
           if (active) {
             setState("error");
             setErrorMessage(
-              "This invite or password reset link is missing details or has expired. Request a fresh email link and try again.",
+              "This email link is missing details or has expired. Request a fresh email link and try again.",
             );
           }
 
@@ -215,30 +222,14 @@ export default function AuthConfirmPage() {
       }
     }
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!active || !session) {
-        return;
-      }
-
-      if (
-        event === "SIGNED_IN" ||
-        event === "TOKEN_REFRESHED" ||
-        event === "PASSWORD_RECOVERY" ||
-        event === "USER_UPDATED"
-      ) {
-        void finishSession(session);
-      }
-    });
-
+    // Only the explicit link exchange may complete signup/invite/recovery.
+    // A refresh event can still belong to a different account already open here.
     void hydrateSessionFromLink();
 
     return () => {
       active = false;
-      subscription.unsubscribe();
     };
-  }, [code, flowMode, nextPath, supabase, tokenHash, type]);
+  }, [code, flowMode, nextPath, searchParams, supabase, tokenHash, type]);
 
   async function handlePasswordSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -284,13 +275,17 @@ export default function AuthConfirmPage() {
   }
 
   const heading =
-    flowMode === "invite"
+    state === "error"
+      ? "Unable to complete email link"
+      : flowMode === "invite"
       ? "Complete your invitation"
       : flowMode === "recovery"
         ? "Choose a new password"
         : "Completing your sign-in";
   const description =
-    flowMode === "invite"
+    state === "error"
+      ? "Request a fresh email link, then open the newest message to continue."
+      : flowMode === "invite"
       ? "Your invitation is valid. Set your password to activate this account and continue into the Leadership Continuity System."
       : flowMode === "recovery"
         ? "Your password reset link is valid. Choose a new password to regain access."

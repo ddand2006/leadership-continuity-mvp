@@ -1,4 +1,7 @@
-import 'server-only';
-import {getCurrentUser} from '@/lib/auth';
-import {canAccessCoachingPreview} from './preview';
-export async function canViewCoachingPreview(){return canAccessCoachingPreview(await getCurrentUser());}
+import "server-only";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+export async function canViewCoachingPreview() {
+  const db = await createSupabaseServerClient();
+  const result = await db.rpc("coaching_identity_enabled");
+  return !result.error && Boolean(result.data);
+}

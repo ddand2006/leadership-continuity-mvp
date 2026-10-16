@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import { getAppUrl } from "@/lib/env";
+import { affiliatePaymentsLive } from "@/lib/affiliate-payment-mode";
 
 const configuredPriceIds = (process.env.STRIPE_PRICE_IDS ?? "")
   .split(",")
@@ -29,6 +30,10 @@ export function getStripe() {
 
   if (!secretKey) {
     throw new Error("Stripe billing is not configured yet.");
+  }
+
+  if (process.env.AFFILIATE_PAYMENT_MODE && !affiliatePaymentsLive() && !/^(sk|rk)_test_/.test(secretKey)) {
+    throw new Error("Staging billing requires a Stripe test-mode key.");
   }
 
   return new Stripe(secretKey);

@@ -2,6 +2,9 @@
 
 Target domain: `leadercontinuity.com`
 
+The owner confirmed Hostinger as the final hosting provider on October 14, 2026. Use a separate
+Hostinger staging application for the partner rollout; see `docs/partner-staging-rollout.md`.
+
 This app is a server-rendered Next.js application. It is **not** a static export, so it needs a Hostinger deployment path that supports a running Node.js app.
 
 ## What to confirm in Hostinger
@@ -14,11 +17,18 @@ If it does not, this app should be moved to a Hostinger VPS or another Node-capa
 
 ## Runtime
 
-- Node.js: `20.9+`
-- pnpm: `10.33.0` via the `packageManager` field in `package.json`
+- Node.js: use a supported Node 22 release (`22.3.0+`); see `engines` in `package.json`
+- pnpm: `11.9.0` via the `packageManager` field in `package.json`
 - Install command: `pnpm install --frozen-lockfile`
 - Build command: `pnpm build`
 - Start command: `pnpm start`
+
+Keep `nodeLinker: hoisted` in `pnpm-workspace.yaml`. pnpm 11 ignores the old
+`node-linker=hoisted` entry in `.npmrc`. Without the workspace setting, Hostinger's
+runtime package can lose dependencies even when the build succeeds (the staging
+failure was `Cannot find module '@swc/helpers/_/_interop_require_default'`).
+After deploying, check an actual page response and sign-in; a Completed deployment
+alone does not prove the Node.js app can render requests.
 
 If Hostinger falls back to a newer Corepack-managed `pnpm` release and the install step crashes before the app builds, confirm the project is deploying with the pinned `packageManager` value from `package.json` instead of Hostinger's default.
 
@@ -119,7 +129,22 @@ Make sure `leadercontinuity.com` is attached to the deployed Node.js app and SSL
 
 ## GitHub-based deployment flow
 
+Before deploying partner changes to the production application, complete the isolated staging
+rehearsal. The staging application must use its own Supabase project, Stripe test configuration,
+auth redirects, and deployment branch. Confirm app capacity and Node.js support in hPanel first.
+
 Recommended deployment sequence:
+
+For the temporary Hostinger rehearsal only, set `AFFILIATE_PAYMENT_MODE=staging` and
+`AFFILIATE_STAGING_PROJECT_REF` to its isolated Supabase project ref. `APP_URL` must be
+HTTPS on a temporary `*.hostingersite.com` domain, and `NEXT_PUBLIC_SUPABASE_URL` must
+match that ref. The production Supabase ref is rejected. Ordinary billing uses a test-only
+`STRIPE_SECRET_KEY`, its own `/api/stripe/webhook` signing secret, and three annual test
+price IDs through `STRIPE_PRICE_IDS`. The affiliate payout queue then accepts only test
+records and displays a simulated-money notice. The older affiliate sandbox keeps its
+separate key, webhook, and estimate table. Leave both mode settings absent in production;
+the ordinary affiliate ledger, Connect setup, and payout queue remain live-only by default.
+See `docs/partner-staging-rollout.md` for the rehearsal evidence and remaining gates.
 
 1. Push the latest code to GitHub.
 2. In Hostinger hPanel, create or open the Node.js / web app for `leadercontinuity.com`.
