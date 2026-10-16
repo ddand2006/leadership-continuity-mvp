@@ -1,4 +1,5 @@
 export type Coach = {
+    partners?: {partner_id:string;partner_name:string}[];
     id: string;
     user_id?: string;
     display_name: string;

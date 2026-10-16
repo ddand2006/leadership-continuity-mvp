@@ -5,6 +5,7 @@ import { coachingContext, rpc } from '@/lib/coaching/server';
 import { money, pricingModels, type CommerceData, type CommerceRow } from '@/lib/coaching/commerce-model';
 import { CommerceForm } from './commerce-form';
 import { Panel, Field, Select } from './ui';
+import { refreshCoachingConnectStatus } from '@/lib/coaching/commerce-provider';
 type Context = Awaited<ReturnType<typeof coachingContext>>;
 const str = (r: CommerceRow, key: string) => String(r[key] ?? '');
 const rows = (d: CommerceData, key: string) => Array.isArray(d[key]) ? d[key] as CommerceRow[] : [];
@@ -36,6 +37,8 @@ export async function Commerce({ ctx, path, filters = {} }: {
         notFound();
     if (section === 'earnings' && !ctx.coach)
         return <Panel title="Earnings requires a coach profile"><p className="mb-4">This workspace is available after a coach profile is assigned to your account.</p><Link className="font-semibold underline" href="/coaching/onboarding">Open Marketplace Readiness</Link></Panel>;
+    if (section === 'earnings' && ctx.coach)
+        await refreshCoachingConnectStatus(ctx.coach.id);
     const d = await rpc<CommerceData>(ctx.db, 'coaching_commerce_read', { section: path[0] === 'admin' ? 'admin' : section, engagement: section === 'checkout' ? path[1] : null });
     if (section === 'packages')
         return <Packages data={d}/>;

@@ -2,6 +2,7 @@ import { handleAffiliateStripeEvent } from "@/lib/affiliate-commerce";
 import { handleCoachingStripeEvent } from "@/lib/coaching/commerce-provider";
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
+import { affiliatePaymentsLive } from "@/lib/affiliate-payment-mode";
 import { hasResendEnv } from "@/lib/env";
 import { sendResendEmail } from "@/lib/resend";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -254,6 +255,9 @@ export async function POST(request: Request) {
   }
 
   // The dedicated affiliate sandbox endpoint never synchronizes live access.
+  if (process.env.AFFILIATE_PAYMENT_MODE && event.livemode !== affiliatePaymentsLive()) {
+    return NextResponse.json({ error: "Stripe event does not match this app's payment mode." }, { status: 400 });
+  }
   if (event.livemode === false && /^(sk|rk)_live_/.test(process.env.STRIPE_SECRET_KEY ?? "")) {
     return NextResponse.json({ error: "Test events belong on the sandbox endpoint." }, { status: 400 });
   }

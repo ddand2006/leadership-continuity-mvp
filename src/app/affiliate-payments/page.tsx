@@ -3,7 +3,7 @@ import { AffiliatePayments } from "@/components/affiliate-payments";
 import { ShareAffiliateLink } from "@/components/share-affiliate-link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { getOwnedAffiliates } from "@/lib/affiliate-access";
+import { canViewPartnerFinance, getOwnedAffiliates } from "@/lib/affiliate-access";
 import { z } from "zod";
 export default async function AffiliatePaymentsPage({ searchParams }: { searchParams: Promise<{ id?: string }> }) {
  const {id}=await searchParams;
@@ -33,7 +33,7 @@ export default async function AffiliatePaymentsPage({ searchParams }: { searchPa
     <div className="rounded-2xl border bg-white p-6 shadow-sm"><p className="text-sm font-semibold uppercase tracking-widest text-teal-700">How it works</p><ol className="mt-4 space-y-4 text-sm text-slate-700"><li><strong>1. Share</strong><span className="block text-slate-500">Send your referral page by email or copy the link.</span></li><li><strong>2. They enroll</strong><span className="block text-slate-500">The organization creates its own secure account.</span></li><li><strong>3. We follow up</strong><span className="block text-slate-500">Their referral is recorded for implementation support.</span></li></ol></div>
    </section>
    <section className="rounded-2xl border bg-white p-6 shadow-sm"><p className="text-sm font-semibold uppercase tracking-widest text-teal-700">Referred organizations</p><h2 className="mt-2 text-2xl font-semibold">Your introductions</h2><p className="mt-2 text-sm text-slate-600">Only organization names and subscription status are shared here. Employee records, assessments, and training content remain private.</p><div className="mt-5 overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr className="border-b text-slate-500"><th className="pb-3">Organization</th><th className="pb-3">Status</th></tr></thead><tbody>{referrals?.data?.map((r,i) => <tr key={i} className="border-b last:border-0"><td className="py-3 font-medium">{r.name}</td><td className="py-3">{r.subscription_status ?? "Pending"}</td></tr>)}</tbody></table>{!referrals?.data?.length && <p className="pt-4 text-sm text-slate-500">No referred organizations yet. Your first introduction will appear here.</p>}</div></section>
-   {z.string().uuid().safeParse(selectedId).success && <details className="rounded-2xl border bg-white p-6 shadow-sm"><summary className="cursor-pointer text-lg font-semibold">Payments and account setup</summary><div className="mt-5"><AffiliatePayments affiliateId={selectedId!} signedInEmail={user?.email}/></div></details>}
+   {canViewPartnerFinance(selected.memberRole) && z.string().uuid().safeParse(selectedId).success && <details className="rounded-2xl border bg-white p-6 shadow-sm"><summary className="cursor-pointer text-lg font-semibold">Payments and account setup</summary><div className="mt-5"><AffiliatePayments affiliateId={selectedId!} signedInEmail={user?.email}/></div></details>}
   </> : <section className="rounded-2xl border bg-white p-8"><h2 className="text-2xl font-semibold">Your partner access is not connected yet</h2><p className="mt-3 text-slate-600">Use the invitation link provided by Leadership Continuity and sign in with the designated partner email.</p></section>}
  </main>;
 }

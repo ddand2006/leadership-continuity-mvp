@@ -23,3 +23,42 @@ Format: `- **YYYY-MM-DD** - Decision description. See <issue-ref>.`
 - **2026-09-30** - Keep the existing Next.js, Supabase, and local component architecture as the
   project foundation while adding Trellis-style documentation around it. The goal is to improve
   continuity and organization without replacing working application conventions.
+
+- **2026-10-13** - Partner approval creates a linked, unpublished affiliate draft with zero
+  commission defaults; negotiated terms and publication remain explicit platform decisions.
+  Partner ownership and team permissions use user-ID membership independently of payout email.
+  Coach affiliations require the coach’s acceptance and reuse one coach profile. Subscription
+  referral commissions and coach compensation remain separate; live coaching commerce stays in
+  test mode until its provider rollout is explicitly enabled. See `docs/partner-workflows.md`.
+
+- **2026-10-15** - Affiliate payout requests retain their Stripe idempotency key for uncertain
+  outcomes and lost receipts. A definitive insufficient-funds rejection is audited and
+  atomically retires only its matching request, returning the commission for a fresh admin
+  approval. This avoids Stripe v1 replaying a cached rejection after funding while preventing
+  stale responses from reopening a newer or completed transfer.
+
+### October 15, 2026 — Email-link identity is authoritative during confirmation
+
+Signup, invite, and recovery completion uses the session returned by the explicit email-link
+exchange. Background auth events and an already-open account cannot finish those flows.
+Provider URL errors are shown before any session work; missing verification data fails closed.
+Ordinary sign-in confirmation without one of these sensitive flow modes retains its existing
+session fallback. This prevents a stale browser session from claiming enrollment or password
+setup while another person's email link is being verified.
+
+- **2026-10-15** - A coach earnings read reconciles an incomplete Stripe Connect account from
+  Stripe before showing payout readiness, then stops polling once the stored account is active.
+  Connected `account.updated` webhooks remain the normal update path; the authenticated refresh
+  closes the return-path gap when a platform webhook destination does not receive connected-
+  account events.
+
+- **2026-10-16** - Affiliate commission eligibility follows the current Stripe dispute outcome,
+  while the charge's historical `disputed` flag only prompts that status lookup. Open and lost
+  disputes keep commission blocked; `won`, `prevented`, and `warning_closed` outcomes release
+  the verified commission. This keeps chargebacks conservative without permanently withholding
+  a commission after the platform wins or prevents the dispute.
+
+- **2026-10-16** - Hostinger is the sole production deployment target. Disable Vercel's automatic
+  Git deployments in repository configuration so a merge to `main` cannot create a parallel
+  Vercel production release while Hostinger deploys the same commit. See
+  `docs/hostinger-business-deploy.md`.

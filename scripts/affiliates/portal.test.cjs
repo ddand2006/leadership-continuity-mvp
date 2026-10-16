@@ -13,11 +13,13 @@ test('unverified or signed-out identities cannot look up affiliate ownership', a
  assert.deepEqual(await getOwnedAffiliates(null),[]);
  assert.deepEqual(await getOwnedAffiliates({email:'owner@example.com'}),[]);
 });
-test('ownership lookup uses verified email and excludes sandbox records', async()=>{
- const filters=[]; const query={select(){return this},eq(...args){filters.push(args);return this},order:async()=>({data:[{id:'owned'}],error:null})};
- const {getOwnedAffiliates}=load('src/lib/affiliate-access.ts',{'@/lib/supabase/admin':{createSupabaseAdminClient:()=>({from:()=>query})}});
- assert.deepEqual(await getOwnedAffiliates({email:'Owner@Example.com',email_confirmed_at:'yes'}),[{id:'owned'}]);
- assert.deepEqual(filters,[['payout_email','owner@example.com'],['is_sandbox',false]]);
+test('membership lookup uses stable user identity and ignores payout email', async()=>{
+ const filters=[];
+ const queries={affiliate_memberships:{select(){return this},eq(...args){filters.push(args);return this},then(resolve){resolve({data:[{affiliate_id:'owned',role:'owner'}],error:null});}},affiliates:{select(){return this},in(...args){filters.push(args);return this},eq(...args){filters.push(args);return this},order:async()=>({data:[{id:'owned'}],error:null})}};
+ const {getOwnedAffiliates}=load('src/lib/affiliate-access.ts',{'@/lib/supabase/admin':{createSupabaseAdminClient:()=>({from:t=>queries[t],rpc:async()=>({data:'owner',error:null})})}});
+ assert.deepEqual(await getOwnedAffiliates({id:'user',email_confirmed_at:'yes'}),[{id:'owned',memberRole:'owner'}]);
+ assert.ok(filters.some(f=>f[0]==='user_id'&&f[1]==='user'));
+ assert.ok(!filters.some(f=>f[0]==='payout_email'));
 });
 for(const requested of ['owned','another-affiliate']) test(`portal scopes referrals for ${requested}`,async()=>{
  const calls=[];
@@ -28,7 +30,7 @@ for(const requested of ['owned','another-affiliate']) test(`portal scopes referr
  '@/components/share-affiliate-link':{ShareAffiliateLink:()=>null},
  '@/lib/supabase/server':{createSupabaseServerClient:async()=>({auth:{getUser:async()=>({data:{user:{email:'owner@example.com'}}})}})},
  '@/lib/supabase/admin':{createSupabaseAdminClient:()=>({from:()=>query})},
- '@/lib/affiliate-access':{getOwnedAffiliates:async()=>[{id:'owned',name:'Owned company',slug:'owned'}]}
+ '@/lib/affiliate-access':{canViewPartnerFinance:()=>true,getOwnedAffiliates:async()=>[{memberRole:'owner',id:'owned',name:'Owned company',slug:'owned'}]}
  }).default;
  await Page({searchParams:Promise.resolve({id:requested})});
  assert.deepEqual(calls,requested==='owned'?[['select','name,subscription_status'],['affiliate_id','owned']]:[]);

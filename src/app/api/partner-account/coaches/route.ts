@@ -1,6 +1,26 @@
-import { NextResponse } from 'next/server';
-import { z } from 'zod';
-import { requireUser } from '@/lib/auth';
-import { createSupabaseAdminClient } from '@/lib/supabase/admin';
-const input=z.object({name:z.string().trim().min(2).max(200),email:z.string().trim().email(),specialty:z.string().trim().max(200).optional()});
-export async function POST(request:Request){try{const user=await requireUser();const p=input.parse(await request.json());const admin=createSupabaseAdminClient();const app=await admin.from('partner_applications').select('id,status').eq('auth_user_id',user.id).single();if(app.error||!app.data)return NextResponse.json({error:'Partner application not found.'},{status:404});if(app.data.status==='rejected'||app.data.status==='suspended')return NextResponse.json({error:'This partner account cannot add coaches.'},{status:403});const invited=await admin.auth.admin.inviteUserByEmail(p.email.toLowerCase(),{data:{account_type:'coach',invited_by_partner:app.data.id,coach_name:p.name},redirectTo:`${process.env.NEXT_PUBLIC_SITE_URL??'https://leadercontinuity.com'}/auth/confirm?next=/coaching/onboarding`});if(invited.error&& !invited.error.message.toLowerCase().includes('already'))return NextResponse.json({error:invited.error.message},{status:400});const row=await admin.from('partner_coaches').insert({partner_application_id:app.data.id,coach_user_id:invited.data.user?.id??null,coach_name:p.name,coach_email:p.email.toLowerCase(),specialty:p.specialty||null,invitation_status:'invited'}).select('id,coach_name,coach_email,specialty,invitation_status').single();if(row.error)return NextResponse.json({error:'Unable to add coach.'},{status:400});return NextResponse.json({coach:row.data});}catch{return NextResponse.json({error:'Unable to add coach.'},{status:400});}}
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { ApiRouteError, createApiErrorResponse } from "@/lib/api-route";
+import { requirePartnerContext, resolvePartnerInvitee } from "@/lib/partner-account";
+
+const input = z.object({ name: z.string().trim().min(2).max(200), email: z.string().trim().email(), specialty: z.string().trim().max(200).optional() });
+
+export async function POST(request: Request) {
+  try {
+    const { admin, application } = await requirePartnerContext(true);
+    const validation = input.safeParse(await request.json());
+    if (!validation.success) throw new ApiRouteError("Enter a valid coach name, email, and specialty.", 400);
+    const parsed = validation.data;
+    const identity = await resolvePartnerInvitee(parsed.email, "/coaching/onboarding", parsed.name);
+    const result = await admin.rpc("link_partner_coach", {
+      application: application.id, coach_user: identity.userId,
+      coach_name: parsed.name, coach_email: parsed.email.toLowerCase(), specialty: parsed.specialty ?? "",
+    });
+    if (result.error) throw new Error(result.error.message);
+    return NextResponse.json({ coach: result.data, message: identity.invitationSent
+      ? "Invitation sent. The coach can complete their profile and confirm your affiliation."
+      : "Existing coach account linked. Ask the coach to sign in and confirm the affiliation in Marketplace Readiness." });
+  } catch (error) {
+    return createApiErrorResponse(error, "Unable to add coach.");
+  }
+}

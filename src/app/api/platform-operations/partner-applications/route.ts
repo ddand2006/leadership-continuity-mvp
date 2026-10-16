@@ -15,13 +15,9 @@ export async function POST(request: Request) {
     const parsed = input.safeParse(await request.json());
     if (!parsed.success) throw new ApiRouteError('A valid application and decision are required.', 400);
     const { id, status, reviewNotes } = parsed.data;
-    const result = await admin.from('partner_applications').update({
-      status,
-      review_notes: reviewNotes || null,
-      reviewed_by: user.id,
-      reviewed_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }).eq('id', id).select('id,status,review_notes,reviewed_at').single();
+    const result = await admin.rpc('review_partner_application', {
+      application: id, decision: status, actor: user.id, note: reviewNotes || null,
+    });
     if (result.error) throw new Error(result.error.message);
     return NextResponse.json(result.data);
   } catch (error) {

@@ -1,7 +1,7 @@
 import { getOwnedAffiliates } from "@/lib/affiliate-access";
 import {PlatformPreviewChrome} from '@/components/platform-preview/chrome';
 import {canUsePlatformPreview} from '@/lib/platform-preview/model';
-import {canAccessCoachingPreview} from '@/lib/coaching/preview';
+import {canAccessCoachingWorkspace} from '@/lib/coaching/preview';
 import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
 import { AccountMenu } from "@/components/account-menu";
@@ -105,10 +105,11 @@ export async function AppNav({ pathname }: { pathname: string }) {
   let organizationName: string | null = null;
   let supportOrganizationName: string | null = null;
   let isApprovedPartner = false;
+  let showCoaching = false;
 
   if (user) {
     const supabase = await createSupabaseServerClient();
-    const [profileResult, accountResult, partnerResult] = await Promise.all([
+    const [profileResult, accountResult, partnerResult, coachResult] = await Promise.all([
       supabase
         .from("profiles")
         .select("id, role, organization_id, deleted_at")
@@ -124,6 +125,7 @@ export async function AppNav({ pathname }: { pathname: string }) {
         .select("status")
         .eq("auth_user_id", user.id)
         .maybeSingle(),
+      supabase.from("coach_profiles").select("id,profile_status").eq("user_id", user.id).maybeSingle(),
     ]);
 
     if (profileResult.error) {
@@ -135,7 +137,11 @@ export async function AppNav({ pathname }: { pathname: string }) {
     }
     isApprovedPartner = Boolean(partnerResult.data);
 
-    if (partnerResult.data) {
+    showCoaching = Boolean(user.email_confirmed_at && canAccessCoachingWorkspace(profileResult.data?.role, Boolean(coachResult.data && !["suspended", "inactive"].includes(coachResult.data.profile_status))) && !["suspended", "archived"].includes(accountResult.data?.status ?? ""));
+    if (!profileResult.data && coachResult.data && !pathname.startsWith("/partner-account") && pathname !== "/affiliate-payments") {
+      return <header className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 p-6"><Link className="font-semibold" href="/coaching">Coaching workspace</Link><AccountMenu initials={getInitials(user)} displayName={getDisplayName(user)} email={user.email ?? null} accountLandingHref="/coaching/onboarding" accountLandingLabel="Marketplace readiness" /></header>;
+    }
+    if (partnerResult.data && (pathname.startsWith("/partner-account") || pathname === "/affiliate-payments" || !profileResult.data)) {
       return <header className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-4 p-6"><div className="flex flex-wrap items-center gap-5"><Link className="font-semibold" href="/partner-account/dashboard">Partner portal</Link><nav aria-label="Affiliate navigation" className="flex flex-wrap items-center gap-2 text-sm"><Link className="rounded-full border border-slate-300 px-3 py-2" href="/partner-account/dashboard">Dashboard</Link><Link className="rounded-full border border-slate-300 px-3 py-2" href="/partner-account/administration">Administration</Link><Link className="rounded-full border border-slate-300 px-3 py-2" href="/affiliate-payments">Referrals & payments</Link></nav></div><AccountMenu initials={getInitials(user)} displayName={getDisplayName(user)} email={user.email ?? null} accountLandingHref="/partner-account/dashboard" accountLandingLabel="Open partner dashboard"/></header>;
     }
 
@@ -210,7 +216,7 @@ export async function AppNav({ pathname }: { pathname: string }) {
           { href: candidateId ? `/mentoring?candidateId=${candidateId}` : "/mentoring", label: "Mentoring" },
           { href: "/reports-forms", label: "Documents" },
           { href: candidateId ? `/candidates/${candidateId}/development` : "/candidates", label: "Portfolio" },
-          ...(canAccessCoachingPreview(user) ? [{ href: "/coaching", label: "Coaching" }] : []),
+          ...(showCoaching ? [{ href: "/coaching", label: "Coaching" }] : []),
         ]
       : isMentor && !isAdmin
         ? [
@@ -245,7 +251,7 @@ export async function AppNav({ pathname }: { pathname: string }) {
     ...(user && hasLeadershipHelpAccess && hasLeadershipHelpPreviewAccess
       ? [{ href: "/personal-development", label: "Personal Development" }]
       : []),
-    ...(canAccessCoachingPreview(user) ? [{ href: "/coaching", label: "Coaching" }] : []),
+    ...(showCoaching ? [{ href: "/coaching", label: "Coaching" }] : []),
   ];
   const accountLandingHref = hasContinuityAccess
     ? isAdmin || isMentor

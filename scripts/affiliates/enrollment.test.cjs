@@ -13,7 +13,7 @@ function setup({ existing = false, published = true } = {}) {
  } };
  const imports = {
  'next/server': {NextResponse:{json:(body,options)=>({body,status:options?.status||200})}},
- '@/lib/env':{hasResendEnv:()=>false},'@/lib/resend':{sendResendEmail:async()=>{throw new Error('No emails allowed in this test');}},
+ '@/lib/affiliate-access':{getOwnedAffiliates:async()=>[]},'@/lib/env':{hasResendEnv:()=>false},'@/lib/resend':{sendResendEmail:async()=>{throw new Error('No emails allowed in this test');}},
  '@/lib/supabase/admin':{createSupabaseAdminClient:()=>admin},
  '@/lib/supabase/server':{createSupabaseServerClient:async()=>({auth:{getUser:async()=>({data:{user:{id:'user-test',email:'test@example.invalid',user_metadata:{affiliate_slug:'published-partner',initial_bps:9999,account_request:{fullName:'Sample Owner',companyName:'Sample Organization',phone:'5555550100',roleTitle:'Owner'}}}}})}})},
  };
