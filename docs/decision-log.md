@@ -57,3 +57,8 @@ setup while another person's email link is being verified.
   disputes keep commission blocked; `won`, `prevented`, and `warning_closed` outcomes release
   the verified commission. This keeps chargebacks conservative without permanently withholding
   a commission after the platform wins or prevents the dispute.
+
+- **2026-10-16** - Hostinger is the sole production deployment target. Disable Vercel's automatic
+  Git deployments in repository configuration so a merge to `main` cannot create a parallel
+  Vercel production release while Hostinger deploys the same commit. See
+  `docs/hostinger-business-deploy.md`.

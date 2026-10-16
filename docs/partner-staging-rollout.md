@@ -6,11 +6,11 @@
 - The owner confirmed Hostinger as the final hosting provider on October 14. Use Hostinger
   for staging and production; follow `docs/hostinger-business-deploy.md`.
 - GitHub also records a successful Vercel Production deployment of
-  `c26ce5dde6b18c289640a6d1dad1a61599f3a1d7` on October 5. This record does not
-  determine the intended hosting target. Existing Vercel deployment settings remain unchanged.
+  `c26ce5dde6b18c289640a6d1dad1a61599f3a1d7` on October 5. Hostinger is the intended
+  production target, and `vercel.json` now disables automatic Vercel Git deployments.
 - Linked Supabase project: `hnrwovfgttenymnhowsf` (`leadership-continuity-mvp`, PostgreSQL 17.6).
 - Hosted migration versions match all local versions through `202610040001`.
-  Only `202610130001` and `202610130002` are pending.
+  Migrations `202610130001`, `202610130002`, `202610150001`, and `202610150002` are pending.
 - `supabase branches list` returned no existing preview branches.
 - Supabase CLI and GitHub access work. Hostinger staging capacity, Node.js configuration,
   deployment branch, domain, and environment variables still require inspection in hPanel.

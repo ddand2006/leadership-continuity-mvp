@@ -4,6 +4,8 @@ Target domain: `leadercontinuity.com`
 
 The owner confirmed Hostinger as the final hosting provider on October 14, 2026. Use a separate
 Hostinger staging application for the partner rollout; see `docs/partner-staging-rollout.md`.
+Automatic Vercel Git deployments are disabled by `vercel.json`; keep Hostinger as the only
+production deployment attached to `main`.
 
 This app is a server-rendered Next.js application. It is **not** a static export, so it needs a Hostinger deployment path that supports a running Node.js app.
 
